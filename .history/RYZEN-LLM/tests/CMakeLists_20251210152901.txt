@@ -1,0 +1,73 @@
+# Unit Tests Configuration
+
+# Find GoogleTest
+find_package(GTest REQUIRED)
+
+# Unit Tests - C++
+enable_testing()
+
+# RWKV Unit Test
+add_executable(test_rwkv unit/test_rwkv.cpp)
+target_link_libraries(test_rwkv PRIVATE 
+    ryzen_llm_rwkv 
+    GTest::GTest 
+    GTest::Main
+)
+add_test(NAME RWKV COMMAND test_rwkv)
+
+# KV Cache Unit Test
+add_executable(test_kv_cache unit/test_kv_cache.cpp)
+target_link_libraries(test_kv_cache PRIVATE 
+    ryzen_llm_optimization 
+    GTest::GTest 
+    GTest::Main
+)
+add_test(NAME KVCache COMMAND test_kv_cache)
+
+# Mamba Unit Test
+add_executable(test_mamba unit/test_mamba.cpp)
+target_link_libraries(test_mamba PRIVATE 
+    mamba_ssm 
+    GTest::GTest 
+    GTest::Main
+)
+add_test(NAME Mamba COMMAND test_mamba)
+
+# AVX512 MATMUL Unit Test (only if AVX512 is available)
+add_executable(test_avx512_matmul unit/test_avx512_matmul.cpp)
+target_link_libraries(test_avx512_matmul PRIVATE 
+    ryzen_llm_optimization 
+    GTest::GTest 
+    GTest::Main
+)
+add_test(NAME AVX512MATMUL COMMAND test_avx512_matmul)
+
+# BitNet Unit Test
+add_executable(test_bitnet_matmul unit/test_bitnet_matmul.cpp)
+target_link_libraries(test_bitnet_matmul PRIVATE 
+    ryzen_llm_bitnet 
+    GTest::GTest 
+    GTest::Main
+)
+add_test(NAME BitNetMATMUL COMMAND test_bitnet_matmul)
+
+# T-MAC Unit Test
+add_executable(test_tmac unit/test_tmac.cpp)
+target_link_libraries(test_tmac PRIVATE 
+    ryzen_llm_tmac 
+    GTest::GTest 
+    GTest::Main
+)
+add_test(NAME TMAC COMMAND test_tmac)
+
+# Print test summary
+message(STATUS "Tests enabled:")
+message(STATUS "  - test_rwkv (RWKV Time Mixing)")
+message(STATUS "  - test_kv_cache (KV Cache Memory Management)")
+message(STATUS "  - test_mamba (Mamba SSM)")
+message(STATUS "  - test_avx512_matmul (AVX-512 MATMUL)")
+message(STATUS "  - test_bitnet_matmul (BitNet MATMUL)")
+message(STATUS "  - test_tmac (T-MAC GEMM)")
+message(STATUS "")
+message(STATUS "Run tests with: ctest -V")
+message(STATUS "")

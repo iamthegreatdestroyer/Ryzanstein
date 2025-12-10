@@ -1,0 +1,25 @@
+# Unit Tests Configuration
+# Using assert-based testing (no external dependencies required)
+
+enable_testing()
+
+# RWKV Unit Test (Simple version without GoogleTest)
+add_executable(test_rwkv unit/test_rwkv_simple.cpp)
+target_link_libraries(test_rwkv PRIVATE ryzen_llm_rwkv)
+target_include_directories(test_rwkv PRIVATE 
+    ${CMAKE_SOURCE_DIR}/src/core/rwkv
+    ${CMAKE_SOURCE_DIR}/tests
+)
+add_test(NAME RWKV COMMAND test_rwkv)
+
+# Print test summary
+message(STATUS "")
+message(STATUS "========== Tests Configuration ==========")
+message(STATUS "Tests enabled (assert-based, no external dependencies)")
+message(STATUS "Available tests:")
+message(STATUS "  - test_rwkv (RWKV Time Mixing & WKV Operator)")
+message(STATUS "")
+message(STATUS "Run tests with: ctest -V")
+message(STATUS "        or  : ./Release/test_rwkv.exe")
+message(STATUS "=========================================")
+message(STATUS "")
