@@ -186,7 +186,7 @@ namespace ryzen_llm
                 if (probs[i] > max_prob)
                 {
                     max_prob = probs[i];
-                    max_idx = i;
+                    max_idx = static_cast<int>(i);
                 }
             }
 

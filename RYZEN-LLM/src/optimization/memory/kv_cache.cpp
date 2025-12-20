@@ -512,7 +512,7 @@ namespace ryzen_llm
         void KVCacheManager::Compress(uint64_t sequence_id, uint32_t retain_recent)
         {
             // Currently unimplemented: keep parameters to avoid API changes
-            (void)sequence_id; // parameter intentionally unused for now
+            (void)sequence_id;   // parameter intentionally unused for now
             (void)retain_recent; // parameter intentionally unused for now
 
             // TODO: Implement FP16/INT8 quantization for old cache entries

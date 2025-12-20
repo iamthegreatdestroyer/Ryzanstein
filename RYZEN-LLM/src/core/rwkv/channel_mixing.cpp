@@ -134,6 +134,7 @@ namespace ryzen_llm::rwkv
         std::fill(y.begin(), y.end(), 0.0f);
 
         // Parameters currently unused under certain configurations
+        (void)m; // suppress unused parameter warning
         (void)bias; // suppress unused parameter warning
 
         // CRITICAL: Any loop accessing vector elements causes crashes

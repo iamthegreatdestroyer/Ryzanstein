@@ -28,9 +28,9 @@ namespace ryzen_llm
             if (config.per_group_scaling)
             {
                 // Per-group quantization
-                const uint32_t num_groups = (total_size + config.weight_group_size - 1) / config.weight_group_size;
+                const size_t num_groups = (total_size + config.weight_group_size - 1) / config.weight_group_size;
 
-                for (uint32_t g = 0; g < num_groups; ++g)
+                for (size_t g = 0; g < num_groups; ++g)
                 {
                     const size_t group_start = g * config.weight_group_size;
                     const size_t group_end = std::min(group_start + config.weight_group_size, total_size);
