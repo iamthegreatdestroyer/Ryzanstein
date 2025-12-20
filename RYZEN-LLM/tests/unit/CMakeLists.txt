@@ -29,6 +29,13 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 include(GoogleTest)
 
+# Option: control whether to use gtest_discover_tests (some MSVC/MSBuild setups invoke
+# CMake at build time for test discovery which can fail on certain environments
+# due to quoting/Path issues with CMake's GoogleTestAddTests.cmake.
+# Default ON, set to OFF in CI or developer machines if discovery causes build-time failures.
+option(ENABLE_GTEST_DISCOVERY "Use gtest_discover_tests for test registration (may invoke CMake at build time)" ON)
+
+
 # Test 1: Draft Model Tests
 add_executable(test_draft_model
     test_draft_model.cpp
@@ -57,10 +64,15 @@ else()
 endif()
 
 # Register test
-gtest_discover_tests(test_draft_model
-    PROPERTIES
-        LABELS "unit;draft_model"
-)
+if(ENABLE_GTEST_DISCOVERY)
+    gtest_discover_tests(test_draft_model
+        PROPERTIES
+            LABELS "unit;draft_model"
+    )
+else()
+    add_test(NAME test_draft_model COMMAND test_draft_model)
+    set_tests_properties(test_draft_model PROPERTIES LABELS "unit;draft_model")
+endif()
 
 # ============================================================================
 # Test 2: Verifier Tests
@@ -90,10 +102,15 @@ else()
     target_compile_options(test_verifier PRIVATE -Wall -Wextra -Werror)
 endif()
 
-gtest_discover_tests(test_verifier
-    PROPERTIES
-        LABELS "unit;verifier"
-)
+if(ENABLE_GTEST_DISCOVERY)
+    gtest_discover_tests(test_verifier
+        PROPERTIES
+            LABELS "unit;verifier"
+    )
+else()
+    add_test(NAME test_verifier COMMAND test_verifier)
+    set_tests_properties(test_verifier PROPERTIES LABELS "unit;verifier")
+endif()
 
 # ============================================================================
 # Test 3: Sampling Algorithms Tests
@@ -122,10 +139,15 @@ else()
     target_compile_options(test_sampling_algorithms PRIVATE -Wall -Wextra -Werror)
 endif()
 
-gtest_discover_tests(test_sampling_algorithms
-    PROPERTIES
-        LABELS "unit;algorithms"
-)
+if(ENABLE_GTEST_DISCOVERY)
+    gtest_discover_tests(test_sampling_algorithms
+        PROPERTIES
+            LABELS "unit;algorithms"
+    )
+else()
+    add_test(NAME test_sampling_algorithms COMMAND test_sampling_algorithms)
+    set_tests_properties(test_sampling_algorithms PROPERTIES LABELS "unit;algorithms")
+endif()
 
 # ============================================================================
 # Test Summary

@@ -35,15 +35,8 @@
 using namespace ryzen_llm::tmac;
 using namespace std::chrono;
 
-// Forward declaration of optimized function
-extern void gemm_optimized(
-    LUTLookup *lut_engine,
-    const int8_t *W,
-    const int8_t *X,
-    int32_t *Y,
-    uint32_t M,
-    uint32_t K,
-    uint32_t N);
+// Use the public header for the optimized GEMM API
+#include "../src/core/tmac/tmac_gemm_optimized.h"
 
 // ============================================================================
 // UTILITY FUNCTIONS

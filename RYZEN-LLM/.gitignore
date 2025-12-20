@@ -79,3 +79,4 @@ coverage.xml
 # Documentation
 docs/_build/
 site/
+\n# Project-specific build outputs to ignore (prevent accidental commits)\n/test_build/\n**/test_build/\n*.exe\n*.obj\n*.lib\n*.pdb\n*.tlog\n*.vcxproj*\n

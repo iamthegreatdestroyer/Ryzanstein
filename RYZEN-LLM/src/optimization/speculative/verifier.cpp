@@ -29,7 +29,23 @@ namespace ryzen_llm
         Verifier::Verifier(const VerifierConfig &config)
             : config_(config), num_verifications_(0), num_rejections_(0)
         {
-            // Validate configuration
+            // Validate configuration and throw exceptions for invalid values (Release-friendly)
+            if (config_.vocab_size == 0)
+            {
+                throw std::invalid_argument("vocab_size must be > 0");
+            }
+
+            if (config_.temperature <= 0.0f)
+            {
+                throw std::invalid_argument("temperature must be > 0");
+            }
+
+            if (config_.rejection_threshold < 0.0f || config_.rejection_threshold > 1.0f)
+            {
+                throw std::invalid_argument("rejection_threshold must be in [0, 1]");
+            }
+
+            // Debug-time assertions (keeps original defensive checks in debug builds)
             assert(config_.vocab_size > 0 && "vocab_size must be > 0");
             assert(config_.temperature > 0.0f && "temperature must be > 0");
             assert(config_.rejection_threshold >= 0.0f && config_.rejection_threshold <= 1.0f && "rejection_threshold must be in [0, 1]");
