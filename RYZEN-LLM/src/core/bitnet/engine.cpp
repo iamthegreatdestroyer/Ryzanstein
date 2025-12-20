@@ -382,7 +382,7 @@ namespace ryzen_llm
                 gate_weights_[layer_idx],
                 q_input,
                 gate.data(),
-                i, 1, h);
+                static_cast<uint32_t>(i), 1, h);
 
             avx512::dispatch_ternary_matmul(
                 up_weights_[layer_idx],
@@ -409,7 +409,7 @@ namespace ryzen_llm
                 down_weights_[layer_idx],
                 q_swiglu,
                 output,
-                h, 1, i);
+                h, 1, static_cast<uint32_t>(i));
         }
 
         // ============================================================================
@@ -441,7 +441,8 @@ namespace ryzen_llm
             {
                 logit /= config.temperature;
             }
-            softmax(scaled_logits.data(), scaled_logits.size());
+            // scaled_logits.size() returns size_t; softmax expects uint32_t
+            softmax(scaled_logits.data(), static_cast<uint32_t>(scaled_logits.size()));
 
             // Sample from distribution
             std::random_device rd;
@@ -525,7 +526,8 @@ namespace ryzen_llm
             {
                 probs[i] = indexed_logits[i].first;
             }
-            softmax(probs.data(), probs.size());
+            // probs.size() is size_t; cast to uint32_t to satisfy softmax signature
+            softmax(probs.data(), static_cast<uint32_t>(probs.size()));
 
             // Find nucleus
             float cumsum = 0.0f;
@@ -586,7 +588,7 @@ namespace ryzen_llm
             }
 
             // Normalize
-            const float inv_sum = 1.0f / sum;
+            const float inv_sum = static_cast<float>(1.0 / sum); // sum is double; cast to float intentionally
             for (uint32_t i = 0; i < size; ++i)
             {
                 logits[i] *= inv_sum;
