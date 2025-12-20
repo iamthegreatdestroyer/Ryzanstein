@@ -296,7 +296,7 @@ namespace ryzen_llm
              * @param sequence_id Sequence identifier
              * @param retain_recent Number of recent tokens to keep uncompressed
              */
-            void Compress(uint64_t sequence_id, uint32_t retain_recent);
+            void Compress(uint64_t sequence_id, [[maybe_unused]] uint32_t retain_recent);
 
             /**
              * Fork sequence (copy-on-write for prefix sharing)

@@ -133,6 +133,9 @@ namespace ryzen_llm::rwkv
         // Zero output
         std::fill(y.begin(), y.end(), 0.0f);
 
+        // Parameters currently unused under certain configurations
+        (void)bias; // suppress unused parameter warning
+
         // CRITICAL: Any loop accessing vector elements causes crashes
         // Solution: Completely manual computation without loops
 
