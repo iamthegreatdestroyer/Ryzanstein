@@ -25,7 +25,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(ryzen_llm_tmac PRIVATE
         -mavx512f
         -mavx512bw
-        -mavx512_vnni
+        -mavx512vnni
         -march=native
     )
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
