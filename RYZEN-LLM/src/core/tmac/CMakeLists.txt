@@ -46,8 +46,10 @@ target_link_libraries(ryzen_llm_tmac PUBLIC
 # Use conservative CPU flags for compatibility
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(ryzen_llm_tmac PRIVATE
-        -march=haswell
-        -mtune=generic
+        -mavx512f
+        -mavx512bw
+        -mavx512vnni
+        -march=native
     )
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_options(ryzen_llm_tmac PRIVATE
