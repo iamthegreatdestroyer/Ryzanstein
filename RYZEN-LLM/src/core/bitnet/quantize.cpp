@@ -186,7 +186,9 @@ namespace ryzen_llm
 
             for (size_t i = 0; i < total_size; ++i)
             {
-                const float scale = ternary_weight.get_scale(i);
+                // i is size_t; TernaryWeight::get_scale expects a uint32_t index.
+                // Safe to cast because i < rows*cols (fits in uint32_t for our models).
+                const float scale = ternary_weight.get_scale(static_cast<uint32_t>(i));
                 output[i] = static_cast<float>(ternary_weight.values[i]) * scale;
             }
         }
