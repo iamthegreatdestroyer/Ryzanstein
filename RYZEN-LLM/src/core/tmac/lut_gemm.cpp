@@ -90,7 +90,8 @@ namespace ryzen_llm
                     // Per-group scaling - average over row
                     for (uint32_t k = 0; k < K; ++k)
                     {
-                        scale_sum += weights.get_scale(m * K + k);
+                        // Cast index expression to uint32_t to avoid size_t->uint32_t conversion warnings
+                        scale_sum += weights.get_scale(static_cast<uint32_t>(m * K + k));
                     }
                     scale_sum /= K;
                 }

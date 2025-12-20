@@ -236,7 +236,8 @@ namespace ryzen_llm
                                 for (; k < k_end; ++k)
                                 {
                                     const int8_t ternary_w = weights.values[m * K + k];
-                                    const float weight_scale = weights.get_scale(m * K + k);
+                                    // m and k are uint32_t; ensure index expression matches get_scale(uint32_t)
+                                    const float weight_scale = weights.get_scale(static_cast<uint32_t>(m * K + k));
                                     const int8_t quantized_x = activations.values[k * N + n];
 
                                     const float dequantized_x =

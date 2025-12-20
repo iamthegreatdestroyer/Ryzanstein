@@ -45,7 +45,8 @@ namespace ryzen_llm
                     {
                         // Get ternary weight and its scale
                         const int8_t ternary_w = weights.values[m * K + k];
-                        const float weight_scale = weights.get_scale(m * K + k);
+                        // Ensure index fits uint32_t expected by get_scale()
+                        const float weight_scale = weights.get_scale(static_cast<uint32_t>(m * K + k));
 
                         // Get quantized activation
                         const int8_t quantized_x = activations.values[k * N + n];

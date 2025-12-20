@@ -322,7 +322,8 @@ namespace ryzen_llm
                 }
 
                 // Softmax
-                softmax(attn_scores.data(), kv_cache->current_length);
+                // kv_cache->current_length is size_t-like; cast to uint32_t for softmax
+                softmax(attn_scores.data(), static_cast<uint32_t>(kv_cache->current_length));
 
                 // Weighted sum of values: softmax(QK^T) @ V
                 std::fill(head_output.begin(), head_output.end(), 0.0f);
@@ -489,7 +490,8 @@ namespace ryzen_llm
             {
                 top_k_probs[i] = indexed_logits[i].first / temperature;
             }
-            softmax(top_k_probs.data(), k);
+            // k is uint32_t; keep explicit types
+            softmax(top_k_probs.data(), static_cast<uint32_t>(k));
 
             // Sample
             std::random_device rd;
