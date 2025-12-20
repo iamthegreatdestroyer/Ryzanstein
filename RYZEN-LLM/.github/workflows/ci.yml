@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main, release/** ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        cpp: ["gcc", "msvc"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup CMake
+        uses: jacobtomlinson/setup-cmake@v1
+      - name: Configure
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.os == 'windows-latest' && echo "-DENABLE_GTEST_DISCOVERY=OFF" || echo "" }}
+      - name: Build
+        run: cmake --build build --config Release -- -m
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
