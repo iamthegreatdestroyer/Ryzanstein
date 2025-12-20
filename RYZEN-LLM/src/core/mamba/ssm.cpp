@@ -305,6 +305,7 @@ namespace ryzen_llm
             const size_t d_inner = params_.d_inner;
             const size_t d_state = params_.d_state;
             size_t batch_seq = batch_size * seq_len;
+            (void)h; // parameter intentionally unused: using internal h_states buffer
 
             // B = softplus(Linear(x))
             MatMul(x, params_.W_B.data(), B, batch_seq, d_state, d_inner);

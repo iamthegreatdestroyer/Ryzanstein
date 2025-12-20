@@ -151,6 +151,7 @@ namespace ryzen_llm
                 }
 
                 auto end = std::chrono::high_resolution_clock::now();
+                (void)end; // intentionally unused timing marker
 
                 stats_.upsweep_time_ms +=
                     std::chrono::duration<double, std::milli>(t1 - start).count();

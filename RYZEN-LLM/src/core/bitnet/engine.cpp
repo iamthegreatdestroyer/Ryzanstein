@@ -97,13 +97,13 @@ namespace ryzen_llm
             // Process input tokens (prefill phase)
             for (size_t i = 0; i < input_tokens.size(); ++i)
             {
-                forward(input_tokens[i], i);
+                forward(input_tokens[i], static_cast<uint32_t>(i));
             }
 
             // Generate new tokens (decode phase)
             for (uint32_t i = 0; i < gen_config.max_tokens; ++i)
             {
-                const uint32_t position = input_tokens.size() + i;
+                const uint32_t position = static_cast<uint32_t>(input_tokens.size()) + i;
                 const uint32_t last_token = output_tokens.back();
 
                 // Forward pass
@@ -231,7 +231,7 @@ namespace ryzen_llm
                 sum_squares += static_cast<double>(input[i]) * input[i];
             }
 
-            const float rms = std::sqrt(sum_squares / size + config_.rms_norm_eps);
+            const float rms = static_cast<float>(std::sqrt(sum_squares / static_cast<double>(size) + config_.rms_norm_eps));
             const float inv_rms = 1.0f / rms;
 
             // Normalize and scale
@@ -455,9 +455,9 @@ namespace ryzen_llm
 
         uint32_t BitNetEngine::sample_greedy(const std::vector<float> &logits)
         {
-            return std::distance(
+            return static_cast<uint32_t>(std::distance(
                 logits.begin(),
-                std::max_element(logits.begin(), logits.end()));
+                std::max_element(logits.begin(), logits.end())));
         }
 
         uint32_t BitNetEngine::sample_top_k(
@@ -469,9 +469,9 @@ namespace ryzen_llm
             std::vector<std::pair<float, uint32_t>> indexed_logits;
             indexed_logits.reserve(logits.size());
 
-            for (uint32_t i = 0; i < logits.size(); ++i)
+            for (size_t i = 0; i < logits.size(); ++i)
             {
-                indexed_logits.emplace_back(logits[i], i);
+                indexed_logits.emplace_back(logits[i], static_cast<uint32_t>(i));
             }
 
             // Partial sort to get top-k
@@ -507,9 +507,9 @@ namespace ryzen_llm
             std::vector<std::pair<float, uint32_t>> indexed_logits;
             indexed_logits.reserve(logits.size());
 
-            for (uint32_t i = 0; i < logits.size(); ++i)
+            for (size_t i = 0; i < logits.size(); ++i)
             {
-                indexed_logits.emplace_back(logits[i] / temperature, i);
+                indexed_logits.emplace_back(logits[i] / temperature, static_cast<uint32_t>(i));
             }
 
             // Sort by logit value
