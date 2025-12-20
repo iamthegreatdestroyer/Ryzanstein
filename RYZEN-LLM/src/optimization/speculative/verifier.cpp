@@ -16,6 +16,7 @@
 #include <random>
 #include <limits>
 #include <cassert>
+#include <stdexcept>
 
 namespace ryzen_llm
 {
