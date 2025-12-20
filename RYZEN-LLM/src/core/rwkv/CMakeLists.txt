@@ -35,7 +35,7 @@ if(MSVC)
 else()
     target_compile_options(ryzen_llm_rwkv PRIVATE
         -march=native -mavx512f -mavx512cd -mavx512bw -mavx512dq
-        -O3 -ffast-math -fno-exceptions -fno-rtti
+        -O3 -ffast-math -fexceptions -fno-rtti
     )
 endif()
 
