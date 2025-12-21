@@ -9,6 +9,7 @@ from pathlib import Path
 # Add build directory to Python path
 build_dir = Path(__file__).parent / "build" / "python"
 sys.path.insert(0, str(build_dir))
+sys.path.insert(0, str(build_dir / "ryzen_llm"))
 
 print(f"Python version: {sys.version}")
 print(f"Python path: {sys.path[:3]}")
@@ -16,7 +17,7 @@ print(f"Looking for extension in: {build_dir}")
 
 try:
     # Try to import the compiled extension
-    import ryzen_llm.ryzen_llm_bindings as bindings
+    import ryzen_llm_bindings as bindings
     print("✅ Successfully imported ryzen_llm_bindings C++ extension")
     
     # Check available attributes

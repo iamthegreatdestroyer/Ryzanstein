@@ -31,7 +31,7 @@ if(MSVC)
         /arch:AVX2  # Use AVX2 instead of AVX512 for compatibility
     )
 else()
-    target_compile_options(mamba_ssm PRIVATE
+    target_compile_options(ryzen_llm_mamba PRIVATE
         -Wall -Wextra -fexceptions
         -march=native
         -mavx512f

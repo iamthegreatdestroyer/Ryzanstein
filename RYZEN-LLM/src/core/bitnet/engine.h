@@ -7,10 +7,12 @@
 
 #include "quantize.h"
 #include "kernels/matmul.h"
+#include "../tmac/lut_gemm.h"
 #include <vector>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <iostream>
 
 namespace ryzen_llm
 {
@@ -171,6 +173,13 @@ namespace ryzen_llm
             void softmax(float *logits, uint32_t size);
             void apply_rotary_embeddings(float *q, float *k, uint32_t position, uint32_t head_dim);
 
+            // Optimized matmul dispatch (T-MAC or AVX-512)
+            void dispatch_ternary_matmul(
+                const TernaryWeight &weights,
+                const QuantizedActivation &activations,
+                float *output,
+                uint32_t M, uint32_t N, uint32_t K);
+
             // Weight loading methods
             bool load_safetensors_weights(const std::string &weights_path);
             bool parse_safetensors_header(const std::string &header_json, const char *data_start, size_t data_size);
@@ -195,6 +204,9 @@ namespace ryzen_llm
 
             // Output projection (unquantized for numerical stability)
             std::vector<float> lm_head_weights_; // [hidden_size, vocab_size]
+
+            // T-MAC lookup table engine for optimized matmul
+            std::unique_ptr<tmac::LookupTableGEMM> tmac_engine_;
 
             // KV Cache
             std::vector<std::unique_ptr<KVCache>> kv_caches_; // One per layer

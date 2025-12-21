@@ -34,6 +34,22 @@ namespace ryzen_llm
                         config.head_dim));
             }
 
+            // Initialize T-MAC engine if enabled
+            if (config.use_tmac)
+            {
+                tmac::TMACConfig tmac_config;
+                tmac_config.lookup_width = 8; // 8-bit lookup (256 entries)
+
+                tmac_engine_ = std::make_unique<tmac::LookupTableGEMM>(tmac_config);
+
+                if (config.tmac_precompute_on_load)
+                {
+                    // Precompute tables for common matrix sizes
+                    // This will be done after weights are loaded
+                    std::cout << "[T-MAC] Engine initialized, tables will be built on first inference\n";
+                }
+            }
+
             // Initialize embedding weights
             embedding_weights_ = TernaryWeight(config.vocab_size, config.hidden_size);
         }
@@ -601,20 +617,20 @@ namespace ryzen_llm
                 h,
                 config_.quant_config);
 
-            // Compute Q, K, V projections using AVX-512 optimized matmul
-            avx512::dispatch_ternary_matmul(
+            // Compute Q, K, V projections using optimized matmul (T-MAC or AVX-512)
+            dispatch_ternary_matmul(
                 q_weights_[layer_idx],
                 q_input,
                 q.data(),
                 h, 1, h);
 
-            avx512::dispatch_ternary_matmul(
+            dispatch_ternary_matmul(
                 k_weights_[layer_idx],
                 q_input,
                 k.data(),
                 h, 1, h);
 
-            avx512::dispatch_ternary_matmul(
+            dispatch_ternary_matmul(
                 v_weights_[layer_idx],
                 q_input,
                 v.data(),
@@ -691,7 +707,7 @@ namespace ryzen_llm
                 config_.quant_config);
 
             std::vector<float> final_output(h, 0.0f);
-            avx512::dispatch_ternary_matmul(
+            dispatch_ternary_matmul(
                 o_weights_[layer_idx],
                 q_attn_out,
                 final_output.data(),
@@ -718,13 +734,13 @@ namespace ryzen_llm
             std::vector<float> gate(i, 0.0f);
             std::vector<float> up(i, 0.0f);
 
-            avx512::dispatch_ternary_matmul(
+            dispatch_ternary_matmul(
                 gate_weights_[layer_idx],
                 q_input,
                 gate.data(),
                 static_cast<uint32_t>(i), 1, h);
 
-            avx512::dispatch_ternary_matmul(
+            dispatch_ternary_matmul(
                 up_weights_[layer_idx],
                 q_input,
                 up.data(),
@@ -745,7 +761,7 @@ namespace ryzen_llm
                 i,
                 config_.quant_config);
 
-            avx512::dispatch_ternary_matmul(
+            dispatch_ternary_matmul(
                 down_weights_[layer_idx],
                 q_swiglu,
                 output,
@@ -966,6 +982,23 @@ namespace ryzen_llm
                 const float k1 = k[i + 1];
                 k[i] = k0 * cos_theta - k1 * sin_theta;
                 k[i + 1] = k0 * sin_theta + k1 * cos_theta;
+            }
+        }
+
+        void bitnet::BitNetEngine::dispatch_ternary_matmul(
+            const TernaryWeight &weights,
+            const QuantizedActivation &activations,
+            float *output,
+            uint32_t M, uint32_t N, uint32_t K)
+        {
+            // Use T-MAC if available and enabled, otherwise fall back to AVX-512
+            if (tmac_engine_ && config_.use_tmac)
+            {
+                tmac_engine_->ComputeHybrid(weights, activations, output, M, N, K);
+            }
+            else
+            {
+                avx512::dispatch_ternary_matmul(weights, activations, output, M, N, K);
             }
         }
 

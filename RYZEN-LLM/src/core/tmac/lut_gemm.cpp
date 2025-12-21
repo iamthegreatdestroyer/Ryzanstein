@@ -256,47 +256,62 @@ namespace ryzen_llm
             uint32_t N,
             uint32_t K)
         {
-#if defined(__AVX512F__)
+#if defined(__AVX512F__) && defined(__AVX512BW__)
             const uint32_t lw = config_.lookup_width;
             const uint32_t num_groups = tables_.num_groups;
+            const uint32_t vec_width = 16; // AVX-512 processes 16 elements at a time
 
-            // Vectorize over N dimension (batch size)
-            const uint32_t simd_width = 16; // 16 floats per AVX-512 vector
-
+            // Process one row at a time
             for (uint32_t m = 0; m < M; ++m)
             {
-                // Process N in chunks of 16
+                // Process N dimension in chunks of 16
                 uint32_t n = 0;
-                for (; n + simd_width <= N; n += simd_width)
+                for (; n + vec_width <= N; n += vec_width)
                 {
                     __m512 acc = _mm512_setzero_ps();
 
                     // For each lookup group
                     for (uint32_t g = 0; g < num_groups; ++g)
                     {
-                        // Build 16 lookup indices in parallel
-                        uint8_t indices[16];
-                        for (uint32_t i = 0; i < simd_width; ++i)
+                        // Build 16 lookup indices in parallel using AVX-512
+                        __m512i indices = _mm512_setzero_si512();
+
+                        // Process each bit position in the lookup width
+                        for (uint32_t bit_pos = 0; bit_pos < lw && (g * lw + bit_pos) < K; ++bit_pos)
                         {
-                            uint8_t idx = 0;
-                            for (uint32_t j = 0; j < lw && (g * lw + j) < K; ++j)
-                            {
-                                int8_t act = activations[(n + i) * K + g * lw + j];
-                                float act_f = (act - act_zero_point) * act_scale;
-                                uint8_t bit = (act_f > 0.0f) ? 1 : 0;
-                                idx |= (bit << j);
-                            }
-                            indices[i] = idx;
+                            // Load 16 activation values at once
+                            __m512i acts_vec = _mm512_cvtepi8_epi32(
+                                _mm_loadu_si128((__m128i*)&activations[(n) * K + g * lw + bit_pos])
+                            );
+
+                            // Dequantize: (act - zero_point) * scale
+                            __m512 acts_f = _mm512_cvtepi32_ps(acts_vec);
+                            __m512 zp_vec = _mm512_set1_ps((float)act_zero_point);
+                            __m512 scale_vec = _mm512_set1_ps(act_scale);
+                            acts_f = _mm512_mul_ps(_mm512_sub_ps(acts_f, zp_vec), scale_vec);
+
+                            // Convert to binary: > 0 ? 1 : 0
+                            __mmask16 mask = _mm512_cmp_ps_mask(acts_f, _mm512_setzero_ps(), _MM_CMPINT_GT);
+                            __m512i bits = _mm512_mask_set1_epi32(_mm512_setzero_si512(), mask, 1);
+
+                            // Shift bits to correct position and OR into indices
+                            __m512i shift_vec = _mm512_set1_epi32(bit_pos);
+                            bits = _mm512_sllv_epi32(bits, shift_vec);
+                            indices = _mm512_or_si512(indices, bits);
                         }
 
-                        // Gather table values (simulated - AVX-512 gather from indices)
+                        // Now we have 16 lookup indices in indices vector
+                        // We need to gather table values - but AVX-512 gather is complex for this use case
+                        // For now, fall back to scalar lookup but process 16 at a time
                         float table_vals[16];
-                        for (uint32_t i = 0; i < simd_width; ++i)
+                        uint32_t indices_arr[16];
+                        _mm512_storeu_si512((__m512i*)indices_arr, indices);
+
+                        for (uint32_t i = 0; i < 16; ++i)
                         {
-                            table_vals[i] = tables_.get(m, g, indices[i]);
+                            table_vals[i] = tables_.get(m, g, (uint8_t)indices_arr[i]);
                         }
 
-                        // Load and accumulate
                         __m512 vals = _mm512_loadu_ps(table_vals);
                         acc = _mm512_add_ps(acc, vals);
                     }
@@ -309,7 +324,7 @@ namespace ryzen_llm
                     _mm512_storeu_ps(output + m * N + n, acc);
                 }
 
-                // Handle tail elements
+                // Handle remaining elements with scalar code
                 for (; n < N; ++n)
                 {
                     float acc = 0.0f;
