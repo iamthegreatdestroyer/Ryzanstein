@@ -1,4 +1,9 @@
-# Optimization layer
+with:
+
+KV-Cache Management
+Speculative Decoding
+Advanced AVX-512 SIMD Kernels
+Token Recycling System# Optimization layer
 
 set(OPTIMIZATION_SOURCES
     cache_manager.cpp
