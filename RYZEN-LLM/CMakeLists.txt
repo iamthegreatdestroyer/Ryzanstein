@@ -37,37 +37,42 @@ else()
 endif()
 
 # AVX-512 Detection and Flags
+# NOTE: We detect compiler support but DO NOT enable /arch:AVX512 globally
+# because the runtime CPU may not support it. AVX-512 code should be in
+# separate translation units with runtime CPU detection.
 include(CheckCXXCompilerFlag)
 
 if(MSVC)
-    # MSVC AVX-512 detection
+    # MSVC AVX-512 detection - only define HAVE_AVX512, don't set arch globally
     check_cxx_compiler_flag("/arch:AVX512" MSVC_SUPPORTS_AVX512)
     if(MSVC_SUPPORTS_AVX512)
-        message(STATUS "MSVC AVX-512 support detected")
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /arch:AVX512")
-        add_definitions(-DHAVE_AVX512)
+        message(STATUS "MSVC AVX-512 compiler support detected (NOT enabling globally - use runtime detection)")
+        # Do NOT add /arch:AVX512 to global flags - causes crash on CPUs without AVX-512!
+        # Individual files that need AVX-512 should use set_source_files_properties()
+        add_definitions(-DHAVE_AVX512_COMPILER)  # Indicates compiler can generate AVX-512
     else()
-        message(WARNING "MSVC AVX-512 not supported, falling back to AVX2")
+        message(WARNING "MSVC AVX-512 not supported by compiler")
     endif()
 else()
-    # Check for AVX-512 support (GCC/Clang only)
+    # Check for AVX-512 COMPILER support (GCC/Clang)
+    # NOTE: Do NOT add -mavx512* to global flags - the runtime CPU may not support it!
     check_cxx_compiler_flag("-mavx512f" COMPILER_SUPPORTS_AVX512F)
     check_cxx_compiler_flag("-mavx512dq" COMPILER_SUPPORTS_AVX512DQ)
     check_cxx_compiler_flag("-mavx512vl" COMPILER_SUPPORTS_AVX512VL)
     check_cxx_compiler_flag("-mavx512vnni" COMPILER_SUPPORTS_AVX512VNNI)
 
     if(COMPILER_SUPPORTS_AVX512F AND COMPILER_SUPPORTS_AVX512DQ AND COMPILER_SUPPORTS_AVX512VL)
-        message(STATUS "AVX-512 support detected")
-        add_compile_options(-mavx512f -mavx512dq -mavx512vl)
+        message(STATUS "AVX-512 compiler support detected (NOT enabling globally - use runtime detection)")
+        # Do NOT add -mavx512* to global flags - causes crash on CPUs without AVX-512!
+        # Individual source files that need AVX-512 should use set_source_files_properties()
+        add_definitions(-DHAVE_AVX512_COMPILER)  # Indicates compiler can generate AVX-512
         
         if(COMPILER_SUPPORTS_AVX512VNNI)
-            message(STATUS "AVX-512 VNNI support detected")
-            add_compile_options(-mavx512vnni)
+            message(STATUS "AVX-512 VNNI compiler support detected")
+            add_definitions(-DHAVE_AVX512VNNI_COMPILER)
         endif()
-        
-        add_definitions(-DHAVE_AVX512)
     else()
-        message(WARNING "AVX-512 not supported by compiler, some optimizations will be disabled")
+        message(WARNING "AVX-512 not supported by compiler")
     endif()
 
     # FMA3 support

@@ -15,9 +15,18 @@ namespace ryzen_llm
         struct VerifierConfig
         {
             uint32_t vocab_size;       // Size of vocabulary
+            uint32_t hidden_size;      // Hidden dimension of model
+            uint32_t num_layers;       // Number of transformer layers
+            uint32_t num_heads;        // Number of attention heads
             float temperature;         // Sampling temperature (>0)
             float rejection_threshold; // Acceptance probability threshold (0-1)
             bool enable_statistics;    // Enable statistics tracking
+
+            // Default constructor
+            VerifierConfig()
+                : vocab_size(0), hidden_size(0), num_layers(0), num_heads(0), temperature(1.0f), rejection_threshold(0.5f), enable_statistics(false)
+            {
+            }
         };
 
         // ============================================================================
@@ -29,6 +38,39 @@ namespace ryzen_llm
             std::vector<int> accepted_tokens; // Tokens accepted by verifier
             uint32_t num_accepted = 0;        // Number of accepted tokens
             float acceptance_rate = 0.0f;     // Acceptance rate for this batch
+        };
+
+        // ============================================================================
+        // Statistics Structure
+        // ============================================================================
+
+        struct VerifierStats
+        {
+            uint64_t num_verifications = 0; // Total verifications performed
+            uint64_t num_rejections = 0;    // Total rejected tokens
+            uint64_t total_tokens = 0;      // Total tokens verified
+
+            // Get rejection rate
+            float get_rejection_rate() const
+            {
+                if (total_tokens == 0)
+                    return 0.0f;
+                return static_cast<float>(num_rejections) / static_cast<float>(total_tokens);
+            }
+
+            // Get acceptance rate
+            float get_acceptance_rate() const
+            {
+                return 1.0f - get_rejection_rate();
+            }
+
+            // Reset statistics
+            void reset()
+            {
+                num_verifications = 0;
+                num_rejections = 0;
+                total_tokens = 0;
+            }
         };
 
         // ============================================================================
@@ -101,6 +143,13 @@ namespace ryzen_llm
                     return 0.0f;
                 }
                 return static_cast<float>(num_rejections_) / static_cast<float>(num_verifications_);
+            }
+
+            /// Reset verification statistics
+            void reset_stats()
+            {
+                num_verifications_ = 0;
+                num_rejections_ = 0;
             }
 
         private:

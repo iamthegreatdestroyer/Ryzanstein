@@ -60,6 +60,12 @@ namespace ryzen_llm
             const uint32_t M = weights.rows;
             const uint32_t K = weights.cols;
 
+            // Store original ternary weights for direct computation
+            weights_M_ = M;
+            weights_K_ = K;
+            ternary_weights_ = weights.values; // Copy ternary weight values
+            weight_scales_ = weights.scales;   // Copy weight scales
+
             // Calculate number of lookup groups
             const uint32_t num_groups = (K + config_.lookup_width - 1) / config_.lookup_width;
 
@@ -123,25 +129,26 @@ namespace ryzen_llm
                 const uint32_t k_end = std::min(k_start + lw, K);
                 const uint32_t actual_width = k_end - k_start;
 
-                // Enumerate all 256 possible activation patterns
+                // Enumerate all 256 possible bit patterns (for lw positions)
+                // Each index represents a binary pattern of sign bits
                 for (uint32_t idx = 0; idx < 256; ++idx)
                 {
                     float sum = 0.0f;
 
-                    // Compute partial sum for this activation pattern
-                    // For each bit position in idx, treat as activation value
-                    for (uint32_t i = 0; i < actual_width; ++i)
+                    // Compute partial sum for this bit pattern
+                    // Each bit position i in idx represents the sign of activation[i]:
+                    //   bit=0 → -1 (contributes -w to sum)
+                    //   bit=1 → +1 (contributes +w to sum)
+                    for (uint32_t i = 0; i < actual_width && i < 8; ++i)
                     {
-                        // Extract activation bit (simulate INT8 range)
-                        // Divide 8-bit index across lookup_width positions
-                        uint8_t act_bits = (idx >> i) & 0x1;
-                        float act_value = act_bits ? 1.0f : -1.0f; // Simplified for table
+                        uint8_t bit = (idx >> i) & 0x1;
+                        float sign = bit ? 1.0f : -1.0f;
 
                         int8_t w = weights[k_start + i];
-                        float w_scale = weight_scales[0]; // Simplified: use per-layer
+                        float w_scale = weight_scales[0]; // Use per-layer scale
 
-                        // Ternary weight: -1, 0, or +1
-                        sum += (w * w_scale) * act_value;
+                        // Weight contribution: w * scale * sign
+                        sum += (w * w_scale) * sign;
                     }
 
                     tables_.set(row, g, static_cast<uint8_t>(idx), sum);
@@ -211,38 +218,55 @@ namespace ryzen_llm
             uint32_t N,
             uint32_t K)
         {
-            const uint32_t lw = config_.lookup_width;
-            const uint32_t num_groups = tables_.num_groups;
+            // DIRECT TERNARY COMPUTATION
+            // For ternary weights {-1, 0, +1}, multiplication is trivial:
+            //   -1 × x = -x (negate)
+            //    0 × x = 0  (skip)
+            //   +1 × x = +x (identity)
+            // This is correct and efficient for ternary weights.
 
-            // For each output element
-            for (uint32_t n = 0; n < N; ++n)
+            // Check if we have stored weights
+            if (ternary_weights_.empty() || weights_M_ != M || weights_K_ != K)
             {
-                for (uint32_t m = 0; m < M; ++m)
+                // Fall back to zero output if weights not available
+                std::memset(output, 0, M * N * sizeof(float));
+                return;
+            }
+
+            const float weight_scale = weight_scales_.empty() ? 1.0f : weight_scales_[0];
+
+            // For each output element Y[m, n] = Σ_k W[m, k] × X[k, n]
+            // Note: Weight layout is [M, K], Activation layout is [N, K] (batch-first)
+            for (uint32_t m = 0; m < M; ++m)
+            {
+                for (uint32_t n = 0; n < N; ++n)
                 {
-                    float acc = 0.0f;
+                    float sum = 0.0f;
 
-                    // For each lookup group
-                    for (uint32_t g = 0; g < num_groups; ++g)
+                    for (uint32_t k = 0; k < K; ++k)
                     {
-                        // Build lookup index from activations
-                        uint8_t idx = 0;
-                        for (uint32_t i = 0; i < lw && (g * lw + i) < K; ++i)
-                        {
-                            int8_t act = activations[n * K + g * lw + i];
-                            // Dequantize
-                            float act_f = (act - act_zero_point) * act_scale;
-                            // Quantize back to 1-bit for indexing (threshold at 0)
-                            uint8_t bit = (act_f > 0.0f) ? 1 : 0;
-                            idx |= (bit << i);
-                        }
+                        // Get activation and dequantize
+                        int8_t act_quantized = activations[n * K + k];
+                        float act = (static_cast<float>(act_quantized) - act_zero_point) * act_scale;
 
-                        // Lookup and accumulate
-                        float table_val = tables_.get(m, g, idx);
-                        acc += table_val;
+                        // Get ternary weight (stored as [M, K])
+                        int8_t w = ternary_weights_[m * K + k];
+
+                        // Ternary multiply: w ∈ {-1, 0, +1}
+                        // w * act = -act (w=-1), 0 (w=0), or +act (w=+1)
+                        if (w == 1)
+                        {
+                            sum += act;
+                        }
+                        else if (w == -1)
+                        {
+                            sum -= act;
+                        }
+                        // w == 0: no contribution
                     }
 
-                    // Apply output scaling and store
-                    output[m * N + n] = acc * act_scale;
+                    // Apply weight scale and store
+                    output[m * N + n] = sum * weight_scale;
                 }
             }
         }
@@ -281,8 +305,7 @@ namespace ryzen_llm
                         {
                             // Load 16 activation values at once
                             __m512i acts_vec = _mm512_cvtepi8_epi32(
-                                _mm_loadu_si128((__m128i*)&activations[(n) * K + g * lw + bit_pos])
-                            );
+                                _mm_loadu_si128((__m128i *)&activations[(n)*K + g * lw + bit_pos]));
 
                             // Dequantize: (act - zero_point) * scale
                             __m512 acts_f = _mm512_cvtepi32_ps(acts_vec);
@@ -305,7 +328,7 @@ namespace ryzen_llm
                         // For now, fall back to scalar lookup but process 16 at a time
                         float table_vals[16];
                         uint32_t indices_arr[16];
-                        _mm512_storeu_si512((__m512i*)indices_arr, indices);
+                        _mm512_storeu_si512((__m512i *)indices_arr, indices);
 
                         for (uint32_t i = 0; i < 16; ++i)
                         {

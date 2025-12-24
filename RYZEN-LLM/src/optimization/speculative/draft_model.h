@@ -18,6 +18,9 @@ namespace ryzen_llm
             // Model architecture parameters
             uint32_t vocab_size;  // Size of vocabulary
             uint32_t hidden_dim;  // Hidden dimension size
+            uint32_t hidden_size; // Alias for hidden_dim (compatibility)
+            uint32_t num_layers;  // Number of model layers
+            uint32_t num_heads;   // Number of attention heads
             uint32_t max_seq_len; // Maximum sequence length
 
             // Speculative decoding parameters
@@ -33,6 +36,14 @@ namespace ryzen_llm
             // Adaptive parameters
             float acceptance_rate_target; // Target acceptance rate for K adjustment (0-1)
             bool enable_statistics;       // Enable statistics tracking
+
+            // Default constructor
+            DraftModelConfig()
+                : vocab_size(32000), hidden_dim(512), hidden_size(512),
+                  num_layers(6), num_heads(8), max_seq_len(2048),
+                  min_K(1), max_K(5), K_adjust_frequency(10),
+                  temperature(1.0f), top_k(0), top_p(0.9f),
+                  acceptance_rate_target(0.7f), enable_statistics(true) {}
         };
 
         // ============================================================================
@@ -44,6 +55,7 @@ namespace ryzen_llm
             uint64_t num_inferences = 0;     // Total number of inferences
             uint64_t num_accepted = 0;       // Total accepted tokens
             uint64_t total_draft_tokens = 0; // Total draft tokens generated
+            uint64_t total_K = 0;            // Sum of K values used
 
             // Get current acceptance rate
             float get_acceptance_rate() const
@@ -55,12 +67,23 @@ namespace ryzen_llm
                 return static_cast<float>(num_accepted) / static_cast<float>(total_draft_tokens);
             }
 
+            // Get average K value
+            float get_avg_k() const
+            {
+                if (num_inferences == 0)
+                {
+                    return 0.0f;
+                }
+                return static_cast<float>(total_K) / static_cast<float>(num_inferences);
+            }
+
             // Reset statistics
             void reset()
             {
                 num_inferences = 0;
                 num_accepted = 0;
                 total_draft_tokens = 0;
+                total_K = 0;
             }
         };
 
@@ -148,6 +171,9 @@ namespace ryzen_llm
                 }
                 // Otherwise, remain unchanged
             }
+
+            /// Alias for set_current_K (for compatibility)
+            void set_K(uint32_t K) { set_current_K(K); }
 
             /// Reset statistics
             void reset_stats()

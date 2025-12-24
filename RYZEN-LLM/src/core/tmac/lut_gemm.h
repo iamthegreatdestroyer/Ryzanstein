@@ -235,6 +235,12 @@ namespace ryzen_llm
             bool tables_generated_;
             Stats stats_;
 
+            // Store original ternary weights for direct computation
+            std::vector<int8_t> ternary_weights_;
+            std::vector<float> weight_scales_;
+            uint32_t weights_M_;
+            uint32_t weights_K_;
+
             /**
              * Generate table for a single output row
              */
