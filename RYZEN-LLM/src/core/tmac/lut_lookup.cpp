@@ -46,7 +46,7 @@ namespace ryzen_llm
                 // Apply flip if needed
                 int32_t final_result = canonical.flip ? -result : result;
 
-                stats_.tier1_hits++;
+                stats_.increment_tier1();
                 return final_result;
             }
 
@@ -59,7 +59,7 @@ namespace ryzen_llm
                 // Apply flip if needed
                 int32_t final_result = canonical.flip ? -result : result;
 
-                stats_.tier2_hits++;
+                stats_.increment_tier2();
                 return final_result;
             }
 
@@ -81,12 +81,12 @@ namespace ryzen_llm
                 // Apply flip if needed
                 int32_t final_result = canonical.flip ? -result : result;
 
-                stats_.tier3_hits++;
+                stats_.increment_tier3();
                 return final_result;
             }
 
             // Step 5: Fallback computation
-            stats_.fallback_count++;
+            stats_.increment_fallback();
             return compute_fallback(pattern, activation);
         }
 
@@ -117,7 +117,7 @@ namespace ryzen_llm
                     {
                         int16_t result = lut_->tier1_hot.lookup(hash, tier1_idx);
                         results[i] = canonical.flip ? -result : result;
-                        stats_.tier1_hits++;
+                        stats_.increment_tier1();
                         continue;
                     }
                 }
@@ -127,7 +127,7 @@ namespace ryzen_llm
                     uint8_t tier2_idx = get_tier2_index(act);
                     int16_t result = lut_->tier2_warm.lookup(hash, tier2_idx);
                     results[i] = canonical.flip ? -result : result;
-                    stats_.tier2_hits++;
+                    stats_.increment_tier2();
                     continue;
                 }
 
@@ -143,13 +143,13 @@ namespace ryzen_llm
                     int32_t result = base_result + delta;
 
                     results[i] = canonical.flip ? -result : result;
-                    stats_.tier3_hits++;
+                    stats_.increment_tier3();
                     continue;
                 }
 
                 // Fallback
                 results[i] = compute_fallback(pattern, act);
-                stats_.fallback_count++;
+                stats_.increment_fallback();
             }
         }
 
@@ -170,8 +170,12 @@ namespace ryzen_llm
 
         void LUTLookup::print_stats() const
         {
-            uint64_t total = stats_.tier1_hits + stats_.tier2_hits +
-                             stats_.tier3_hits + stats_.fallback_count;
+            // Use thread-safe accessor methods for atomic reads
+            const uint64_t t1 = stats_.tier1_hits();
+            const uint64_t t2 = stats_.tier2_hits();
+            const uint64_t t3 = stats_.tier3_hits();
+            const uint64_t fb = stats_.fallback_count();
+            const uint64_t total = t1 + t2 + t3 + fb;
 
             if (total == 0)
             {
@@ -184,13 +188,13 @@ namespace ryzen_llm
             std::cout << "Total lookups: " << total << "\n\n";
 
             std::cout << std::fixed << std::setprecision(2);
-            std::cout << "Tier 1 (hot):    " << std::setw(10) << stats_.tier1_hits
+            std::cout << "Tier 1 (hot):    " << std::setw(10) << t1
                       << " (" << (stats_.tier1_rate() * 100.0) << "%)\n";
-            std::cout << "Tier 2 (warm):   " << std::setw(10) << stats_.tier2_hits
+            std::cout << "Tier 2 (warm):   " << std::setw(10) << t2
                       << " (" << (stats_.tier2_rate() * 100.0) << "%)\n";
-            std::cout << "Tier 3 (delta):  " << std::setw(10) << stats_.tier3_hits
+            std::cout << "Tier 3 (delta):  " << std::setw(10) << t3
                       << " (" << (stats_.tier3_rate() * 100.0) << "%)\n";
-            std::cout << "Fallback (comp): " << std::setw(10) << stats_.fallback_count
+            std::cout << "Fallback (comp): " << std::setw(10) << fb
                       << " (" << (stats_.fallback_rate() * 100.0) << "%)\n\n";
 
             std::cout << "Overall hit rate: " << (stats_.hit_rate() * 100.0) << "%\n";

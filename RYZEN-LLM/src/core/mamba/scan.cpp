@@ -9,6 +9,7 @@
 #include <cstring>
 #include <chrono>
 #include <thread>
+#include <omp.h>
 
 #ifdef __AVX512F__
 #include <immintrin.h>
@@ -178,7 +179,9 @@ namespace ryzen_llm
 
             for (size_t stride = 1; stride < length; stride *= 2)
             {
-                // Parallelize this loop in production
+                // Parallelize inner loop - iterations are independent within each stride level
+                // Each thread gets its own temp SSMOperator constructed in the loop body
+                #pragma omp parallel for schedule(static)
                 for (size_t i = 0; i < length; i += stride * 2)
                 {
                     size_t left_idx = i + stride - 1;
@@ -207,7 +210,9 @@ namespace ryzen_llm
             // Traverse tree top-down
             for (size_t stride = length / 2; stride > 0; stride /= 2)
             {
-                // Parallelize this loop in production
+                // Parallelize inner loop - iterations are independent within each stride level
+                // Each thread gets its own temp/composed SSMOperators constructed in the loop body
+                #pragma omp parallel for schedule(static)
                 for (size_t i = 0; i < length; i += stride * 2)
                 {
                     size_t left_idx = i + stride - 1;

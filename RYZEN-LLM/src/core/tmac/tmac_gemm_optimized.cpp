@@ -354,9 +354,20 @@ namespace ryzen_llm
             // Get optimal number of threads
             int num_threads = omp_get_max_threads();
 
+            // Calculate optimal chunk size to reduce scheduling overhead
+            // Larger chunks = fewer scheduler synchronizations = less contention
+            // Target: ~4 chunks per thread for good load balancing
+            const uint32_t target_chunks_per_thread = 4;
+            const uint32_t min_chunk_size = 16;  // Minimum to amortize scheduling cost
+            const uint32_t max_chunk_size = 128; // Maximum to preserve load balance
+            uint32_t chunk_size = std::max(min_chunk_size,
+                                           std::min(max_chunk_size,
+                                                    M / (num_threads * target_chunks_per_thread)));
+
 // Outer M loop: parallelize by rows
 // Each thread processes independent rows → no race conditions
-#pragma omp parallel for schedule(dynamic, 1) collapse(1) num_threads(num_threads)
+// Using larger chunk size to reduce OpenMP scheduling overhead
+#pragma omp parallel for schedule(dynamic, chunk_size) num_threads(num_threads)
             for (uint32_t m = 0; m < M; ++m)
             {
                 const int8_t *W_row = W + m * K;

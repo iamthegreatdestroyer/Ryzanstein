@@ -13,6 +13,11 @@
  *
  * Expected latency: ~40 cycles = 10 ns @ 4GHz
  *
+ * Thread Safety:
+ *   - Lookups are thread-safe (read-only on LUT data)
+ *   - Stats use atomic counters (no false sharing)
+ *   - Padding ensures each counter is on its own cache line
+ *
  * [REF:TMAC-005] - Runtime Lookup
  */
 
@@ -20,6 +25,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <atomic>
 
 namespace ryzen_llm
 {
@@ -82,22 +88,88 @@ namespace ryzen_llm
 
             /**
              * Lookup statistics for performance monitoring
+             *
+             * Thread Safety:
+             *   - Uses atomic counters for lock-free thread-safe updates
+             *   - Each counter padded to 64-byte cache line to prevent false sharing
+             *   - Relaxed memory ordering for maximum performance
              */
-            struct Stats
+            struct alignas(64) Stats
             {
-                uint64_t tier1_hits = 0;     ///< Hot cache hits
-                uint64_t tier2_hits = 0;     ///< Warm cache hits
-                uint64_t tier3_hits = 0;     ///< Delta reconstruction hits
-                uint64_t fallback_count = 0; ///< On-the-fly computations
+            private:
+                // Cache-line padded atomic counters to prevent false sharing
+                // Each counter gets its own 64-byte cache line
+                struct alignas(64) AtomicCounter
+                {
+                    std::atomic<uint64_t> value{0};
+                    char padding[64 - sizeof(std::atomic<uint64_t>)]; // Pad to cache line
+                };
+
+                mutable AtomicCounter tier1_hits_;     ///< Hot cache hits
+                mutable AtomicCounter tier2_hits_;     ///< Warm cache hits
+                mutable AtomicCounter tier3_hits_;     ///< Delta reconstruction hits
+                mutable AtomicCounter fallback_count_; ///< On-the-fly computations
+
+            public:
+                Stats() = default;
+
+                // Non-copyable due to atomics, but movable
+                Stats(const Stats &other)
+                {
+                    tier1_hits_.value.store(other.tier1_hits_.value.load(std::memory_order_relaxed), std::memory_order_relaxed);
+                    tier2_hits_.value.store(other.tier2_hits_.value.load(std::memory_order_relaxed), std::memory_order_relaxed);
+                    tier3_hits_.value.store(other.tier3_hits_.value.load(std::memory_order_relaxed), std::memory_order_relaxed);
+                    fallback_count_.value.store(other.fallback_count_.value.load(std::memory_order_relaxed), std::memory_order_relaxed);
+                }
+
+                Stats &operator=(const Stats &other)
+                {
+                    if (this != &other)
+                    {
+                        tier1_hits_.value.store(other.tier1_hits_.value.load(std::memory_order_relaxed), std::memory_order_relaxed);
+                        tier2_hits_.value.store(other.tier2_hits_.value.load(std::memory_order_relaxed), std::memory_order_relaxed);
+                        tier3_hits_.value.store(other.tier3_hits_.value.load(std::memory_order_relaxed), std::memory_order_relaxed);
+                        fallback_count_.value.store(other.fallback_count_.value.load(std::memory_order_relaxed), std::memory_order_relaxed);
+                    }
+                    return *this;
+                }
+
+                // Thread-safe increment methods (relaxed ordering for perf)
+                void increment_tier1() const { tier1_hits_.value.fetch_add(1, std::memory_order_relaxed); }
+                void increment_tier2() const { tier2_hits_.value.fetch_add(1, std::memory_order_relaxed); }
+                void increment_tier3() const { tier3_hits_.value.fetch_add(1, std::memory_order_relaxed); }
+                void increment_fallback() const { fallback_count_.value.fetch_add(1, std::memory_order_relaxed); }
+
+                // Batch increment for reduced atomic overhead in tight loops
+                void add_tier1(uint64_t count) const { tier1_hits_.value.fetch_add(count, std::memory_order_relaxed); }
+                void add_tier2(uint64_t count) const { tier2_hits_.value.fetch_add(count, std::memory_order_relaxed); }
+                void add_tier3(uint64_t count) const { tier3_hits_.value.fetch_add(count, std::memory_order_relaxed); }
+                void add_fallback(uint64_t count) const { fallback_count_.value.fetch_add(count, std::memory_order_relaxed); }
+
+                // Accessors (for reading statistics)
+                uint64_t tier1_hits() const { return tier1_hits_.value.load(std::memory_order_relaxed); }
+                uint64_t tier2_hits() const { return tier2_hits_.value.load(std::memory_order_relaxed); }
+                uint64_t tier3_hits() const { return tier3_hits_.value.load(std::memory_order_relaxed); }
+                uint64_t fallback_count() const { return fallback_count_.value.load(std::memory_order_relaxed); }
+
+                // Reset all counters
+                void reset() const
+                {
+                    tier1_hits_.value.store(0, std::memory_order_relaxed);
+                    tier2_hits_.value.store(0, std::memory_order_relaxed);
+                    tier3_hits_.value.store(0, std::memory_order_relaxed);
+                    fallback_count_.value.store(0, std::memory_order_relaxed);
+                }
 
                 /**
                  * Overall hit rate (tier 1-3)
                  */
                 double hit_rate() const
                 {
-                    uint64_t total = tier1_hits + tier2_hits + tier3_hits + fallback_count;
+                    uint64_t t1 = tier1_hits(), t2 = tier2_hits(), t3 = tier3_hits(), fb = fallback_count();
+                    uint64_t total = t1 + t2 + t3 + fb;
                     return total > 0
-                               ? static_cast<double>(tier1_hits + tier2_hits + tier3_hits) / total
+                               ? static_cast<double>(t1 + t2 + t3) / total
                                : 0.0;
                 }
 
@@ -106,26 +178,38 @@ namespace ryzen_llm
                  */
                 double tier1_rate() const
                 {
-                    uint64_t total = tier1_hits + tier2_hits + tier3_hits + fallback_count;
-                    return total > 0 ? static_cast<double>(tier1_hits) / total : 0.0;
+                    uint64_t t1 = tier1_hits(), t2 = tier2_hits(), t3 = tier3_hits(), fb = fallback_count();
+                    uint64_t total = t1 + t2 + t3 + fb;
+                    return total > 0 ? static_cast<double>(t1) / total : 0.0;
                 }
 
                 double tier2_rate() const
                 {
-                    uint64_t total = tier1_hits + tier2_hits + tier3_hits + fallback_count;
-                    return total > 0 ? static_cast<double>(tier2_hits) / total : 0.0;
+                    uint64_t t1 = tier1_hits(), t2 = tier2_hits(), t3 = tier3_hits(), fb = fallback_count();
+                    uint64_t total = t1 + t2 + t3 + fb;
+                    return total > 0 ? static_cast<double>(t2) / total : 0.0;
                 }
 
                 double tier3_rate() const
                 {
-                    uint64_t total = tier1_hits + tier2_hits + tier3_hits + fallback_count;
-                    return total > 0 ? static_cast<double>(tier3_hits) / total : 0.0;
+                    uint64_t t1 = tier1_hits(), t2 = tier2_hits(), t3 = tier3_hits(), fb = fallback_count();
+                    uint64_t total = t1 + t2 + t3 + fb;
+                    return total > 0 ? static_cast<double>(t3) / total : 0.0;
                 }
 
                 double fallback_rate() const
                 {
-                    uint64_t total = tier1_hits + tier2_hits + tier3_hits + fallback_count;
-                    return total > 0 ? static_cast<double>(fallback_count) / total : 0.0;
+                    uint64_t t1 = tier1_hits(), t2 = tier2_hits(), t3 = tier3_hits(), fb = fallback_count();
+                    uint64_t total = t1 + t2 + t3 + fb;
+                    return total > 0 ? static_cast<double>(fb) / total : 0.0;
+                }
+
+                /**
+                 * Total number of lookups
+                 */
+                uint64_t total_lookups() const
+                {
+                    return tier1_hits() + tier2_hits() + tier3_hits() + fallback_count();
                 }
             };
 
@@ -135,9 +219,9 @@ namespace ryzen_llm
             const Stats &get_stats() const { return stats_; }
 
             /**
-             * Reset statistics counters
+             * Reset statistics counters (thread-safe, uses atomic stores)
              */
-            void reset_stats() { stats_ = Stats{}; }
+            void reset_stats() { stats_.reset(); }
 
             /**
              * Print performance statistics
