@@ -79,12 +79,14 @@ class BitNetWeightTester:
     6. Generate detailed report
     """
     
-    def __init__(self, model_name: str = "bitnet/BitNet-3B-last"):
+    def __init__(self, model_name: str = "1bitLLM/bitnet_b1_58-3B"):
         """
         Initialize tester.
         
         Args:
             model_name: Hugging Face model identifier
+                        Default: 1bitLLM/bitnet_b1_58-3B (publicly available)
+                        Alternative: microsoft/bitnet-b1.58-2B-4T (official Microsoft)
         """
         self.model_name = model_name
         self.model_url = f"https://huggingface.co/{model_name}"

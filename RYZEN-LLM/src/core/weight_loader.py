@@ -28,7 +28,7 @@ try:
 except ImportError:
     SAFETENSORS_AVAILABLE = False
 
-from quantization import (
+from .quantization import (
     QuantizationEngine,
     QuantizationConfig,
     create_default_config,
