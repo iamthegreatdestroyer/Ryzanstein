@@ -3,7 +3,7 @@
 # Requires CMake 3.20+ for C++17 support
 
 cmake_minimum_required(VERSION 3.20)
-project(Ryzanstein LLM VERSION 2.0.0 LANGUAGES CXX)
+project("Ryzanstein LLM" VERSION 2.0.0 LANGUAGES CXX)
 
 # C++17 Standard
 set(CMAKE_CXX_STANDARD 17)
