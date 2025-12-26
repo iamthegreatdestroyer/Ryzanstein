@@ -94,6 +94,17 @@ class GPUHealthMonitor:
         return [device_id for device_id in range(self.device_count)
                 if self.is_healthy(device_id)]
 
+    def get_stats(self, device_id: int) -> Optional[GPUStats]:
+        """Get statistics for a specific GPU.
+        
+        Args:
+            device_id: The GPU device ID to get stats for.
+            
+        Returns:
+            GPUStats for the device, or None if not found.
+        """
+        return self.stats.get(device_id)
+
     def get_least_loaded_device(self) -> Optional[int]:
         """Get the least loaded healthy GPU."""
         healthy_devices = self.get_healthy_devices()
