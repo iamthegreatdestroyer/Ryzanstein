@@ -160,7 +160,7 @@ Expected C++ performance:
 ## File Structure
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/
 │   ├── core/bitnet/
 │   │   ├── quantize.cpp      # Quantization implementations
@@ -217,7 +217,7 @@ Once C++ extension is rebuilt and validated:
 1. **Load BitNet Model**
 
    ```python
-   engine = ryzen_llm.BitNetEngine("path/to/model")
+   engine = ryzanstein_llm.BitNetEngine("path/to/model")
    ```
 
 2. **Test Inference**

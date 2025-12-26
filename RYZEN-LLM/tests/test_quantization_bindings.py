@@ -20,8 +20,8 @@ from pathlib import Path
 # Add python package to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "python"))
 
-import ryzen_llm
-from ryzen_llm import ryzen_llm_bindings as bindings
+import ryzanstein_llm
+from ryzanstein_llm import ryzen_llm_bindings as bindings
 
 # ============================================================================
 # Constants

@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM T-MAC Lookup Table GEMM Unit Tests
+ * Ryzanstein LLM T-MAC Lookup Table GEMM Unit Tests
  * [REF:PHASE1-007] - Comprehensive Testing for T-MAC Implementation
  *
  * Test Coverage:
@@ -19,7 +19,7 @@
 #include <cmath>
 #include <chrono>
 
-using namespace ryzen_llm;
+using namespace ryzanstein_llm;
 
 class TMACTest : public ::testing::Test
 {

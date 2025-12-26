@@ -1,9 +1,9 @@
-# RYZEN-LLM Documentation Package Map
+# Ryzanstein LLM Documentation Package Map
 
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
 │                                                                       │
-│          RYZEN-LLM PRODUCTION DOCUMENTATION PACKAGE                  │
+│          Ryzanstein LLM PRODUCTION DOCUMENTATION PACKAGE                  │
 │                  Status: ✅ COMPLETE & READY                        │
 │                                                                       │
 └───────────────────────────────────────────────────────────────────────┘
@@ -122,7 +122,7 @@
 │  1. QUICKSTART.md                                               │
 │     └─ Follow 4 steps (Configure → Build → Test → Run)         │
 │                                                                   │
-│  Result: ✅ Working RYZEN-LLM on your machine                   │
+│  Result: ✅ Working Ryzanstein LLM on your machine                   │
 │                                                                   │
 └────────────────────────────────────────────────────────────────────┘
 
@@ -156,7 +156,7 @@
 
 ┌─ PATH 4: DEEP TECHNICAL LEARNING ──────────────────────────────────┐
 │                                                                    │
-│  Goal: Master RYZEN-LLM architecture & optimization              │
+│  Goal: Master Ryzanstein LLM architecture & optimization              │
 │  Time: 60 minutes                                                │
 │                                                                   │
 │  1. ARCHITECTURE.md        (30 min) - How it works              │
@@ -189,7 +189,7 @@
     Total Coverage ............. 302/302 (100%) ✅
 
   Hardware:
-    Processor .................. Ryzen 7 7730U
+    Processor .................. Ryzanstein 7 7730U
     Memory ..................... 16 GB
     OS ......................... Windows 11
     Power Consumption .......... 25-35W during inference
@@ -212,7 +212,7 @@
 
                       FILE LOCATIONS
 
-  All documentation files are in: C:\Users\sgbil\Ryot\
+  All documentation files are in: C:\Users\sgbil\Ryzanstein\
 
   • QUICKSTART.md                      ← Start here!
   • INTEGRATION_GUIDE.md               ← Use BitNet
@@ -241,7 +241,7 @@
 
 Status: ✅ PRODUCTION READY
 Generated: December 14, 2025
-Hardware: Ryzen 7 7730U, Windows 11
+Hardware: Ryzanstein 7 7730U, Windows 11
 Approval: COMPLETE & VERIFIED
 
 Ready to build? → QUICKSTART.md

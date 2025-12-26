@@ -1,4 +1,4 @@
-# RYZEN-LLM Integration Test Runner (PowerShell)
+# Ryzanstein LLM Integration Test Runner (PowerShell)
 # [REF:PHASE1-TASK5] - Automated Testing
 
 param(
@@ -16,7 +16,7 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 
 Write-Host "=" * 80 -ForegroundColor Cyan
-Write-Host "RYZEN-LLM Integration Test Suite" -ForegroundColor Cyan
+Write-Host "Ryzanstein LLM Integration Test Suite" -ForegroundColor Cyan
 Write-Host "=" * 80 -ForegroundColor Cyan
 Write-Host ""
 

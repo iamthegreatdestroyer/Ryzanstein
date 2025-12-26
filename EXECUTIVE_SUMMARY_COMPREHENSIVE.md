@@ -1,8 +1,8 @@
-# 🎯 RYZEN-LLM (Codename: Ryot) — Comprehensive Executive Summary
+# 🎯 Ryzanstein LLM (Codename: Ryzanstein) — Comprehensive Executive Summary
 
 **Generated:** March 2025  
 **Version:** v2.0.0 (Released 2025-12-20)  
-**Repository:** [github.com/iamthegreatdestroyer/Ryot](https://github.com/iamthegreatdestroyer/Ryot)  
+**Repository:** [github.com/iamthegreatdestroyer/Ryzanstein](https://github.com/iamthegreatdestroyer/Ryzanstein)  
 **Branch:** main
 
 ---
@@ -27,12 +27,12 @@
 
 ### Mission Statement
 
-RYZEN-LLM is a **production-grade, CPU-first Large Language Model inference engine** specifically optimized for AMD Ryzen processors. The project delivers enterprise-class LLM capabilities without requiring expensive GPU infrastructure.
+Ryzanstein LLM is a **production-grade, CPU-first Large Language Model inference engine** specifically optimized for AMD Ryzanstein processors. The project delivers enterprise-class LLM capabilities without requiring expensive GPU infrastructure.
 
 ### Core Value Proposition
 
 - **81.6× Performance Improvement**: From 0.68 tok/s to 55.5 tok/s
-- **CPU-First Architecture**: Optimized for AMD Ryzen 7000+ series (Zen 4)
+- **CPU-First Architecture**: Optimized for AMD Ryzanstein 7000+ series (Zen 4)
 - **Enterprise Ready**: SOC2, GDPR, HIPAA compliance frameworks
 - **OpenAI Compatible API**: Drop-in replacement for existing integrations
 
@@ -40,7 +40,7 @@ RYZEN-LLM is a **production-grade, CPU-first Large Language Model inference engi
 
 | Component    | Minimum       | Recommended     |
 | ------------ | ------------- | --------------- |
-| CPU          | Ryzen 7 5800X | Ryzen 9 7950X3D |
+| CPU          | Ryzanstein 7 5800X | Ryzanstein 9 7950X3D |
 | RAM          | 16 GB         | 32 GB+          |
 | Instructions | AVX2          | AVX-512 + VNNI  |
 | Architecture | Zen 3         | Zen 4           |
@@ -61,7 +61,7 @@ RYZEN-LLM is a **production-grade, CPU-first Large Language Model inference engi
 ### Directory Structure
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/
 │   ├── api/                    # FastAPI server, OpenAI-compatible endpoints
 │   ├── core/                   # C++ runtime, engine, model loading
@@ -190,7 +190,7 @@ Improvement: 81.6× speedup
 
 ```bash
 # Execute when ready:
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 python scripts/task_5_real_weight_testing.py
 ```
 
@@ -317,7 +317,7 @@ git tag v2.0.0
 git push origin v2.0.0
 
 # 2. Verify SIMD activation
-python -c "import ryzen_llm; ryzen_llm.check_simd_status()"
+python -c "import ryzanstein_llm; ryzanstein_llm.check_simd_status()"
 
 # 3. Debug T-MAC GEMM
 python scripts/benchmark_tmac.py --debug
@@ -429,7 +429,7 @@ python scripts/profile_threading.py
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        RYZEN-LLM Architecture                    │
+│                        Ryzanstein LLM Architecture                    │
 ├─────────────────────────────────────────────────────────────────┤
 │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐          │
 │  │   FastAPI   │───▶│   Python    │───▶│    C++      │          │
@@ -492,7 +492,7 @@ python scripts/profile_threading.py
 
 | Metric        | Value      | Notes                  |
 | ------------- | ---------- | ---------------------- |
-| Throughput    | 55.5 tok/s | Single Ryzen 9 7950X3D |
+| Throughput    | 55.5 tok/s | Single Ryzanstein 9 7950X3D |
 | Latency (p50) | 18ms       | Time to first token    |
 | Latency (p99) | 45ms       | Tail latency           |
 | Memory Usage  | 8.2 GB     | BitNet 7B model        |
@@ -571,7 +571,7 @@ python scripts/profile_threading.py
 
 3. **Verify SIMD** — Confirm AVX-512 activation
    ```bash
-   python -c "from ryzen_llm import check_cpu_features; check_cpu_features()"
+   python -c "from ryzanstein_llm import check_cpu_features; check_cpu_features()"
    ```
 
 ### Next Week
@@ -680,7 +680,7 @@ python scripts/profile_threading.py
 pytest tests/ -v
 
 # Start API server
-python -m ryzen_llm.api.server
+python -m ryzanstein_llm.api.server
 
 # Benchmark inference
 python scripts/benchmark_inference.py
@@ -691,7 +691,7 @@ python scripts/task_5_real_weight_testing.py
 
 ### C. Contact & Resources
 
-- **Repository:** https://github.com/iamthegreatdestroyer/Ryot
+- **Repository:** https://github.com/iamthegreatdestroyer/Ryzanstein
 - **Documentation:** ./docs/
 - **Issues:** GitHub Issues
 

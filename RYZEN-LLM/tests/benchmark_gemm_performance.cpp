@@ -32,7 +32,7 @@
 #include <cstdlib>
 #endif
 
-using namespace ryzen_llm::tmac;
+using namespace ryzanstein_llm::tmac;
 using namespace std::chrono;
 
 // Use the public header for the optimized GEMM API

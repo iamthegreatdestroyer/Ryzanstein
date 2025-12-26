@@ -63,7 +63,7 @@ if not _SKIP_CPP_BINDINGS:
             if build_python_path.exists():
                 sys.path.insert(0, str(build_python_path))
             
-            from ryzen_llm.ryzen_llm_bindings import (
+            from ryzanstein_llm.ryzen_llm_bindings import (
                 QuantConfig as CppQuantConfig,
                 TernaryWeight,
                 QuantizedActivation,

@@ -6,7 +6,7 @@
 
 ## 🎯 Sprint Goal (TL;DR)
 
-**Build tensor parallelism for RYZEN-LLM to achieve 3.8-4.2x speedup on 4 GPUs**
+**Build tensor parallelism for Ryzanstein LLM to achieve 3.8-4.2x speedup on 4 GPUs**
 
 ---
 
@@ -195,7 +195,7 @@ tests/distributed/
 
 ```bash
 # 1. Setup environment
-cd RYZEN-LLM
+cd Ryzanstein LLM
 pip install torch torch-distributed
 export RANK=0
 export WORLD_SIZE=1
@@ -322,13 +322,13 @@ Root:
 └── SPRINT_1.1_QUICK_REFERENCE_GUIDE.md (This file)
 
 Implementation:
-├── RYZEN-LLM/src/distributed/
+├── Ryzanstein LLM/src/distributed/
 │   ├── architecture.py                 (Interfaces - LOCKED)
 │   ├── orchestrator.py                 (Process mgmt - TO EXTEND)
 │   ├── model_loader.py                 (Checkpoint - TO EXTEND)
 │   ├── communication.py                (Benchmarking)
 │   └── utils.py                        (Utilities)
-└── RYZEN-LLM/tests/distributed/
+└── Ryzanstein LLM/tests/distributed/
     ├── test_tensor_parallel.py         (TO IMPLEMENT - 300+ LOC)
     ├── test_orchestrator.py            (TO IMPLEMENT - 250+ LOC)
     └── test_distributed_inference.py   (TO IMPLEMENT - 200+ LOC)

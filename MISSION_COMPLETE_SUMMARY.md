@@ -2,7 +2,7 @@
 
 ## Executive Brief
 
-**Mission:** Measure and document actual speedups from RYZEN-LLM optimizations  
+**Mission:** Measure and document actual speedups from Ryzanstein LLM optimizations  
 **Status:** ✅ **COMPLETE** - All benchmarks run, analysis complete, findings documented  
 **Date:** December 14, 2025, 2:47 PM  
 **Result:** 📊 Critical performance bottleneck identified with clear remediation path
@@ -294,7 +294,7 @@ Final:       100-120 ms/token (20× from baseline)
 
 ## 📄 DELIVERABLE FILES
 
-All reports saved to `C:\Users\sgbil\Ryot\`:
+All reports saved to `C:\Users\sgbil\Ryzanstein\`:
 
 1. **benchmark_results.txt** (2.8 KB)
    - Formal performance metrics report
@@ -343,7 +343,7 @@ All reports saved to `C:\Users\sgbil\Ryot\`:
 
 ### The Bottom Line
 
-The RYZEN-LLM optimization suite is **architecturally sound but operationally blocked**. Three specific, solvable issues prevent the 19-28× speedup from materializing. Once fixed (estimated 6-7 hours), the system should achieve **10-12 tokens/sec**, **20× faster** than current baseline.
+The Ryzanstein LLM optimization suite is **architecturally sound but operationally blocked**. Three specific, solvable issues prevent the 19-28× speedup from materializing. Once fixed (estimated 6-7 hours), the system should achieve **10-12 tokens/sec**, **20× faster** than current baseline.
 
 ---
 

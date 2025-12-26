@@ -7,7 +7,7 @@
 #include <limits>
 #include <stdexcept>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace speculative
     {
@@ -439,4 +439,4 @@ namespace ryzen_llm
         }
 
     } // namespace speculative
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

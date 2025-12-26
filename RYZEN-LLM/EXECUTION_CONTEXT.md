@@ -278,7 +278,7 @@ Compiler:              MSVC 19.44.35215.0
 C++ Standard:          C++17 (strict)
 Build Tool:            CMake 3.20+
 IDE:                   Visual Studio 2022 BuildTools
-Processor:             Ryzen/ThreadRipper (AVX-512 capable)
+Processor:             Ryzanstein/ThreadRipper (AVX-512 capable)
 ```
 
 ### Key Dependencies
@@ -292,12 +292,12 @@ Windows SDK:           10.0.19041.0
 ### Build Output Locations
 
 ```
-Build Directory:       C:\Users\sgbil\Ryot\RYZEN-LLM\build
-Test Executables:      C:\Users\sgbil\Ryot\RYZEN-LLM\build\tests\unit\Release\
+Build Directory:       C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build
+Test Executables:      C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build\tests\unit\Release\
   - test_draft_model.exe
   - test_sampling_algorithms.exe
   - test_verifier.exe
-Library Objects:       C:\Users\sgbil\Ryot\RYZEN-LLM\build\src\optimization\Release\
+Library Objects:       C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build\src\optimization\Release\
 ```
 
 ---
@@ -383,7 +383,7 @@ Library Objects:       C:\Users\sgbil\Ryot\RYZEN-LLM\build\src\optimization\Rele
 
 ```powershell
 # Build all tests
-cd c:\Users\sgbil\Ryot\RYZEN-LLM\build
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build
 cmake --build . --config Release
 
 # Run tests individually

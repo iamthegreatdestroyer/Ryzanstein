@@ -3,7 +3,7 @@
 Model Download Script
 [REF:AP-009] - Appendix: Technical Stack
 
-This script downloads pre-trained models for RYZEN-LLM from various sources.
+This script downloads pre-trained models for Ryzanstein LLM from various sources.
 
 Usage:
     python scripts/download_models.py --model bitnet-7b --output models/bitnet/
@@ -255,7 +255,7 @@ def list_models():
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Download models for RYZEN-LLM"
+        description="Download models for Ryzanstein LLM"
     )
     parser.add_argument(
         "--model",

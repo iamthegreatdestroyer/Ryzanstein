@@ -1,4 +1,4 @@
-# RYZEN-LLM v2.0 Release Summary
+# Ryzanstein LLM v2.0 Release Summary
 
 **Release Date:** December 20, 2025  
 **Status:** ✅ PRODUCTION READY  
@@ -118,7 +118,7 @@
 ## Integration Test Results
 
 **Test Suite:** E2E Validation (28 tests)  
-**Platform:** AMD Ryzen 9 7950X3D  
+**Platform:** AMD Ryzanstein 9 7950X3D  
 **Pass Rate:** 100% (28/28)  
 **Execution Time:** 8.34s
 
@@ -178,16 +178,16 @@ During the merge of release/phase2-clean → main, 10 files had conflicts (expec
 | File                                                  | Conflict Type | Resolution                | Reason                 |
 | ----------------------------------------------------- | ------------- | ------------------------- | ---------------------- |
 | `.github/workflows/ci.yml`                            | Both added    | Took release/phase2-clean | Updated CI for Phase 2 |
-| `RYZEN-LLM/src/core/mamba/CMakeLists.txt`             | Both modified | Took release/phase2-clean | Phase 2 build config   |
-| `RYZEN-LLM/src/core/mamba/scan.cpp`                   | Both modified | Took release/phase2-clean | Mamba optimizations    |
-| `RYZEN-LLM/src/core/rwkv/CMakeLists.txt`              | Both modified | Took release/phase2-clean | RWKV build config      |
-| `RYZEN-LLM/src/core/tmac/CMakeLists.txt`              | Both modified | Took release/phase2-clean | T-MAC build config     |
-| `RYZEN-LLM/src/optimization/avx512/matmul.cpp`        | Both modified | Took release/phase2-clean | AVX-512 optimizations  |
-| `RYZEN-LLM/src/optimization/memory/kv_cache.cpp`      | Both modified | Took release/phase2-clean | KV cache optimizations |
-| `RYZEN-LLM/src/optimization/speculative/verifier.cpp` | Both modified | Took release/phase2-clean | Speculative decoding   |
-| `RYZEN-LLM/src/optimization/speculative/verifier.h`   | Both added    | Took release/phase2-clean | Verification engine    |
-| `RYZEN-LLM/tests/unit/CMakeLists.txt`                 | Both modified | Took release/phase2-clean | Phase 2 test config    |
-| `RYZEN-LLM/tests/benchmark_gemm_performance.cpp`      | Both added    | Took release/phase2-clean | New benchmarks         |
+| `Ryzanstein LLM/src/core/mamba/CMakeLists.txt`             | Both modified | Took release/phase2-clean | Phase 2 build config   |
+| `Ryzanstein LLM/src/core/mamba/scan.cpp`                   | Both modified | Took release/phase2-clean | Mamba optimizations    |
+| `Ryzanstein LLM/src/core/rwkv/CMakeLists.txt`              | Both modified | Took release/phase2-clean | RWKV build config      |
+| `Ryzanstein LLM/src/core/tmac/CMakeLists.txt`              | Both modified | Took release/phase2-clean | T-MAC build config     |
+| `Ryzanstein LLM/src/optimization/avx512/matmul.cpp`        | Both modified | Took release/phase2-clean | AVX-512 optimizations  |
+| `Ryzanstein LLM/src/optimization/memory/kv_cache.cpp`      | Both modified | Took release/phase2-clean | KV cache optimizations |
+| `Ryzanstein LLM/src/optimization/speculative/verifier.cpp` | Both modified | Took release/phase2-clean | Speculative decoding   |
+| `Ryzanstein LLM/src/optimization/speculative/verifier.h`   | Both added    | Took release/phase2-clean | Verification engine    |
+| `Ryzanstein LLM/tests/unit/CMakeLists.txt`                 | Both modified | Took release/phase2-clean | Phase 2 test config    |
+| `Ryzanstein LLM/tests/benchmark_gemm_performance.cpp`      | Both added    | Took release/phase2-clean | New benchmarks         |
 
 **Rationale:** All conflicts resolved by taking release/phase2-clean versions, as this branch contains the complete Phase 2 implementation that supersedes the partial implementations on main. This ensures main receives the production-ready code.
 
@@ -203,8 +203,8 @@ During the merge of release/phase2-clean → main, 10 files had conflicts (expec
 
 ### Updated Version Files
 
-- `RYZEN-LLM/pyproject.toml` - Updated to 2.0.0
-- `RYZEN-LLM/CMakeLists.txt` - Updated to 2.0.0
+- `Ryzanstein LLM/pyproject.toml` - Updated to 2.0.0
+- `Ryzanstein LLM/CMakeLists.txt` - Updated to 2.0.0
 
 ### Core Code Changes (Phase 2 Optimizations)
 
@@ -220,7 +220,7 @@ During the merge of release/phase2-clean → main, 10 files had conflicts (expec
 ### Hardware Platform
 
 ```
-CPU: AMD Ryzen 9 7950X3D
+CPU: AMD Ryzanstein 9 7950X3D
 Cores: 16 (32 threads)
 Memory: 192GB DDR5 ECC
 Boost: 5.7 GHz

@@ -115,7 +115,7 @@ gemm.gemm(W.data(), X.data(), Y.data(), M, K, N);
 ### CMake Integration
 
 ```cmake
-# Add to RYZEN-LLM/CMakeLists.txt
+# Add to Ryzanstein LLM/CMakeLists.txt
 target_sources(ryzen_llm_tmac PRIVATE
     src/core/tmac/tmac_gemm.cpp
 )
@@ -167,7 +167,7 @@ target_link_libraries(test_tmac_gemm ryzen_llm_tmac)
 
 ### Multi-threading (Future)
 
-- **Throughput:** 2-4 TFLOPS (16-core Ryzen 9)
+- **Throughput:** 2-4 TFLOPS (16-core Ryzanstein 9)
 - **Latency:** <1 ms per GEMM
 - **Tokens/sec:** 40-50+ (multi-layer parallelism)
 

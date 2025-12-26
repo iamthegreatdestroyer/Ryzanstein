@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM KV Cache Optimization
+ * Ryzanstein LLM KV Cache Optimization
  * [REF:OL-005a] - Optimization Layer: KV Cache Management
  *
  * Efficient key-value cache for transformer attention with:
@@ -29,7 +29,7 @@
 #include <string>
 #include <optional>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace memory
     {
@@ -430,4 +430,4 @@ namespace ryzen_llm
         extern CacheStats g_kv_cache_stats;
 
     } // namespace memory
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

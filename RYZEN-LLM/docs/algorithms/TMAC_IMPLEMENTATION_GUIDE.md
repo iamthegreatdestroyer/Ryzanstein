@@ -17,7 +17,7 @@
 ## 📁 FILE STRUCTURE
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 └── src/core/tmac/
     ├── pattern_generator.h         # Canonical pattern generation
     ├── pattern_generator.cpp       # Symmetry exploitation
@@ -49,7 +49,7 @@ RYZEN-LLM/
 #include <vector>
 #include <unordered_map>
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace tmac {
 
 /**
@@ -132,7 +132,7 @@ private:
 };
 
 } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 ```
 
 ### File: `src/core/tmac/pattern_generator.cpp`
@@ -141,7 +141,7 @@ private:
 #include "pattern_generator.h"
 #include <functional>
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace tmac {
 
 uint64_t CanonicalPattern::hash() const {
@@ -243,7 +243,7 @@ uint32_t PatternGenerator::count_non_zeros(const TernaryPattern& pattern) const 
 }
 
 } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 ```
 
 ---
@@ -259,7 +259,7 @@ uint32_t PatternGenerator::count_non_zeros(const TernaryPattern& pattern) const 
 #include <unordered_map>
 #include <vector>
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace tmac {
 
 /**
@@ -326,7 +326,7 @@ private:
 };
 
 } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 ```
 
 ### File: `src/core/tmac/table_builder.h`
@@ -340,7 +340,7 @@ private:
 #include <unordered_map>
 #include <memory>
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace tmac {
 
 /**
@@ -448,7 +448,7 @@ private:
 };
 
 } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 ```
 
 ---
@@ -463,7 +463,7 @@ private:
 #include "pattern_generator.h"
 #include <vector>
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace tmac {
 
 /**
@@ -516,7 +516,7 @@ public:
 };
 
 } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 ```
 
 ---
@@ -531,7 +531,7 @@ public:
 #include "table_builder.h"
 #include <cstdint>
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace tmac {
 
 /**
@@ -626,7 +626,7 @@ private:
 };
 
 } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 ```
 
 ---

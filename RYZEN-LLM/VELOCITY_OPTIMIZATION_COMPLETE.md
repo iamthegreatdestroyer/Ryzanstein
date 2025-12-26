@@ -98,7 +98,7 @@ prefetch_l2(ptr, 128);  // Moderate reuse
 prefetch_l3(ptr, 256);  // Low reuse (background)
 ```
 
-**Cache Hierarchy (Zen 4 / Ryzen 9 7950X):**
+**Cache Hierarchy (Zen 4 / Ryzanstein 9 7950X):**
 
 - L1: 32 KB, 4 cycles latency
 - L2: 512 KB, 12 cycles latency
@@ -313,7 +313,7 @@ target_link_libraries(ryzen_llm_tmac PUBLIC
 ### Windows (MSVC)
 
 ```powershell
-cd RYZEN-LLM\build
+cd Ryzanstein LLM\build
 cmake -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTS=ON ..
 cmake --build . --config Release -j 8
 ```
@@ -321,7 +321,7 @@ cmake --build . --config Release -j 8
 ### Linux/Mac (GCC/Clang)
 
 ```bash
-cd RYZEN-LLM/build
+cd Ryzanstein LLM/build
 cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release ..
 cmake --build . -j $(nproc)
 ```
@@ -501,4 +501,4 @@ echo | clang -fopenmp -E -dM - | grep _OPENMP  # GCC/Clang
 
 **Status:** ✅ COMPLETE - All optimizations implemented and ready for testing
 
-**Next:** Build and benchmark on target hardware (16-core Ryzen 9)
+**Next:** Build and benchmark on target hardware (16-core Ryzanstein 9)

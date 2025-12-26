@@ -1,6 +1,6 @@
 # DISTRIBUTED INFERENCE ARCHITECTURE v1.0
 
-**RYZEN-LLM Phase 3: Tensor Parallelism & Multi-GPU Scaling**
+**Ryzanstein LLM Phase 3: Tensor Parallelism & Multi-GPU Scaling**
 
 **Document Version**: 1.0-DRAFT  
 **Status**: In Design (Week 1, Jan 6-10, 2026)  
@@ -11,7 +11,7 @@
 
 ## Executive Summary
 
-This document defines the distributed inference architecture for RYZEN-LLM Phase 3, enabling production-grade LLM serving across multiple GPUs with **tensor parallelism** as the primary scaling strategy.
+This document defines the distributed inference architecture for Ryzanstein LLM Phase 3, enabling production-grade LLM serving across multiple GPUs with **tensor parallelism** as the primary scaling strategy.
 
 ### Design Goals
 
@@ -540,7 +540,7 @@ class DistributedConfig:
 
 ```python
 # Minimal, clean API for users
-from ryzen_llm.distributed import (
+from ryzanstein_llm.distributed import (
     DistributedConfig,
     create_distributed_model,
 )

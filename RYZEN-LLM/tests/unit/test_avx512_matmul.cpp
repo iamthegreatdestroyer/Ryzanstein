@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM AVX-512 Matmul Unit Tests
+ * Ryzanstein LLM AVX-512 Matmul Unit Tests
  * [REF:PHASE1-006] - Validation for AVX-512 VNNI Optimization
  *
  * Test Coverage:
@@ -17,7 +17,7 @@
 #include <chrono>
 #include <cmath>
 
-using namespace ryzen_llm;
+using namespace ryzanstein_llm;
 
 class AVX512MatmulTest : public ::testing::Test
 {

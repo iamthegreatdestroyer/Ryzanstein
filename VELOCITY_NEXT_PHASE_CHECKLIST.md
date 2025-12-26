@@ -20,13 +20,13 @@
 
 ```python
 import time
-import ryzen_llm
+import ryzanstein_llm
 import os
 
 # Set OpenMP threads
 os.environ['OMP_NUM_THREADS'] = '8'
 
-model = ryzen_llm.BitNetModel("model.safetensors")
+model = ryzanstein_llm.BitNetModel("model.safetensors")
 
 # Warmup (JIT compilation, OpenMP initialization)
 _ = model.generate("", max_tokens=1)
@@ -73,7 +73,7 @@ print(f"Speedup: {tokens_per_sec / 0.42:.1f}×")
 ```python
 import time
 
-model = ryzen_llm.BitNetModel("model.safetensors")
+model = ryzanstein_llm.BitNetModel("model.safetensors")
 
 # Warmup
 _ = model.generate("Explain quantum computing", max_tokens=10)
@@ -171,7 +171,7 @@ vtune -report summary -result-dir results
 - [ ] **Branch Misses:** Target < 5%
 - [ ] **L1 Cache Hit Rate:** Target > 85%
 - [ ] **L2 Cache Hit Rate:** Target > 70%
-- [ ] **Memory Bandwidth:** Target > 40 GB/s on Ryzen
+- [ ] **Memory Bandwidth:** Target > 40 GB/s on Ryzanstein
 
 **Key Functions to Profile:**
 
@@ -213,7 +213,7 @@ perf stat -e cache-references,cache-misses,L1-dcache-load-misses,LLC-loads,LLC-l
 
 ```python
 import numpy as np
-import ryzen_llm
+import ryzanstein_llm
 
 # Test with deterministic seed
 np.random.seed(42)
@@ -251,22 +251,22 @@ else:
 **Steps:**
 
 ```bash
-cd RYZEN-LLM
+cd Ryzanstein LLM
 python -m pip install wheel setuptools
 
 # Build wheel with optimized C++ libraries
 python setup.py bdist_wheel
 
-# Output: dist/ryzen_llm-2.0.0-cp311-win_amd64.whl
+# Output: dist/ryzanstein_llm-2.0.0-cp311-win_amd64.whl
 ```
 
 **Validation:**
 
 ```python
-import ryzen_llm
-print(f"Version: {ryzen_llm.__version__}")  # Should be 2.0+
-print(f"SIMD: {ryzen_llm.has_avx2()}")      # Should be True
-print(f"Threads: {ryzen_llm.num_threads()}")  # Should be 8+
+import ryzanstein_llm
+print(f"Version: {ryzanstein_llm.__version__}")  # Should be 2.0+
+print(f"SIMD: {ryzanstein_llm.has_avx2()}")      # Should be True
+print(f"Threads: {ryzanstein_llm.num_threads()}")  # Should be 8+
 ```
 
 **Success Criteria:**
@@ -294,7 +294,7 @@ print(f"Threads: {ryzen_llm.num_threads()}")  # Should be 8+
 ```markdown
 ## Performance Improvements (v2.0)
 
-### Optimized for Ryzen 9 7950X
+### Optimized for Ryzanstein 9 7950X
 
 - **OpenMP:** 8-core parallelization
 - **SIMD:** AVX2 vectorization (8× float ops)
@@ -322,7 +322,7 @@ print(f"Threads: {ryzen_llm.num_threads()}")  # Should be 8+
 **Content Template:**
 
 ```markdown
-# RYZEN-LLM v2.0 Release Notes
+# Ryzanstein LLM v2.0 Release Notes
 
 ## Major Changes
 

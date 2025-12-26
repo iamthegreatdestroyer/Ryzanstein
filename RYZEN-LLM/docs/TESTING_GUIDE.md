@@ -1,4 +1,4 @@
-# RYZEN-LLM Testing Quick Reference
+# Ryzanstein LLM Testing Quick Reference
 
 **Task 5: Integration Testing Guide**
 
@@ -238,7 +238,7 @@ def custom_config():
 ### Successful Run
 
 ```
-==================== RYZEN-LLM Integration Tests ====================
+==================== Ryzanstein LLM Integration Tests ====================
 
 Checking Python...
   Python 3.13.9

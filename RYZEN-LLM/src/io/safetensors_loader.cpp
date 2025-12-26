@@ -23,7 +23,7 @@
 #define FILE_HANDLE int
 #endif
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace io
     {
@@ -443,4 +443,4 @@ namespace ryzen_llm
         }
 
     } // namespace io
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

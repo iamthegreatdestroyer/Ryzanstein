@@ -10,7 +10,7 @@
  *   - Advanced prefetching
  *   - Cache-aware blocking
  *
- * Target: 500-800 GFLOPS on Ryzen 9 7950X
+ * Target: 500-800 GFLOPS on Ryzanstein 9 7950X
  *
  * [REF:VELOCITY-001] - AVX-512 Advanced Optimization
  */
@@ -19,7 +19,7 @@
 #include <cstdint>
 #include <memory>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace tmac
     {
@@ -125,4 +125,4 @@ namespace ryzen_llm
         };
 
     } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

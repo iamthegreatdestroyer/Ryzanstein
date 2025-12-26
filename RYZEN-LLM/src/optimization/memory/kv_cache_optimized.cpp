@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM KV Cache Optimized Implementation
+ * Ryzanstein LLM KV Cache Optimized Implementation
  * [REF:OL-005b] - Performance-Critical KV Cache for BitNet Attention
  *
  * Critical optimizations:
@@ -24,7 +24,7 @@
 #include <cstdlib>
 #endif
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace optimization
     {
@@ -355,4 +355,4 @@ namespace ryzen_llm
         }
 
     } // namespace optimization
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

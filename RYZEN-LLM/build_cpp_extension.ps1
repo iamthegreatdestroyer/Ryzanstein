@@ -1,5 +1,5 @@
 #!/usr/bin/env pwsh
-# RYZEN-LLM C++ Extension Build Script
+# Ryzanstein LLM C++ Extension Build Script
 # This script reproduces the complete build environment setup and compilation
 
 param(
@@ -44,7 +44,7 @@ function Check-Tool {
 # ============================================================================
 
 Write-Status "╔════════════════════════════════════════════════════════════════╗" "INFO"
-Write-Status "║  RYZEN-LLM C++ Extension Build Script                         ║" "INFO"
+Write-Status "║  Ryzanstein LLM C++ Extension Build Script                         ║" "INFO"
 Write-Status "║  Build Type: $BuildType                                    ║" "INFO"
 Write-Status "║  Parallel Jobs: $Parallel                                        ║" "INFO"
 Write-Status "╚════════════════════════════════════════════════════════════════╝" "INFO"
@@ -219,7 +219,7 @@ Set-Location $ScriptDir
 
 Write-Status "╔═ STEP 6: Verifying Build Output ═══════════════════════════════╗" "INFO"
 
-$PydFile = "build\python\ryzen_llm\ryzen_llm_bindings.pyd"
+$PydFile = "build\python\ryzanstein_llm\ryzen_llm_bindings.pyd"
 if (Test-Path $PydFile) {
     $FileSize = (Get-Item $PydFile).Length
     Write-Status "✅ Extension module found: $PydFile ($FileSize bytes)" "INFO"
@@ -263,7 +263,7 @@ Write-Status "║                                                               
 Write-Status "║  To use the extension in Python:                               ║" "INFO"
 Write-Status "║  import sys                                                    ║" "INFO"
 Write-Status "║  sys.path.insert(0, 'build/python')                            ║" "INFO"
-Write-Status "║  import ryzen_llm.ryzen_llm_bindings                           ║" "INFO"
+Write-Status "║  import ryzanstein_llm.ryzen_llm_bindings                           ║" "INFO"
 Write-Status "║                                                                ║" "INFO"
 Write-Status "╚════════════════════════════════════════════════════════════════╝" "INFO"
 

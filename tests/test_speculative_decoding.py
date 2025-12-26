@@ -19,7 +19,7 @@ from typing import List
 
 # Import the speculative decoding components
 import sys
-sys.path.append('RYZEN-LLM/src')
+sys.path.append('Ryzanstein LLM/src')
 
 from inference.speculative_decoder import (
     SpeculativeConfig,

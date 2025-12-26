@@ -1,5 +1,5 @@
 """
-RYZEN-LLM BitNet Matmul Unit Tests
+Ryzanstein LLM BitNet Matmul Unit Tests
 [REF:PHASE1-002] - Numerical Accuracy Validation
 
 Tests:

@@ -13,7 +13,7 @@
 #include <unordered_map>
 #include <list>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace recycler
     {
@@ -81,4 +81,4 @@ namespace ryzen_llm
         };
 
     } // namespace recycler
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

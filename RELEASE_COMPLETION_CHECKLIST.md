@@ -1,4 +1,4 @@
-# RYZEN-LLM v2.0 - RELEASE COMPLETION CHECKLIST
+# Ryzanstein LLM v2.0 - RELEASE COMPLETION CHECKLIST
 
 **Release Date:** December 20, 2025  
 **Version:** 2.0.0  
@@ -56,15 +56,15 @@
 - [x] Merged release/phase2-clean → main
 - [x] Conflict resolution strategy applied (10 files)
   - [x] .github/workflows/ci.yml (took release/phase2-clean)
-  - [x] RYZEN-LLM/src/core/mamba/CMakeLists.txt (took release/phase2-clean)
-  - [x] RYZEN-LLM/src/core/mamba/scan.cpp (took release/phase2-clean)
-  - [x] RYZEN-LLM/src/core/rwkv/CMakeLists.txt (took release/phase2-clean)
-  - [x] RYZEN-LLM/src/core/tmac/CMakeLists.txt (took release/phase2-clean)
-  - [x] RYZEN-LLM/src/optimization/avx512/matmul.cpp (took release/phase2-clean)
-  - [x] RYZEN-LLM/src/optimization/memory/kv_cache.cpp (took release/phase2-clean)
-  - [x] RYZEN-LLM/src/optimization/speculative/verifier.cpp (took release/phase2-clean)
-  - [x] RYZEN-LLM/src/optimization/speculative/verifier.h (took release/phase2-clean)
-  - [x] RYZEN-LLM/tests/unit/CMakeLists.txt (took release/phase2-clean)
+  - [x] Ryzanstein LLM/src/core/mamba/CMakeLists.txt (took release/phase2-clean)
+  - [x] Ryzanstein LLM/src/core/mamba/scan.cpp (took release/phase2-clean)
+  - [x] Ryzanstein LLM/src/core/rwkv/CMakeLists.txt (took release/phase2-clean)
+  - [x] Ryzanstein LLM/src/core/tmac/CMakeLists.txt (took release/phase2-clean)
+  - [x] Ryzanstein LLM/src/optimization/avx512/matmul.cpp (took release/phase2-clean)
+  - [x] Ryzanstein LLM/src/optimization/memory/kv_cache.cpp (took release/phase2-clean)
+  - [x] Ryzanstein LLM/src/optimization/speculative/verifier.cpp (took release/phase2-clean)
+  - [x] Ryzanstein LLM/src/optimization/speculative/verifier.h (took release/phase2-clean)
+  - [x] Ryzanstein LLM/tests/unit/CMakeLists.txt (took release/phase2-clean)
 - [x] Merge commit created: 708f019
 - [x] Merge verified with clean status
 
@@ -298,10 +298,10 @@ git ls-remote origin | grep "v2.0"
 
 ### Phase 2: GitHub Release Creation
 
-1. Go to: https://github.com/iamthegreatdestroyer/Ryot/releases
+1. Go to: https://github.com/iamthegreatdestroyer/Ryzanstein/releases
 2. Click "Draft a new release"
 3. Select tag: v2.0
-4. Title: "RYZEN-LLM v2.0 - Phase 2 Release"
+4. Title: "Ryzanstein LLM v2.0 - Phase 2 Release"
 5. Description: Copy from RELEASE_NOTES_v2.0.md
 6. Mark as latest release
 7. Publish
@@ -331,7 +331,7 @@ git ls-remote origin | grep "v2.0"
 
 ## ✅ FINAL SIGN-OFF
 
-**RYZEN-LLM v2.0.0 IS RELEASED**
+**Ryzanstein LLM v2.0.0 IS RELEASED**
 
 ### Summary
 

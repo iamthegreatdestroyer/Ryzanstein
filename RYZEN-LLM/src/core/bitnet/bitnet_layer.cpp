@@ -31,7 +31,7 @@
 #include <x86intrin.h>
 #endif
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace bitnet
     {
@@ -575,4 +575,4 @@ namespace ryzen_llm
         }
 
     } // namespace bitnet
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

@@ -32,7 +32,7 @@
 ### Project Settings
 
 ```
-Repository: ryot (private)
+Repository: ryzanstein (private)
 Visibility: Private
 Template: Custom (Tailored)
 Automation: Enabled

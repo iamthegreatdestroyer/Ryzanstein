@@ -28,7 +28,7 @@ target_include_directories(ryzen_llm_rwkv PUBLIC
 )
 
 # Compiler flags - AVX-512 support (like Mamba)
-# Disabled for compatibility - Ryzen 7 7730U doesn't support AVX-512
+# Disabled for compatibility - Ryzanstein 7 7730U doesn't support AVX-512
 # if(MSVC)
 #     target_compile_options(ryzen_llm_rwkv PRIVATE
 #         /arch:AVX512 /O2 /fp:fast /GR- /EHsc-

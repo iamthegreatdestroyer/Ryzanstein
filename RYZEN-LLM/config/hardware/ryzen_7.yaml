@@ -1,10 +1,10 @@
-# AMD Ryzen 7 Hardware Profile
-# Target: Ryzen 7 7700X / 7800X3D (8 cores, 16 threads)
+# AMD Ryzanstein 7 Hardware Profile
+# Target: Ryzanstein 7 7700X / 7800X3D (8 cores, 16 threads)
 
 hardware:
-  name: "AMD Ryzen 7"
+  name: "AMD Ryzanstein 7"
   cpu:
-    model: "Ryzen 7 7700X"
+    model: "Ryzanstein 7 7700X"
     cores: 8
     threads: 16
     base_clock_ghz: 4.5

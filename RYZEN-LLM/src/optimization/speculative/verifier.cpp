@@ -1,4 +1,4 @@
-// Copyright (c) 2024 RYZEN-LLM Project
+// Copyright (c) 2024 Ryzanstein LLM Project
 // Licensed under MIT License
 //
 // Speculative Decoding Verification Engine
@@ -18,7 +18,7 @@
 #include <cassert>
 #include <stdexcept>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace speculative
     {
@@ -330,4 +330,4 @@ namespace ryzen_llm
         // TODO: Add acceptance statistics
 
     } // namespace speculative
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

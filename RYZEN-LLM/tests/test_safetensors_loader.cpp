@@ -5,7 +5,7 @@
 #include "src/io/safetensors_loader.h"
 #include "src/io/weight_validator.h"
 
-using namespace ryzen_llm::io;
+using namespace ryzanstein_llm::io;
 
 /**
  * @brief Example usage and test code for SafeTensors loader

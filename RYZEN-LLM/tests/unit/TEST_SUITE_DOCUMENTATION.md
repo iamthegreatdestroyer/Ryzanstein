@@ -2,7 +2,7 @@
 
 ## Overview
 
-This test suite validates the correctness and robustness of the speculative decoding optimization layer for RYZEN-LLM. The suite consists of **148 comprehensive test cases** organized into 3 test files covering configuration validation, algorithm correctness, numerical stability, and edge cases.
+This test suite validates the correctness and robustness of the speculative decoding optimization layer for Ryzanstein LLM. The suite consists of **148 comprehensive test cases** organized into 3 test files covering configuration validation, algorithm correctness, numerical stability, and edge cases.
 
 **Total Test Cases: 148**
 
@@ -236,7 +236,7 @@ Deep dive into the mathematical correctness of sampling algorithms.
 ### Build Tests
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 mkdir build && cd build
 cmake ..
 cmake --build . --target test_draft_model test_verifier test_sampling_algorithms
@@ -488,7 +488,7 @@ When implementation changes:
 - [Google Test Documentation](https://github.com/google/googletest/blob/main/docs/primer.md)
 - [CMake Testing](https://cmake.org/cmake/help/latest/command/enable_testing.html)
 - [Speculative Decoding Paper](https://arxiv.org/abs/2211.17192)
-- [RYZEN-LLM Architecture](../architecture/README.md)
+- [Ryzanstein LLM Architecture](../architecture/README.md)
 
 ---
 

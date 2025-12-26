@@ -6,7 +6,7 @@ import traceback
 sys.path.insert(0, '.')
 
 print("=" * 60)
-print("RYZEN-LLM Import Diagnostics")
+print("Ryzanstein LLM Import Diagnostics")
 print("=" * 60)
 
 # Step 1: Test basic package structure

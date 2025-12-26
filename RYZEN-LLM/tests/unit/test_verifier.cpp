@@ -5,7 +5,7 @@
 
 #include "../../src/optimization/speculative/verifier.h"
 
-using namespace ryzen_llm::speculative;
+using namespace ryzanstein_llm::speculative;
 
 // ============================================================================
 // Test Fixtures

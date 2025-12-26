@@ -11,7 +11,7 @@ sys.path.insert(0, 'build/python')
 print("Python path after:", sys.path)
 
 # Try loading the DLL directly with ctypes
-dll_path = 'build/python/ryzen_llm/ryzen_llm_bindings.pyd'
+dll_path = 'build/python/ryzanstein_llm/ryzen_llm_bindings.pyd'
 print(f"Trying to load DLL directly: {dll_path}")
 try:
     dll = ctypes.CDLL(dll_path)
@@ -403,18 +403,18 @@ except ImportError as e:
 
     # Try importing as a package module
     try:
-        print("Attempting to import as ryzen_llm.ryzen_llm_bindings...")
-        import ryzen_llm.ryzen_llm_bindings
+        print("Attempting to import as ryzanstein_llm.ryzen_llm_bindings...")
+        import ryzanstein_llm.ryzen_llm_bindings
         print('Package import successful')
-        print('Available functions:', [attr for attr in dir(ryzen_llm.ryzen_llm_bindings) if not attr.startswith('_')])
-        print(f"test_function result: {ryzen_llm.ryzen_llm_bindings.test_function()}")
+        print('Available functions:', [attr for attr in dir(ryzanstein_llm.ryzen_llm_bindings) if not attr.startswith('_')])
+        print(f"test_function result: {ryzanstein_llm.ryzen_llm_bindings.test_function()}")
     except ImportError as e2:
         print(f'Package import failed: {e2}')
 
 try:
-    print("Attempting to import ryzen_llm package...")
-    import ryzen_llm
+    print("Attempting to import ryzanstein_llm package...")
+    import ryzanstein_llm
     print('Package import successful')
-    print('Available functions:', [attr for attr in dir(ryzen_llm) if not attr.startswith('_')])
+    print('Available functions:', [attr for attr in dir(ryzanstein_llm) if not attr.startswith('_')])
 except ImportError as e:
     print(f'Package import failed: {e}')

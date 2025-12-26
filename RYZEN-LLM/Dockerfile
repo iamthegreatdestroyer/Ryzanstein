@@ -1,4 +1,4 @@
-# RYZEN-LLM Docker Image
+# Ryzanstein LLM Docker Image
 # Multi-stage build for development and production
 # [REF:AP-009] - Appendix: Technical Stack
 
@@ -113,14 +113,14 @@ CMD ["python3", "-m", "uvicorn", "src.api.server:app", "--host", "0.0.0.0", "--p
 # Usage:
 # 
 # Build production image:
-#   docker build --target runtime -t ryzen-llm:latest .
+#   docker build --target runtime -t ryzanstein-llm:latest .
 #
 # Build development image:
-#   docker build --target development -t ryzen-llm:dev .
+#   docker build --target development -t ryzanstein-llm:dev .
 #
 # Run with Qdrant:
 #   docker-compose up
 #
 # Run standalone:
-#   docker run -p 8000:8000 -v $(pwd)/models:/app/models ryzen-llm:latest
+#   docker run -p 8000:8000 -v $(pwd)/models:/app/models ryzanstein-llm:latest
 # ============================================================================

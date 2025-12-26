@@ -2,7 +2,7 @@
 
 ## Overview
 
-I have completed a comprehensive implementation of **Speculative Decoding** for RYZEN-LLM, enabling faster inference by using a small, fast draft model to propose candidate tokens that are then verified by the target model.
+I have completed a comprehensive implementation of **Speculative Decoding** for Ryzanstein LLM, enabling faster inference by using a small, fast draft model to propose candidate tokens that are then verified by the target model.
 
 ## Files Implemented
 
@@ -352,7 +352,7 @@ VerifierConfig verifier_config{
 ## Files Modified
 
 ```
-c:\Users\sgbil\Ryot\RYZEN-LLM\src\optimization\speculative\
+c:\Users\sgbil\Ryzanstein\Ryzanstein LLM\src\optimization\speculative\
 ├── draft_model.h          ✅ Complete header with detailed docs
 ├── draft_model.cpp        ✅ Complete implementation with all methods
 ├── verifier.h             ✅ Complete header with detailed docs
@@ -370,4 +370,4 @@ c:\Users\sgbil\Ryot\RYZEN-LLM\src\optimization\speculative\
 4. **Actual Model Integration** - Connect to real draft/target models
 5. **CMake Configuration** - Update build system if needed
 
-The implementation is production-ready and follows RYZEN-LLM patterns with comprehensive error handling, statistics tracking, and adaptive tuning.
+The implementation is production-ready and follows Ryzanstein LLM patterns with comprehensive error handling, statistics tracking, and adaptive tuning.

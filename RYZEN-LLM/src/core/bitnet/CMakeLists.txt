@@ -1,4 +1,4 @@
-# RYZEN-LLM BitNet Core Module
+# Ryzanstein LLM BitNet Core Module
 # [REF:PHASE1-002] - BitNet b1.58 Ternary Inference
 
 cmake_minimum_required(VERSION 3.20)
@@ -48,7 +48,7 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     )
 endif()
 
-# AVX-512 specific flags (disabled for compatibility - Ryzen 7 7730U doesn't support AVX-512)
+# AVX-512 specific flags (disabled for compatibility - Ryzanstein 7 7730U doesn't support AVX-512)
 # if(RYZEN_LLM_AVX512_FOUND)
 #     if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 #         target_compile_options(ryzen_llm_bitnet PRIVATE /arch:AVX512)
@@ -77,5 +77,5 @@ install(FILES
     kernels/matmul.h
     bitnet_layer.h
     bitnet_model.h
-    DESTINATION include/ryzen_llm/bitnet
+    DESTINATION include/ryzanstein_llm/bitnet
 )

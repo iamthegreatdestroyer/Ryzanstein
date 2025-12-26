@@ -10,7 +10,7 @@
 
 ```cpp
 #include "src/optimization/memory/kv_cache_optimized.h"
-using namespace ryzen_llm::optimization;
+using namespace ryzanstein_llm::optimization;
 ```
 
 ### 2. Member Variable in Your Attention Layer
@@ -227,7 +227,7 @@ Total:               ~30 GB (fits in 24GB GPU VRAM with optimization)
 ### Run Unit Tests
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM\build
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build
 cmake --build . --config Release --target test_kv_cache_optimized
 .\Release\test_kv_cache_optimized.exe
 ```

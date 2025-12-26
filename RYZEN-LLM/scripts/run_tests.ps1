@@ -1,4 +1,4 @@
-# RYZEN-LLM Test Runner (PowerShell)
+# Ryzanstein LLM Test Runner (PowerShell)
 # [REF:PHASE1-002] - Unit Test Execution
 
 param(
@@ -7,7 +7,7 @@ param(
     [switch]$Coverage
 )
 
-Write-Host "=== RYZEN-LLM Unit Test Runner ===" -ForegroundColor Cyan
+Write-Host "=== Ryzanstein LLM Unit Test Runner ===" -ForegroundColor Cyan
 
 # Navigate to project root
 $ProjectRoot = Split-Path -Parent $PSScriptRoot

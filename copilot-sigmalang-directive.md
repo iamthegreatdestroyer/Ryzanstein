@@ -9,7 +9,7 @@
 
 ## CONTEXT FOR COPILOT
 
-You are preparing the Ryot LLM codebase for future integration with ΣLANG×RSU, a compound compression system that will replace the Token Recycling placeholder. This system achieves 30-250x token efficiency through:
+You are preparing the Ryzanstein LLM codebase for future integration with ΣLANG×RSU, a compound compression system that will replace the Token Recycling placeholder. This system achieves 30-250x token efficiency through:
 
 1. **ΣLANG semantic encoding** (10-50x compression via learned codebook)
 2. **RSU token recycling** (3-5x efficiency via content reuse)
@@ -222,7 +222,7 @@ This interface allows the future ΣLANG×RSU engine to drop in as a replacement 
 #include <vector>
 #include <memory>
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace recycler {
 
 /**
@@ -442,7 +442,7 @@ public:
 };
 
 } // namespace recycler
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 ```
 
 ### Create Basic Implementation: `src/recycler/basic_recycler.h`
@@ -463,7 +463,7 @@ public:
 #include <unordered_map>
 #include <list>
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace recycler {
 
 /**
@@ -529,7 +529,7 @@ private:
 };
 
 } // namespace recycler
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 ```
 
 ### Create Implementation: `src/recycler/basic_recycler.cpp`
@@ -539,7 +539,7 @@ private:
 #include <chrono>
 #include <functional>
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace recycler {
 
 BasicTokenRecycler::BasicTokenRecycler(size_t max_cache_entries)
@@ -701,7 +701,7 @@ std::unique_ptr<ITokenRecycler> TokenRecyclerFactory::create(
 }
 
 } // namespace recycler
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 ```
 
 ---

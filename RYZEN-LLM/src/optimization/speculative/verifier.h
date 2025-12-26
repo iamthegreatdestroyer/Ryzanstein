@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace speculative
     {
@@ -208,4 +208,4 @@ namespace ryzen_llm
         };
 
     } // namespace speculative
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

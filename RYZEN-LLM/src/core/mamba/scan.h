@@ -1,4 +1,4 @@
-// Copyright (c) 2024 RYZEN-LLM Project
+// Copyright (c) 2024 Ryzanstein LLM Project
 // Licensed under MIT License
 //
 // Parallel Scan Operations for Mamba - Public API
@@ -31,7 +31,7 @@
 #include <vector>
 #include <functional>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace mamba
     {
@@ -279,4 +279,4 @@ namespace ryzen_llm
         }
 
     } // namespace mamba
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

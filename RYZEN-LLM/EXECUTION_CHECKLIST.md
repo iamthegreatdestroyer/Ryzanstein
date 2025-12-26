@@ -155,7 +155,7 @@
 
 ### Execution
 
-1. Navigate to project: `cd c:\Users\sgbil\Ryot\RYZEN-LLM`
+1. Navigate to project: `cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM`
 2. Run Task 5: `python scripts/task_5_real_weight_testing.py`
 3. Monitor output (should see phase progress)
 4. Wait for completion (20-30 minutes first run)
@@ -197,7 +197,7 @@
 
 - **Console Summary:** Formatted metrics
 - **JSON Report:** bitnet_quantization_report.json
-- **Report Location:** RYZEN-LLM root directory
+- **Report Location:** Ryzanstein LLM root directory
 
 ---
 
@@ -265,7 +265,7 @@
 ### Execute Task 5
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 python scripts/task_5_real_weight_testing.py
 ```
 
@@ -288,7 +288,7 @@ python -m pytest tests/test_weight_loader.py -v
 ### Build C++ Extension
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 python build_extension.py
 ```
 
@@ -331,7 +331,7 @@ Before execution, verify:
 ### Execute Task 5 Now:
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM && python scripts/task_5_real_weight_testing.py
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM && python scripts/task_5_real_weight_testing.py
 ```
 
 ### Expected Duration:

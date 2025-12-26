@@ -31,15 +31,15 @@
 ```
 Artifact                                Size      Location
 ────────────────────────────────────────────────────────────────────
-ryzen_llm_bindings.pyd                 135.7 KB  build/python/ryzen_llm/
+ryzen_llm_bindings.pyd                 135.7 KB  build/python/ryzanstein_llm/
 ryzen_llm_bitnet.lib                   (linked)  build/cpp/src/core/bitnet/
 ryzen_llm_mamba.lib                    (linked)  build/cpp/src/core/mamba/
 ryzen_llm_rwkv.lib                     (linked)  build/cpp/src/core/rwkv/
 ryzen_llm_optimization.lib             (linked)  build/cpp/src/optimization/
 ryzen_llm_tmac.lib                     (linked)  build/cpp/src/core/tmac/
 ryzen_llm_bindings.lib                 (import)  build/cpp/src/api/bindings/
-test_extension_load.py                 ~2 KB    RYZEN-LLM/ (validation)
-BUILD_COMPLETION_REPORT.md             ~5 KB    RYZEN-LLM/ (detailed report)
+test_extension_load.py                 ~2 KB    Ryzanstein LLM/ (validation)
+BUILD_COMPLETION_REPORT.md             ~5 KB    Ryzanstein LLM/ (detailed report)
 MASTER_EXECUTION_PLAN.md (updated)     (tracked) BUILD INFRASTRUCTURE section added
 ```
 

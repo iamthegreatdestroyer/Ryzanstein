@@ -9,7 +9,7 @@
 #include <cmath>
 #include <limits>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace io
     {
@@ -200,6 +200,6 @@ namespace ryzen_llm
             const ValidationResult &result);
 
     } // namespace io
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 
 #endif // WEIGHT_VALIDATOR_H

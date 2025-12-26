@@ -154,13 +154,13 @@ extern "C"
             // Create test data
             float weights[16] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
 
-            ryzen_llm::bitnet::QuantConfig config;
+            ryzanstein_llm::bitnet::QuantConfig config;
             config.per_group_scaling = false;
             config.weight_group_size = 0;
             config.activation_clip_value = 6.0f;
             config.symmetric_activations = true;
 
-            auto ternary_weight = ryzen_llm::bitnet::quantize_weights_ternary_scalar(weights, 4, 4, config);
+            auto ternary_weight = ryzanstein_llm::bitnet::quantize_weights_ternary_scalar(weights, 4, 4, config);
 
             return 1;
         }
@@ -182,13 +182,13 @@ extern "C"
             // Create test data
             float activations[4] = {1, -2, 3, -4};
 
-            ryzen_llm::bitnet::QuantConfig config;
+            ryzanstein_llm::bitnet::QuantConfig config;
             config.per_group_scaling = false;
             config.weight_group_size = 0;
             config.activation_clip_value = 6.0f;
             config.symmetric_activations = true;
 
-            auto quantized_activation = ryzen_llm::bitnet::quantize_activations_int8_scalar(activations, 4, config);
+            auto quantized_activation = ryzanstein_llm::bitnet::quantize_activations_int8_scalar(activations, 4, config);
 
             return 1;
         }
@@ -211,15 +211,15 @@ extern "C"
             float weights[16] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
             float activations[4] = {1, -2, 3, -4};
 
-            ryzen_llm::bitnet::QuantConfig config;
+            ryzanstein_llm::bitnet::QuantConfig config;
             config.per_group_scaling = false;
             config.weight_group_size = 0;
             config.activation_clip_value = 6.0f;
             config.symmetric_activations = true;
 
-            auto ternary_weight = ryzen_llm::bitnet::quantize_weights_ternary_scalar(weights, 4, 4, config);
+            auto ternary_weight = ryzanstein_llm::bitnet::quantize_weights_ternary_scalar(weights, 4, 4, config);
 
-            auto quantized_activation = ryzen_llm::bitnet::quantize_activations_int8_scalar(activations, 4, config);
+            auto quantized_activation = ryzanstein_llm::bitnet::quantize_activations_int8_scalar(activations, 4, config);
 
             return 1;
         }
@@ -242,10 +242,10 @@ extern "C"
             // Create dummy data
             float weights[16] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f,
                                  9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f};
-            ryzen_llm::bitnet::QuantConfig config;
+            ryzanstein_llm::bitnet::QuantConfig config;
 
             // Call the function but don't use the result
-            ryzen_llm::bitnet::quantize_weights_ternary_scalar(weights, 4, 4, config);
+            ryzanstein_llm::bitnet::quantize_weights_ternary_scalar(weights, 4, 4, config);
 
             std::cout << "DEBUG: quantize_weights_ternary_scalar completed successfully" << std::endl;
             return 1; // Success
@@ -325,54 +325,54 @@ extern "C"
     __declspec(dllexport) void *quantize_weights_ternary_c(
         const float *weights, uint32_t rows, uint32_t cols)
     {
-        ryzen_llm::bitnet::QuantConfig config;
-        ryzen_llm::bitnet::TernaryWeightCPU result =
-            ryzen_llm::bitnet::quantize_weights_ternary_scalar(weights, rows, cols, config);
-        ryzen_llm::bitnet::TernaryWeightCPU *result_ptr =
-            new ryzen_llm::bitnet::TernaryWeightCPU(result);
+        ryzanstein_llm::bitnet::QuantConfig config;
+        ryzanstein_llm::bitnet::TernaryWeightCPU result =
+            ryzanstein_llm::bitnet::quantize_weights_ternary_scalar(weights, rows, cols, config);
+        ryzanstein_llm::bitnet::TernaryWeightCPU *result_ptr =
+            new ryzanstein_llm::bitnet::TernaryWeightCPU(result);
         return result_ptr;
     }
 
     __declspec(dllexport) void *quantize_activations_int8_c(
         const float *activations, size_t size)
     {
-        ryzen_llm::bitnet::QuantConfig config;
-        ryzen_llm::bitnet::QuantizedActivationCPU result =
-            ryzen_llm::bitnet::quantize_activations_int8_scalar(activations, size, config);
-        ryzen_llm::bitnet::QuantizedActivationCPU *result_ptr =
-            new ryzen_llm::bitnet::QuantizedActivationCPU(result);
+        ryzanstein_llm::bitnet::QuantConfig config;
+        ryzanstein_llm::bitnet::QuantizedActivationCPU result =
+            ryzanstein_llm::bitnet::quantize_activations_int8_scalar(activations, size, config);
+        ryzanstein_llm::bitnet::QuantizedActivationCPU *result_ptr =
+            new ryzanstein_llm::bitnet::QuantizedActivationCPU(result);
         return result_ptr;
     }
 
     __declspec(dllexport) void dequantize_weights_c(
         void *ternary_weight_ptr, float *output, uint32_t rows, uint32_t cols)
     {
-        auto *ternary_weight = static_cast<ryzen_llm::bitnet::TernaryWeightCPU *>(ternary_weight_ptr);
-        ryzen_llm::bitnet::dequantize_weights_scalar(*ternary_weight, output, rows, cols);
+        auto *ternary_weight = static_cast<ryzanstein_llm::bitnet::TernaryWeightCPU *>(ternary_weight_ptr);
+        ryzanstein_llm::bitnet::dequantize_weights_scalar(*ternary_weight, output, rows, cols);
     }
 
     __declspec(dllexport) void dequantize_activations_c(
         void *quantized_ptr, float *output, size_t size)
     {
-        auto *quantized = static_cast<ryzen_llm::bitnet::QuantizedActivationCPU *>(quantized_ptr);
-        ryzen_llm::bitnet::dequantize_activations_scalar(*quantized, output, size);
+        auto *quantized = static_cast<ryzanstein_llm::bitnet::QuantizedActivationCPU *>(quantized_ptr);
+        ryzanstein_llm::bitnet::dequantize_activations_scalar(*quantized, output, size);
     }
 
     __declspec(dllexport) float compute_quantization_error_c(
         const float *original, const float *quantized, size_t size)
     {
-        return ryzen_llm::bitnet::compute_quantization_error_scalar(original, quantized, size);
+        return ryzanstein_llm::bitnet::compute_quantization_error_scalar(original, quantized, size);
     }
 
     // Memory management
     __declspec(dllexport) void free_ternary_weight(void *ptr)
     {
-        delete static_cast<ryzen_llm::bitnet::TernaryWeight *>(ptr);
+        delete static_cast<ryzanstein_llm::bitnet::TernaryWeight *>(ptr);
     }
 
     __declspec(dllexport) void free_quantized_activation(void *ptr)
     {
-        delete static_cast<ryzen_llm::bitnet::QuantizedActivation *>(ptr);
+        delete static_cast<ryzanstein_llm::bitnet::QuantizedActivation *>(ptr);
     }
 
     // Test floating-point accumulation operations
@@ -542,52 +542,52 @@ extern "C"
     __declspec(dllexport) void *quantize_weights_ternary_cpu_c(
         const float *weights, uint32_t rows, uint32_t cols)
     {
-        ryzen_llm::bitnet::QuantConfig config;
-        ryzen_llm::bitnet::TernaryWeightCPU *result =
-            new ryzen_llm::bitnet::TernaryWeightCPU(
-                ryzen_llm::bitnet::quantize_weights_ternary_cpu(weights, rows, cols, config));
+        ryzanstein_llm::bitnet::QuantConfig config;
+        ryzanstein_llm::bitnet::TernaryWeightCPU *result =
+            new ryzanstein_llm::bitnet::TernaryWeightCPU(
+                ryzanstein_llm::bitnet::quantize_weights_ternary_cpu(weights, rows, cols, config));
         return result;
     }
 
     __declspec(dllexport) void *quantize_activations_int8_cpu_c(
         const float *activations, size_t size)
     {
-        ryzen_llm::bitnet::QuantConfig config;
-        ryzen_llm::bitnet::QuantizedActivationCPU *result =
-            new ryzen_llm::bitnet::QuantizedActivationCPU(
-                ryzen_llm::bitnet::quantize_activations_int8_cpu(activations, size, config));
+        ryzanstein_llm::bitnet::QuantConfig config;
+        ryzanstein_llm::bitnet::QuantizedActivationCPU *result =
+            new ryzanstein_llm::bitnet::QuantizedActivationCPU(
+                ryzanstein_llm::bitnet::quantize_activations_int8_cpu(activations, size, config));
         return result;
     }
 
     __declspec(dllexport) void dequantize_weights_cpu_c(
         void *ternary_weight_ptr, float *output)
     {
-        auto *ternary_weight = static_cast<ryzen_llm::bitnet::TernaryWeightCPU *>(ternary_weight_ptr);
-        ryzen_llm::bitnet::dequantize_weights_cpu(*ternary_weight, output);
+        auto *ternary_weight = static_cast<ryzanstein_llm::bitnet::TernaryWeightCPU *>(ternary_weight_ptr);
+        ryzanstein_llm::bitnet::dequantize_weights_cpu(*ternary_weight, output);
     }
 
     __declspec(dllexport) void dequantize_activations_cpu_c(
         void *quantized_ptr, float *output)
     {
-        auto *quantized = static_cast<ryzen_llm::bitnet::QuantizedActivationCPU *>(quantized_ptr);
-        ryzen_llm::bitnet::dequantize_activations_cpu(*quantized, output);
+        auto *quantized = static_cast<ryzanstein_llm::bitnet::QuantizedActivationCPU *>(quantized_ptr);
+        ryzanstein_llm::bitnet::dequantize_activations_cpu(*quantized, output);
     }
 
     __declspec(dllexport) float compute_quantization_error_cpu_c(
         const float *original, const float *quantized, size_t size)
     {
-        return ryzen_llm::bitnet::compute_quantization_error_cpu(original, quantized, size);
+        return ryzanstein_llm::bitnet::compute_quantization_error_cpu(original, quantized, size);
     }
 
     // Memory management for CPU-compatible structs
     __declspec(dllexport) void free_ternary_weight_cpu(void *ptr)
     {
-        delete static_cast<ryzen_llm::bitnet::TernaryWeightCPU *>(ptr);
+        delete static_cast<ryzanstein_llm::bitnet::TernaryWeightCPU *>(ptr);
     }
 
     __declspec(dllexport) void free_quantized_activation_cpu(void *ptr)
     {
-        delete static_cast<ryzen_llm::bitnet::QuantizedActivationCPU *>(ptr);
+        delete static_cast<ryzanstein_llm::bitnet::QuantizedActivationCPU *>(ptr);
     }
 
     // Test functions for CPU-compatible quantization
@@ -597,7 +597,7 @@ extern "C"
         try
         {
             // Just create the object and return success
-            ryzen_llm::bitnet::TernaryWeightCPU weight(4, 4, 0);
+            ryzanstein_llm::bitnet::TernaryWeightCPU weight(4, 4, 0);
             // Clean up
             delete[] weight.values;
             delete[] weight.scales;
@@ -620,13 +620,13 @@ extern "C"
             // Create test data
             float weights[16] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
 
-            ryzen_llm::bitnet::QuantConfig config;
+            ryzanstein_llm::bitnet::QuantConfig config;
             config.per_group_scaling = false;
             config.weight_group_size = 0;
             config.activation_clip_value = 6.0f;
             config.symmetric_activations = true;
 
-            auto ternary_weight = ryzen_llm::bitnet::quantize_weights_ternary_cpu(weights, 4, 4, config);
+            auto ternary_weight = ryzanstein_llm::bitnet::quantize_weights_ternary_cpu(weights, 4, 4, config);
 
             // Clean up
             delete[] ternary_weight.values;
@@ -651,13 +651,13 @@ extern "C"
             // Create test data
             float activations[4] = {1, -2, 3, -4};
 
-            ryzen_llm::bitnet::QuantConfig config;
+            ryzanstein_llm::bitnet::QuantConfig config;
             config.per_group_scaling = false;
             config.weight_group_size = 0;
             config.activation_clip_value = 6.0f;
             config.symmetric_activations = true;
 
-            auto quantized_activation = ryzen_llm::bitnet::quantize_activations_int8_cpu(activations, 4, config);
+            auto quantized_activation = ryzanstein_llm::bitnet::quantize_activations_int8_cpu(activations, 4, config);
 
             // Clean up
             delete[] quantized_activation.values;
@@ -682,26 +682,26 @@ extern "C"
             float weights[16] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
             float activations[4] = {1, -2, 3, -4};
 
-            ryzen_llm::bitnet::QuantConfig config;
+            ryzanstein_llm::bitnet::QuantConfig config;
             config.per_group_scaling = false;
             config.weight_group_size = 0;
             config.activation_clip_value = 6.0f;
             config.symmetric_activations = true;
 
-            auto ternary_weight = ryzen_llm::bitnet::quantize_weights_ternary_cpu(weights, 4, 4, config);
-            auto quantized_activation = ryzen_llm::bitnet::quantize_activations_int8_cpu(activations, 4, config);
+            auto ternary_weight = ryzanstein_llm::bitnet::quantize_weights_ternary_cpu(weights, 4, 4, config);
+            auto quantized_activation = ryzanstein_llm::bitnet::quantize_activations_int8_cpu(activations, 4, config);
 
             // Test dequantization
             float dequantized_weights[16];
             float dequantized_activations[4];
 
-            ryzen_llm::bitnet::dequantize_weights_cpu(ternary_weight, dequantized_weights);
-            ryzen_llm::bitnet::dequantize_activations_cpu(quantized_activation, dequantized_activations);
+            ryzanstein_llm::bitnet::dequantize_weights_cpu(ternary_weight, dequantized_weights);
+            ryzanstein_llm::bitnet::dequantize_activations_cpu(quantized_activation, dequantized_activations);
 
             // Test error computation
-            float error_weights = ryzen_llm::bitnet::compute_quantization_error_cpu(
+            float error_weights = ryzanstein_llm::bitnet::compute_quantization_error_cpu(
                 weights, dequantized_weights, 16);
-            float error_activations = ryzen_llm::bitnet::compute_quantization_error_cpu(
+            float error_activations = ryzanstein_llm::bitnet::compute_quantization_error_cpu(
                 activations, dequantized_activations, 4);
 
             // Clean up
@@ -730,19 +730,19 @@ namespace py = pybind11;
 
 PYBIND11_MODULE(ryzen_llm_bindings, m)
 {
-    m.doc() = "RYZEN-LLM C++ Bindings: BitNet Quantization and Inference";
+    m.doc() = "Ryzanstein LLM C++ Bindings: BitNet Quantization and Inference";
 
     // ========================================================================
     // Quantization Configuration
     // ========================================================================
 
-    py::class_<ryzen_llm::bitnet::QuantConfig>(m, "QuantConfig")
+    py::class_<ryzanstein_llm::bitnet::QuantConfig>(m, "QuantConfig")
         .def(py::init<>())
-        .def_readwrite("per_group_scaling", &ryzen_llm::bitnet::QuantConfig::per_group_scaling)
-        .def_readwrite("weight_group_size", &ryzen_llm::bitnet::QuantConfig::weight_group_size)
-        .def_readwrite("activation_clip_value", &ryzen_llm::bitnet::QuantConfig::activation_clip_value)
-        .def_readwrite("symmetric_activations", &ryzen_llm::bitnet::QuantConfig::symmetric_activations)
-        .def("__repr__", [](const ryzen_llm::bitnet::QuantConfig &c)
+        .def_readwrite("per_group_scaling", &ryzanstein_llm::bitnet::QuantConfig::per_group_scaling)
+        .def_readwrite("weight_group_size", &ryzanstein_llm::bitnet::QuantConfig::weight_group_size)
+        .def_readwrite("activation_clip_value", &ryzanstein_llm::bitnet::QuantConfig::activation_clip_value)
+        .def_readwrite("symmetric_activations", &ryzanstein_llm::bitnet::QuantConfig::symmetric_activations)
+        .def("__repr__", [](const ryzanstein_llm::bitnet::QuantConfig &c)
              { return "<QuantConfig per_group_scaling=" + std::to_string(c.per_group_scaling) +
                       " weight_group_size=" + std::to_string(c.weight_group_size) +
                       " activation_clip_value=" + std::to_string(c.activation_clip_value) + ">"; });
@@ -751,20 +751,20 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
     // Ternary Weight Representation
     // ========================================================================
 
-    py::class_<ryzen_llm::bitnet::TernaryWeight>(m, "TernaryWeight")
+    py::class_<ryzanstein_llm::bitnet::TernaryWeight>(m, "TernaryWeight")
         .def(py::init<>())
         .def(py::init<uint32_t, uint32_t, uint32_t>())
-        .def_readonly("values", &ryzen_llm::bitnet::TernaryWeight::values)
-        .def_readonly("scales", &ryzen_llm::bitnet::TernaryWeight::scales)
-        .def_readonly("rows", &ryzen_llm::bitnet::TernaryWeight::rows)
-        .def_readonly("cols", &ryzen_llm::bitnet::TernaryWeight::cols)
-        .def_readonly("group_size", &ryzen_llm::bitnet::TernaryWeight::group_size)
-        .def("get_scale", &ryzen_llm::bitnet::TernaryWeight::get_scale)
-        .def("size", [](const ryzen_llm::bitnet::TernaryWeight &w)
+        .def_readonly("values", &ryzanstein_llm::bitnet::TernaryWeight::values)
+        .def_readonly("scales", &ryzanstein_llm::bitnet::TernaryWeight::scales)
+        .def_readonly("rows", &ryzanstein_llm::bitnet::TernaryWeight::rows)
+        .def_readonly("cols", &ryzanstein_llm::bitnet::TernaryWeight::cols)
+        .def_readonly("group_size", &ryzanstein_llm::bitnet::TernaryWeight::group_size)
+        .def("get_scale", &ryzanstein_llm::bitnet::TernaryWeight::get_scale)
+        .def("size", [](const ryzanstein_llm::bitnet::TernaryWeight &w)
              { return w.rows * w.cols; })
-        .def("num_scales", [](const ryzen_llm::bitnet::TernaryWeight &w)
+        .def("num_scales", [](const ryzanstein_llm::bitnet::TernaryWeight &w)
              { return w.scales.size(); })
-        .def("__repr__", [](const ryzen_llm::bitnet::TernaryWeight &w)
+        .def("__repr__", [](const ryzanstein_llm::bitnet::TernaryWeight &w)
              { return "<TernaryWeight rows=" + std::to_string(w.rows) +
                       " cols=" + std::to_string(w.cols) +
                       " scales=" + std::to_string(w.scales.size()) + ">"; });
@@ -773,15 +773,15 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
     // Quantized Activation Representation
     // ========================================================================
 
-    py::class_<ryzen_llm::bitnet::QuantizedActivation>(m, "QuantizedActivation")
+    py::class_<ryzanstein_llm::bitnet::QuantizedActivation>(m, "QuantizedActivation")
         .def(py::init<>())
         .def(py::init<size_t>())
-        .def_readonly("values", &ryzen_llm::bitnet::QuantizedActivation::values)
-        .def_readwrite("scale", &ryzen_llm::bitnet::QuantizedActivation::scale)
-        .def_readwrite("zero_point", &ryzen_llm::bitnet::QuantizedActivation::zero_point)
-        .def("size", [](const ryzen_llm::bitnet::QuantizedActivation &a)
+        .def_readonly("values", &ryzanstein_llm::bitnet::QuantizedActivation::values)
+        .def_readwrite("scale", &ryzanstein_llm::bitnet::QuantizedActivation::scale)
+        .def_readwrite("zero_point", &ryzanstein_llm::bitnet::QuantizedActivation::zero_point)
+        .def("size", [](const ryzanstein_llm::bitnet::QuantizedActivation &a)
              { return a.values.size(); })
-        .def("__repr__", [](const ryzen_llm::bitnet::QuantizedActivation &a)
+        .def("__repr__", [](const ryzanstein_llm::bitnet::QuantizedActivation &a)
              { return "<QuantizedActivation size=" + std::to_string(a.values.size()) +
                       " scale=" + std::to_string(a.scale) + ">"; });
 
@@ -789,7 +789,7 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
     // Quantization Functions
     // ========================================================================
 
-    m.def("quantize_weights_ternary", [](py::array_t<float> weights, uint32_t rows, uint32_t cols, const ryzen_llm::bitnet::QuantConfig &config) -> ryzen_llm::bitnet::TernaryWeight
+    m.def("quantize_weights_ternary", [](py::array_t<float> weights, uint32_t rows, uint32_t cols, const ryzanstein_llm::bitnet::QuantConfig &config) -> ryzanstein_llm::bitnet::TernaryWeight
           {
               auto buf = weights.request();
               if (buf.size != rows * cols) {
@@ -797,8 +797,8 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
                                          std::to_string(rows * cols) + ", got " + 
                                          std::to_string(buf.size));
               }
-              return ryzen_llm::bitnet::quantize_weights_ternary(
-                  static_cast<float*>(buf.ptr), rows, cols, config); }, py::arg("weights"), py::arg("rows"), py::arg("cols"), py::arg("config") = ryzen_llm::bitnet::QuantConfig(), "Quantize FP32 weights to ternary {-1, 0, +1}\n\n"
+              return ryzanstein_llm::bitnet::quantize_weights_ternary(
+                  static_cast<float*>(buf.ptr), rows, cols, config); }, py::arg("weights"), py::arg("rows"), py::arg("cols"), py::arg("config") = ryzanstein_llm::bitnet::QuantConfig(), "Quantize FP32 weights to ternary {-1, 0, +1}\n\n"
                                                                                                                            "Args:\n"
                                                                                                                            "  weights: FP32 weight array [rows x cols]\n"
                                                                                                                            "  rows: Number of rows\n"
@@ -807,21 +807,21 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
                                                                                                                            "Returns:\n"
                                                                                                                            "  TernaryWeight with quantized values and scales");
 
-    m.def("quantize_activations_int8", [](py::array_t<float> activations, const ryzen_llm::bitnet::QuantConfig &config) -> ryzen_llm::bitnet::QuantizedActivation
+    m.def("quantize_activations_int8", [](py::array_t<float> activations, const ryzanstein_llm::bitnet::QuantConfig &config) -> ryzanstein_llm::bitnet::QuantizedActivation
           {
               auto buf = activations.request();
-              return ryzen_llm::bitnet::quantize_activations_int8(
-                  static_cast<float*>(buf.ptr), buf.size, config); }, py::arg("activations"), py::arg("config") = ryzen_llm::bitnet::QuantConfig(), "Quantize FP32 activations to INT8\n\n"
+              return ryzanstein_llm::bitnet::quantize_activations_int8(
+                  static_cast<float*>(buf.ptr), buf.size, config); }, py::arg("activations"), py::arg("config") = ryzanstein_llm::bitnet::QuantConfig(), "Quantize FP32 activations to INT8\n\n"
                                                                                              "Args:\n"
                                                                                              "  activations: FP32 activation array\n"
                                                                                              "  config: QuantConfig instance\n\n"
                                                                                              "Returns:\n"
                                                                                              "  QuantizedActivation with quantized values and scale");
 
-    m.def("dequantize_weights", [](const ryzen_llm::bitnet::TernaryWeight &weights) -> py::array_t<float>
+    m.def("dequantize_weights", [](const ryzanstein_llm::bitnet::TernaryWeight &weights) -> py::array_t<float>
           {
               auto output = new float[weights.rows * weights.cols];
-              ryzen_llm::bitnet::dequantize_weights(weights, output);
+              ryzanstein_llm::bitnet::dequantize_weights(weights, output);
               
               // Create numpy array that takes ownership
               py::capsule free_when_done(output, [](void *f) noexcept { delete[](float*)f; });
@@ -835,10 +835,10 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
                "Returns:\n"
                "  FP32 array of shape [rows, cols]");
 
-    m.def("dequantize_activations", [](const ryzen_llm::bitnet::QuantizedActivation &activations) -> py::array_t<float>
+    m.def("dequantize_activations", [](const ryzanstein_llm::bitnet::QuantizedActivation &activations) -> py::array_t<float>
           {
               auto output = new float[activations.values.size()];
-              ryzen_llm::bitnet::dequantize_activations(activations, output);
+              ryzanstein_llm::bitnet::dequantize_activations(activations, output);
               
               py::capsule free_when_done(output, [](void *f) noexcept { delete[](float*)f; });
               return py::array_t<float>(
@@ -858,7 +858,7 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
               if (orig_buf.size != quant_buf.size) {
                   throw std::runtime_error("array size mismatch");
               }
-              return ryzen_llm::bitnet::compute_quantization_error(
+              return ryzanstein_llm::bitnet::compute_quantization_error(
                   static_cast<float*>(orig_buf.ptr),
                   static_cast<float*>(quant_buf.ptr),
                   orig_buf.size); }, "Compute mean squared error between original and quantized values\n\n"
@@ -882,7 +882,7 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
             throw std::runtime_error("weights size mismatch");
         }
         
-        auto ternary = ryzen_llm::bitnet::quantize_weights_ternary(
+        auto ternary = ryzanstein_llm::bitnet::quantize_weights_ternary(
             static_cast<float*>(buf.ptr), rows, cols);
         
         return py::dict(

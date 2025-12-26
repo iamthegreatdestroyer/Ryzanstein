@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM BitNet Quantization Implementation
+ * Ryzanstein LLM BitNet Quantization Implementation
  * [REF:PHASE1-001] - BitNet b1.58 Ternary Quantization
  */
 
@@ -10,7 +10,7 @@
 #include <cstring>
 #include <iostream>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace bitnet
     {
@@ -568,11 +568,11 @@ namespace ryzen_llm
 
         // CPU-compatible versions using raw pointers (no std::vector)
 
-        ryzen_llm::bitnet::TernaryWeightCPU quantize_weights_ternary_cpu(
+        ryzanstein_llm::bitnet::TernaryWeightCPU quantize_weights_ternary_cpu(
             const float *weights,
             uint32_t rows,
             uint32_t cols,
-            const ryzen_llm::bitnet::QuantConfig &config)
+            const ryzanstein_llm::bitnet::QuantConfig &config)
         {
             // Use nested loops to avoid AVX-512 multiplication
             uint32_t total_elements = 0;
@@ -623,10 +623,10 @@ namespace ryzen_llm
             return result;
         }
 
-        ryzen_llm::bitnet::QuantizedActivationCPU quantize_activations_int8_cpu(
+        ryzanstein_llm::bitnet::QuantizedActivationCPU quantize_activations_int8_cpu(
             const float *activations,
             size_t size,
-            const ryzen_llm::bitnet::QuantConfig &config)
+            const ryzanstein_llm::bitnet::QuantConfig &config)
         {
             QuantizedActivationCPU result(size);
 
@@ -667,7 +667,7 @@ namespace ryzen_llm
         }
 
         void dequantize_weights_cpu(
-            const ryzen_llm::bitnet::TernaryWeightCPU &weights,
+            const ryzanstein_llm::bitnet::TernaryWeightCPU &weights,
             float *output)
         {
             // Use nested loops to avoid AVX-512 multiplication
@@ -692,7 +692,7 @@ namespace ryzen_llm
         }
 
         void dequantize_activations_cpu(
-            const ryzen_llm::bitnet::QuantizedActivationCPU &activations,
+            const ryzanstein_llm::bitnet::QuantizedActivationCPU &activations,
             float *output)
         {
             for (size_t i = 0; i < activations.size; ++i)
@@ -721,4 +721,4 @@ namespace ryzen_llm
         }
 
     } // namespace bitnet
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

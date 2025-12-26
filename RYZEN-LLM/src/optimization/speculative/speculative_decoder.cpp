@@ -2,7 +2,7 @@
 #include <stdexcept>
 #include <algorithm>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace speculative
     {
@@ -61,6 +61,6 @@ namespace ryzen_llm
         }
 
     } // namespace speculative
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

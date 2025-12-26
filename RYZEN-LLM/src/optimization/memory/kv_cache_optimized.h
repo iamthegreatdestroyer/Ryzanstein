@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM KV Cache Optimized - Ultra-High Performance
+ * Ryzanstein LLM KV Cache Optimized - Ultra-High Performance
  * [REF:OL-005b] - Performance-Critical KV Cache for BitNet Attention
  *
  * Optimizations for 30× speedup (0.42 → 12+ tokens/sec):
@@ -34,7 +34,7 @@
 #include <chrono>
 #include <optional>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace optimization
     {
@@ -302,4 +302,4 @@ namespace ryzen_llm
         }
 
     } // namespace optimization
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

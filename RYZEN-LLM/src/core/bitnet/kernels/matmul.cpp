@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM BitNet Matrix Multiplication Implementation
+ * Ryzanstein LLM BitNet Matrix Multiplication Implementation
  * [REF:PHASE1-002] - Baseline Ternary Matmul (Correctness-First)
  */
 
@@ -7,7 +7,7 @@
 #include <cmath>
 #include <algorithm>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace bitnet
     {
@@ -131,4 +131,4 @@ namespace ryzen_llm
         }
 
     } // namespace bitnet
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

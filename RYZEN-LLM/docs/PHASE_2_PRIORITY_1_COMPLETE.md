@@ -28,18 +28,18 @@ Successfully exposed C++ BitNet quantization functions via pybind11, making high
 
 ```cpp
 // Struct bindings with read/write property access
-py::class_<ryzen_llm::bitnet::QuantConfig>(m, "QuantConfig")
-    .def_readwrite("per_group_scaling", &ryzen_llm::bitnet::QuantConfig::per_group_scaling)
-    .def_readwrite("weight_group_size", &ryzen_llm::bitnet::QuantConfig::weight_group_size)
+py::class_<ryzanstein_llm::bitnet::QuantConfig>(m, "QuantConfig")
+    .def_readwrite("per_group_scaling", &ryzanstein_llm::bitnet::QuantConfig::per_group_scaling)
+    .def_readwrite("weight_group_size", &ryzanstein_llm::bitnet::QuantConfig::weight_group_size)
     // ... more properties
 
 // Function bindings with numpy array interop
 m.def("quantize_weights_ternary",
       [](py::array_t<float> weights, uint32_t rows, uint32_t cols,
-         const ryzen_llm::bitnet::QuantConfig &config) -> ryzen_llm::bitnet::TernaryWeight {
+         const ryzanstein_llm::bitnet::QuantConfig &config) -> ryzanstein_llm::bitnet::TernaryWeight {
           // Safely extract pointer and call C++ function
           auto buf = weights.request();
-          return ryzen_llm::bitnet::quantize_weights_ternary(
+          return ryzanstein_llm::bitnet::quantize_weights_ternary(
               static_cast<float*>(buf.ptr), rows, cols, config);
       });
 ```
@@ -182,7 +182,7 @@ config.symmetric_activations = True    # Symmetric quantization for activations
 
 ```python
 import numpy as np
-from ryzen_llm.ryzen_llm_bindings import (
+from ryzanstein_llm.ryzen_llm_bindings import (
     QuantConfig,
     quantize_weights_ternary,
     dequantize_weights,
@@ -234,7 +234,7 @@ The exposed bindings integrate seamlessly with:
 
 **Primary:**
 
-- `python/ryzen_llm/ryzen_llm_bindings.pyd` (257 KB) - Main extension module
+- `python/ryzanstein_llm/ryzen_llm_bindings.pyd` (257 KB) - Main extension module
 
 **Source:**
 

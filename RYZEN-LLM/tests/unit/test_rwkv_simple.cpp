@@ -11,7 +11,7 @@
 #include "../../src/core/rwkv/time_mixing.h"
 #include "../../src/core/rwkv/wkv.h"
 
-using namespace ryzen_llm::rwkv;
+using namespace ryzanstein_llm::rwkv;
 
 // Simple random vector generator
 std::vector<float> generate_random(size_t size, int seed = 42)

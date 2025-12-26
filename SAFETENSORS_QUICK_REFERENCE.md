@@ -193,7 +193,7 @@ target_link_libraries(my_target PRIVATE safetensors_io)
 #include "src/io/safetensors_loader.h"
 #include "src/io/weight_validator.h"
 
-using namespace ryzen_llm::io;
+using namespace ryzanstein_llm::io;
 ```
 
 ## Verbose Output
@@ -299,7 +299,7 @@ docs/
 // 1. Include
 #include "src/io/safetensors_loader.h"
 #include "src/io/weight_validator.h"
-using namespace ryzen_llm::io;
+using namespace ryzanstein_llm::io;
 
 // 2. Load
 SafeTensorsLoader loader;

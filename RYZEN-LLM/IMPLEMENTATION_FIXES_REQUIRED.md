@@ -1,4 +1,4 @@
-# IMPLEMENTATION FIXES REQUIRED - RYZEN-LLM
+# IMPLEMENTATION FIXES REQUIRED - Ryzanstein LLM
 
 Based on test execution results, the following implementation issues need to be addressed.
 
@@ -433,7 +433,7 @@ After implementing each fix:
 ### Full Test Run Command
 
 ```powershell
-cd c:\Users\sgbil\Ryot\RYZEN-LLM\build
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build
 
 # Build and test
 cmake --build . --config Release

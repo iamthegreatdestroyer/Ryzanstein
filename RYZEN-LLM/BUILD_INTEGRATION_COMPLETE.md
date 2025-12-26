@@ -158,7 +158,7 @@ build/src/core/bitnet/tests/Release/
 ### Headers Installed
 
 ```
-include/ryzen_llm/tmac/
+include/ryzanstein_llm/tmac/
   ├── pattern_generator.h
   ├── frequency_analyzer.h
   ├── delta_encoder.h
@@ -167,7 +167,7 @@ include/ryzen_llm/tmac/
   ├── tmac_gemm.h
   └── tmac_gemm_optimized.h
 
-include/ryzen_llm/bitnet/
+include/ryzanstein_llm/bitnet/
   ├── bitnet_layer.h
   └── bitnet_model.h
 ```
@@ -201,7 +201,7 @@ Testing:         🔄 Debug needed
 ### Configure
 
 ```bash
-cd RYZEN-LLM
+cd Ryzanstein LLM
 cmake -B build -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Release
 ```
 

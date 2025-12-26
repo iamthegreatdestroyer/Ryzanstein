@@ -1,9 +1,9 @@
-# RYZEN-LLM CMake Build Configuration
+# Ryzanstein LLM CMake Build Configuration
 # [REF:AP-009] - Appendix: Technical Stack
 # Requires CMake 3.20+ for C++17 support
 
 cmake_minimum_required(VERSION 3.20)
-project(RYZEN-LLM VERSION 2.0.0 LANGUAGES CXX)
+project(Ryzanstein LLM VERSION 2.0.0 LANGUAGES CXX)
 
 # C++17 Standard
 set(CMAKE_CXX_STANDARD 17)
@@ -122,8 +122,8 @@ set(CORE_LIBRARIES
 )
 
 # Main executable (if needed)
-# add_executable(ryzen-llm-server src/main.cpp)
-# target_link_libraries(ryzen-llm-server ${CORE_LIBRARIES})
+# add_executable(ryzanstein-llm-server src/main.cpp)
+# target_link_libraries(ryzanstein-llm-server ${CORE_LIBRARIES})
 
 # Testing
 option(BUILD_TESTS "Build tests" OFF)
@@ -146,7 +146,7 @@ install(TARGETS ${CORE_LIBRARIES}
 
 # Print configuration summary
 message(STATUS "")
-message(STATUS "========== RYZEN-LLM Configuration ==========")
+message(STATUS "========== Ryzanstein LLM Configuration ==========")
 message(STATUS "Version: ${PROJECT_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C++ Standard: C++${CMAKE_CXX_STANDARD}")

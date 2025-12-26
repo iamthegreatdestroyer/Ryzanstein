@@ -73,7 +73,7 @@ class ModelInfo(BaseModel):
     id: str
     object: str = "model"
     created: int
-    owned_by: str = "ryzen-llm"
+    owned_by: str = "ryzanstein-llm"
 
 
 # Initialize engine and utilities
@@ -124,8 +124,8 @@ def simple_detokenize(tokens: List[int]) -> str:
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="RYZEN-LLM API",
-    description="OpenAI-compatible API for RYZEN-LLM",
+    title="Ryzanstein LLM API",
+    description="OpenAI-compatible API for Ryzanstein LLM",
     version="0.1.0"
 )
 
@@ -139,7 +139,7 @@ app = FastAPI(
 async def root():
     """Root endpoint."""
     return {
-        "message": "RYZEN-LLM API Server",
+        "message": "Ryzanstein LLM API Server",
         "version": "0.1.0",
         "endpoints": ["/v1/chat/completions", "/v1/embeddings", "/v1/models"]
     }
@@ -161,7 +161,7 @@ async def list_models() -> Dict[str, List[ModelInfo]]:
         models.append(ModelInfo(
             id="bitnet-1.58b",
             created=current_time,
-            owned_by="ryzen-llm"
+            owned_by="ryzanstein-llm"
         ))
 
     return {"object": "list", "data": models}

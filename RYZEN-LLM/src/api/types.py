@@ -1,5 +1,5 @@
 """
-Ryot LLM Core Type Definitions
+Ryzanstein LLM Core Type Definitions
 ==============================
 """
 

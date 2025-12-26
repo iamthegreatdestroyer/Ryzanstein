@@ -1,4 +1,4 @@
-# RYZEN-LLM Unit Tests CMakeLists.txt
+# Ryzanstein LLM Unit Tests CMakeLists.txt
 # Speculative Decoding Component Tests
 
 cmake_minimum_required(VERSION 3.20)

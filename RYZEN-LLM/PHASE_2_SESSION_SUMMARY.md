@@ -7,7 +7,7 @@
 - **Status:** COMPLETE
 - **Result:** 6 functions + 3 C++ classes successfully bound to Python
 - **File:** `src/api/bindings/bitnet_bindings.cpp` (lines 728-922)
-- **Extension:** `python/ryzen_llm/ryzen_llm_bindings.pyd` (257 KB)
+- **Extension:** `python/ryzanstein_llm/ryzen_llm_bindings.pyd` (257 KB)
 
 **Exposed Classes:**
 

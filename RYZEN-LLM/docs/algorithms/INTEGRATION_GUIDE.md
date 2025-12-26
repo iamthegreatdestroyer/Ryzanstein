@@ -5,7 +5,7 @@
 ### 1. Build with Optimizations
 
 ```bash
-cd RYZEN-LLM
+cd Ryzanstein LLM
 
 # Configure with AVX-512 enabled
 cmake -B build -DCMAKE_BUILD_TYPE=Release \
@@ -156,13 +156,13 @@ target_link_libraries(benchmark_gemm_performance
 
 - **CPU:** x86-64 with AVX-512F support
   - Intel: Ice Lake (10th gen) or newer
-  - AMD: Zen 4 (Ryzen 7000 series) or newer
+  - AMD: Zen 4 (Ryzanstein 7000 series) or newer
 - **RAM:** 8 GB minimum (16 GB recommended for large matrices)
 - **Compiler:** GCC 9+, Clang 10+, or MSVC 2019+
 
 ### Optimal Hardware (Tested)
 
-- **CPU:** AMD Ryzen 9 7950X (Zen 4)
+- **CPU:** AMD Ryzanstein 9 7950X (Zen 4)
   - 16 cores, 32 threads
   - Base: 4.5 GHz, Boost: 5.7 GHz
   - L1: 32 KB/core, L2: 512 KB/core, L3: 64 MB shared

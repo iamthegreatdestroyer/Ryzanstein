@@ -1,6 +1,6 @@
 # SafeTensors Loader - Integration Guide
 
-Complete guide for integrating the production-grade SafeTensors loader into RYZEN-LLM.
+Complete guide for integrating the production-grade SafeTensors loader into Ryzanstein LLM.
 
 ## Files Created
 
@@ -23,7 +23,7 @@ tests/
 
 ### Step 1: Add to Main CMakeLists.txt
 
-Add to `RYZEN-LLM/CMakeLists.txt`:
+Add to `Ryzanstein LLM/CMakeLists.txt`:
 
 ```cmake
 # SafeTensors I/O subsystem
@@ -53,7 +53,7 @@ In your main inference code:
 #include "src/io/safetensors_loader.h"
 #include "src/io/weight_validator.h"
 
-using namespace ryzen_llm::io;
+using namespace ryzanstein_llm::io;
 ```
 
 ### Step 3: Load Weights
@@ -98,7 +98,7 @@ std::cout << result.report();
 ### Where It Fits
 
 ```
-RYZEN-LLM Architecture
+Ryzanstein LLM Architecture
 ┌─────────────────────────────────────────────────────┐
 │                    Engine                           │
 │  ┌───────────────────────────────────────────────┐  │
@@ -367,7 +367,7 @@ for (const auto& file : files) {
 Run tests:
 
 ```bash
-cd RYZEN-LLM/build
+cd Ryzanstein LLM/build
 cmake -DBUILD_TESTS=ON ..
 cmake --build . --config Release
 ctest --output-on-failure

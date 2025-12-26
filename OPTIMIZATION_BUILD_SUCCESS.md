@@ -61,7 +61,7 @@ for (int32_t i = 0; i < (int32_t)seq_len; ++i)
 for (int32_t i = 0; i < (int32_t)size; ++i)
 ```
 
-**Performance Target:** 3-4× speedup on 8-core Ryzen 9 7950X
+**Performance Target:** 3-4× speedup on 8-core Ryzanstein 9 7950X
 
 ---
 
@@ -192,7 +192,7 @@ if (i + 1 < seq_len) {
 
 - **Per-token latency:** 0.15-0.25 seconds (with KV cache integration)
 - **Throughput:** **4-7 tokens/sec** (meets 2-5 tokens/sec target)
-- **Sustained:** On 8-core Ryzen, cache-friendly loop structure
+- **Sustained:** On 8-core Ryzanstein, cache-friendly loop structure
 
 ---
 
@@ -312,7 +312,7 @@ build/src/core/tmac/Release/ryzen_llm_tmac.lib        (Built)   ✅
 
 - **Build python extension** with optimized libraries
 - **Package as wheel** for distribution
-- **Benchmark on target hardware** (Ryzen 9 7950X)
+- **Benchmark on target hardware** (Ryzanstein 9 7950X)
 - **Release optimized version** as v2.0
 
 ---

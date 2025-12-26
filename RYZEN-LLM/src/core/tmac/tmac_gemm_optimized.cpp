@@ -39,7 +39,7 @@
 #define HAS_AVX2 0
 #endif
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace tmac
     {
@@ -47,7 +47,7 @@ namespace ryzen_llm
         using namespace std::chrono;
 
         // ============================================================================
-        // CACHE HIERARCHY CONSTANTS (Ryzen 9 7950X / Zen 4)
+        // CACHE HIERARCHY CONSTANTS (Ryzanstein 9 7950X / Zen 4)
         // ============================================================================
         constexpr size_t L1_CACHE_SIZE = 32 * 1024;        // 32 KB per core
         constexpr size_t L2_CACHE_SIZE = 512 * 1024;       // 512 KB per core
@@ -687,4 +687,4 @@ namespace ryzen_llm
 #endif
 
     } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

@@ -294,7 +294,7 @@ class TestProcessGroupManager:
     def test_manager_creation(self):
         """Test process group manager can be created."""
         try:
-            from ryzen_llm.src.distributed.orchestrator import ProcessGroupManager
+            from ryzanstein_llm.src.distributed.orchestrator import ProcessGroupManager
             
             manager = ProcessGroupManager(backend="nccl")
             assert not manager.is_initialized()
@@ -325,7 +325,7 @@ class TestWeightDistributor:
     def test_row_wise_sharding(self):
         """Test row-wise weight sharding."""
         try:
-            from ryzen_llm.src.distributed.model_loader import WeightDistributor
+            from ryzanstein_llm.src.distributed.model_loader import WeightDistributor
             
             distributor = WeightDistributor(rank=0, world_size=4, tp_size=4)
             
@@ -348,7 +348,7 @@ class TestWeightDistributor:
     def test_attention_head_sharding(self):
         """Test attention head distribution."""
         try:
-            from ryzen_llm.src.distributed.model_loader import WeightDistributor
+            from ryzanstein_llm.src.distributed.model_loader import WeightDistributor
             
             distributor = WeightDistributor(rank=0, world_size=4, tp_size=4)
             heads = distributor.shard_attention_heads(num_heads=32)

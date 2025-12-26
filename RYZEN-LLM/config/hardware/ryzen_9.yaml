@@ -1,10 +1,10 @@
-# AMD Ryzen 9 Hardware Profile
-# Target: Ryzen 9 7950X / 7950X3D (16 cores, 32 threads)
+# AMD Ryzanstein 9 Hardware Profile
+# Target: Ryzanstein 9 7950X / 7950X3D (16 cores, 32 threads)
 
 hardware:
-  name: "AMD Ryzen 9"
+  name: "AMD Ryzanstein 9"
   cpu:
-    model: "Ryzen 9 7950X"
+    model: "Ryzanstein 9 7950X"
     cores: 16
     threads: 32
     base_clock_ghz: 4.5

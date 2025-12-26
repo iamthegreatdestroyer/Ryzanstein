@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for Ryzen LLM C++ extension using Visual Studio 2019 BuildTools
+Build script for Ryzanstein LLM C++ extension using Visual Studio 2019 BuildTools
 Properly sets up environment and compilation
 """
 
@@ -227,7 +227,7 @@ def install_extension(build_dir: Path, cpp_build_dir: Path):
         return False
 
     extension_file = extension_files[0]
-    python_build_dir = build_dir / "python" / "ryzen_llm"
+    python_build_dir = build_dir / "python" / "ryzanstein_llm"
 
     # Ensure python build directory exists
     python_build_dir.mkdir(parents=True, exist_ok=True)
@@ -286,7 +286,7 @@ def test_extension():
 
 def main():
     print("=" * 70)
-    print("   Ryzen LLM C++ Extension Build System")
+    print("   Ryzanstein LLM C++ Extension Build System")
     print("   Visual Studio 2019 BuildTools Configuration")
     print("=" * 70)
 

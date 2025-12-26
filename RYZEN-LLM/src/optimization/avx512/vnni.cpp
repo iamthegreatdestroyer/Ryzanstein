@@ -1,4 +1,4 @@
-// Copyright (c) 2024 RYZEN-LLM Project
+// Copyright (c) 2024 Ryzanstein LLM Project
 // Licensed under MIT License
 //
 // VNNI INT8 Operations
@@ -10,7 +10,7 @@
 #include <immintrin.h>
 #include <cstdint>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace avx512
     {
@@ -83,4 +83,4 @@ namespace ryzen_llm
         };
 
     } // namespace avx512
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

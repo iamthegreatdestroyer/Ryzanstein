@@ -7,7 +7,7 @@
 #include "time_mixing.h"
 #include "wkv.h"
 
-using namespace ryzen_llm::rwkv;
+using namespace ryzanstein_llm::rwkv;
 
 int main()
 {

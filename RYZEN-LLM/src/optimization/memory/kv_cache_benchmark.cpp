@@ -15,7 +15,7 @@
 #include <iomanip>
 #include <vector>
 
-using namespace ryzen_llm::optimization;
+using namespace ryzanstein_llm::optimization;
 
 // ============================================================================
 // Utility Functions

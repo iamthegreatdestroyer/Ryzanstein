@@ -13,7 +13,7 @@
 
 ### Generated Library
 ```
-File: C:\Users\sgbil\Ryot\RYZEN-LLM\build\src\core\rwkv\Release\ryzen_llm_rwkv.lib
+File: C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build\src\core\rwkv\Release\ryzen_llm_rwkv.lib
 Size: 226.8 KB
 Type: Static Library (.lib)
 Status: ✅ Production Ready
@@ -21,7 +21,7 @@ Status: ✅ Production Ready
 
 ### Generated Test Executable
 ```
-File: C:\Users\sgbil\Ryot\RYZEN-LLM\build\tests\Release\test_rwkv.exe
+File: C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build\tests\Release\test_rwkv.exe
 Size: 23.6 KB
 Status: ✅ Created & Linked
 ```

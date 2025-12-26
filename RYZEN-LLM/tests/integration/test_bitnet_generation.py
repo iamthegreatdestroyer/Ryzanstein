@@ -1,5 +1,5 @@
 """
-RYZEN-LLM BitNet End-to-End Generation Tests
+Ryzanstein LLM BitNet End-to-End Generation Tests
 [REF:PHASE1-TASK5] - Integration Testing for BitNet Engine
 
 This module validates the complete BitNet generation pipeline:
@@ -580,7 +580,7 @@ class TestEndToEnd:
 
 if __name__ == "__main__":
     print("=" * 80)
-    print("RYZEN-LLM BitNet Integration Tests")
+    print("Ryzanstein LLM BitNet Integration Tests")
     print("=" * 80)
     
     # Run pytest with verbose output

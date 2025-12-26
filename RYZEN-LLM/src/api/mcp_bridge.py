@@ -39,7 +39,7 @@ class MCPTool:
 
 class MCPBridge:
     """
-    Bridge between RYZEN-LLM and MCP protocol for tool use.
+    Bridge between Ryzanstein LLM and MCP protocol for tool use.
     """
     
     def __init__(self):

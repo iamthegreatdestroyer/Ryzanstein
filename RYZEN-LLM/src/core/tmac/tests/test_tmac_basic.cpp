@@ -21,7 +21,7 @@
 #include <chrono>
 #include <cassert>
 
-using namespace ryzen_llm::tmac;
+using namespace ryzanstein_llm::tmac;
 using namespace std::chrono;
 
 // ============================================================================

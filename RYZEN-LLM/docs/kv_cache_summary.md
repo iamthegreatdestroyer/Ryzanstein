@@ -1,4 +1,4 @@
-# RYZEN-LLM: KV Cache Optimization Summary
+# Ryzanstein LLM: KV Cache Optimization Summary
 
 ## Overview
 

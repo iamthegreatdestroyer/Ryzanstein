@@ -21,7 +21,7 @@ from contextlib import contextmanager
 
 # Import our components
 import sys
-sys.path.append('RYZEN-LLM')
+sys.path.append('Ryzanstein LLM')
 
 from src.inference.distributed_kv_cache import DistributedKVCache
 from src.inference.cache_compression import FP8Compressor, CompressedKVCache

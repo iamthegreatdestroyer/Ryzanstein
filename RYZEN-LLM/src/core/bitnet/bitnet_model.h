@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace bitnet
     {
@@ -237,4 +237,4 @@ namespace ryzen_llm
             const ModelConfig &config);
 
     } // namespace bitnet
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

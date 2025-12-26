@@ -18,7 +18,7 @@
  *   - Prefetching for sequential patterns
  *   - Register blocking for temporal locality
  *
- * Target: >800 GOPS on Ryzen 9 (Zen 4)
+ * Target: >800 GOPS on Ryzanstein 9 (Zen 4)
  *
  * [REF:TMAC-006] - AVX-512 GEMM Implementation
  */
@@ -33,7 +33,7 @@
 #include <x86intrin.h>
 #endif
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace tmac
     {
@@ -56,7 +56,7 @@ namespace ryzen_llm
          * Implements blocked GEMM with T-MAC lookup tables:
          *
          * Performance characteristics:
-         *   - Peak: ~800-1200 GOPS on Ryzen 9 7950X (16-core)
+         *   - Peak: ~800-1200 GOPS on Ryzanstein 9 7950X (16-core)
          *   - Memory bandwidth: ~50 GB/s (DDR5-6400)
          *   - Cache efficiency: ~80% L1/L2 hit rate
          *
@@ -235,4 +235,4 @@ namespace ryzen_llm
         void aligned_free(void *ptr);
 
     } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

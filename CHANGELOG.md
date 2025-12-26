@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to RYZEN-LLM will be documented in this file.
+All notable changes to Ryzanstein LLM will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Release Summary
 
-**RYZEN-LLM v2.0** marks the completion of Phase 2, introducing production-ready memory pool optimization and advanced threading infrastructure. This release brings **81.6× performance improvement over Phase 1**, delivering **55.5 tokens/sec** throughput on AMD Ryzen processors with **34MB peak memory usage** and comprehensive cross-platform support.
+**Ryzanstein LLM v2.0** marks the completion of Phase 2, introducing production-ready memory pool optimization and advanced threading infrastructure. This release brings **81.6× performance improvement over Phase 1**, delivering **55.5 tokens/sec** throughput on AMD Ryzanstein processors with **34MB peak memory usage** and comprehensive cross-platform support.
 
 **Status:** ✅ RELEASE READY | 28/28 Integration Tests Passing | Performance Targets Exceeded
 
@@ -117,7 +117,7 @@ None - v2.0 maintains backward compatibility with v1.0 APIs while adding new fea
 ### Performance Benchmarks
 
 #### Hardware Configuration
-- **Processor:** AMD Ryzen 9 7950X3D
+- **Processor:** AMD Ryzanstein 9 7950X3D
 - **Memory:** 192GB DDR5 (ECC)
 - **Test Model:** BitNet b1.58 (256 hidden, 4 attention heads, 2 layers)
 
@@ -202,7 +202,7 @@ No database migrations or configuration format changes required.
 
 ### Initial Release
 
-First production release of RYZEN-LLM with Phase 1 implementation:
+First production release of Ryzanstein LLM with Phase 1 implementation:
 - BitNet b1.58 baseline inference
 - KV cache management
 - Greedy and sampling-based token generation
@@ -213,5 +213,5 @@ First production release of RYZEN-LLM with Phase 1 implementation:
 
 ---
 
-[2.0.0]: https://github.com/iamthegreatdestroyer/Ryot/releases/tag/v2.0
-[1.0.0]: https://github.com/iamthegreatdestroyer/Ryot/releases/tag/v1.0
+[2.0.0]: https://github.com/iamthegreatdestroyer/Ryzanstein/releases/tag/v2.0
+[1.0.0]: https://github.com/iamthegreatdestroyer/Ryzanstein/releases/tag/v1.0

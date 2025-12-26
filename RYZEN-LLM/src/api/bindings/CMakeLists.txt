@@ -18,9 +18,9 @@ target_link_libraries(ryzen_llm_bindings PRIVATE
 
 # Set output directory for Python module
 set_target_properties(ryzen_llm_bindings PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../python/ryzen_llm
-    LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/../python/ryzen_llm
-    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/../python/ryzen_llm
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/../python/ryzanstein_llm
+    LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/../python/ryzanstein_llm
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/../python/ryzanstein_llm
     PREFIX ""
     SUFFIX ".pyd"
 )

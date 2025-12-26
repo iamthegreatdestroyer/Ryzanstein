@@ -5,7 +5,7 @@
 ### Step 1: Navigate to Project
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 ```
 
 ### Step 2: Run Task 5
@@ -107,7 +107,7 @@ python scripts/task_5_real_weight_testing.py
 **JSON Report:**
 
 - File: `bitnet_quantization_report.json`
-- Location: RYZEN-LLM root directory
+- Location: Ryzanstein LLM root directory
 - Content: All metrics in structured format
 - Use: For analysis, comparison, tracking
 
@@ -199,7 +199,7 @@ After Task 5 completes successfully: **100% COMPLETE** ✅
 **Ready? Run it now:**
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM && python scripts/task_5_real_weight_testing.py
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM && python scripts/task_5_real_weight_testing.py
 ```
 
 **Let's complete Phase 2! 🚀**

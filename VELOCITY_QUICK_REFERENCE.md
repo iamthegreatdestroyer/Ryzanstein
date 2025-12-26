@@ -5,7 +5,7 @@
 ### Build with Optimizations
 
 ```powershell
-cd RYZEN-LLM/build
+cd Ryzanstein LLM/build
 cmake -G "Visual Studio 17 2022" -A x64 -DBUILD_TESTS=ON ..
 cmake --build . --config Release -j 8
 ```
@@ -36,7 +36,7 @@ os.environ['OMP_SCHEDULE'] = 'dynamic,1'   # Dynamic scheduling
 os.environ['OMP_PROC_BIND'] = 'close'      # NUMA-aware binding
 ```
 
-### Typical Configuration for Ryzen 9 7950X
+### Typical Configuration for Ryzanstein 9 7950X
 
 ```python
 # Optimal settings (all cores)
@@ -129,7 +129,7 @@ Target achieved:        ✅ 2-5 tokens/sec target
 1 core:    1.0× baseline
 2 cores:   1.9× baseline
 4 cores:   3.7× baseline
-8 cores:   7.1× baseline  ← Ryzen 9 7950X (half of 16)
+8 cores:   7.1× baseline  ← Ryzanstein 9 7950X (half of 16)
 16 cores:  14.2× baseline ← Full 7950X (if hyperthreading enabled)
 ```
 
@@ -228,10 +228,10 @@ export OMP_NUM_THREADS=8  # Not 16 if using SMT
 ### Python Binding
 
 ```python
-import ryzen_llm
+import ryzanstein_llm
 
 # Automatically uses optimized libraries if available
-model = ryzen_llm.BitNetModel("model.safetensors")
+model = ryzanstein_llm.BitNetModel("model.safetensors")
 
 # OpenMP threads set before first inference
 import os
@@ -344,7 +344,7 @@ stats.print_stats(20)
 
 - **OpenMP Specification:** https://www.openmp.org/spec-html/5.0/
 - **AVX2 Intrinsics Guide:** https://www.intel.com/content/dam/develop/external/us/en/documents/manual/64-ia-32-architectures-software-developer-manual-vol-1-2a-2b-2c-2d-order-code-253665.pdf
-- **Ryzen 9 7950X Specs:** https://www.amd.com/en/products/specifications/processors/ryzen/
+- **Ryzanstein 9 7950X Specs:** https://www.amd.com/en/products/specifications/processors/ryzanstein/
 
 ---
 

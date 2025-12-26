@@ -1,4 +1,4 @@
-// Copyright (c) 2024 RYZEN-LLM Project
+// Copyright (c) 2024 Ryzanstein LLM Project
 // Licensed under MIT License
 //
 // Unit Tests for Mamba SSM Implementation
@@ -9,7 +9,7 @@
 #include <random>
 #include <cmath>
 
-using namespace ryzen_llm::mamba;
+using namespace ryzanstein_llm::mamba;
 
 class MambaSSMTest : public ::testing::Test
 {

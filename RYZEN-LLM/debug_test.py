@@ -3,7 +3,7 @@ from pathlib import Path
 
 # Add paths
 sys.path.insert(0, str(Path('build/python')))
-sys.path.insert(0, str(Path('build/python/ryzen_llm')))
+sys.path.insert(0, str(Path('build/python/ryzanstein_llm')))
 
 try:
     import test_module

@@ -1,4 +1,4 @@
-# RYZEN-LLM MASTER ACTION PLAN
+# Ryzanstein LLM MASTER ACTION PLAN
 
 ## Elite Agent Collective Strategic Analysis & Implementation Roadmap
 
@@ -13,7 +13,7 @@
 
 ### Mission Statement
 
-Build a production-grade, CPU-first LLM inference system that achieves **25-35 tokens/sec** on AMD Ryzen 9 processors through advanced model architectures (BitNet, Mamba, RWKV), aggressive CPU optimizations (AVX-512, VNNI, T-MAC), and novel token recycling mechanisms.
+Build a production-grade, CPU-first LLM inference system that achieves **25-35 tokens/sec** on AMD Ryzanstein 9 processors through advanced model architectures (BitNet, Mamba, RWKV), aggressive CPU optimizations (AVX-512, VNNI, T-MAC), and novel token recycling mechanisms.
 
 ### Current State Assessment
 
@@ -104,7 +104,7 @@ Build a production-grade, CPU-first LLM inference system that achieves **25-35 t
 **Acceptance Criteria:**
 
 - ✅ Generate coherent text (perplexity < 15 on WikiText-2)
-- ✅ Throughput ≥ 10 tokens/sec on Ryzen 9
+- ✅ Throughput ≥ 10 tokens/sec on Ryzanstein 9
 - ✅ Memory usage ≤ 5GB for 7B model
 - ✅ Unit tests covering all kernels (90%+ coverage)
 
@@ -184,7 +184,7 @@ Build a production-grade, CPU-first LLM inference system that achieves **25-35 t
 **Acceptance Criteria:**
 
 - ✅ O(L) complexity (linear in sequence length)
-- ✅ Throughput ≥ 30 tokens/sec on Ryzen 9
+- ✅ Throughput ≥ 30 tokens/sec on Ryzanstein 9
 - ✅ Quality parity with reference implementation
 
 #### 1.4 RWKV Time-Mixing (@APEX)
@@ -497,7 +497,7 @@ Build a production-grade, CPU-first LLM inference system that achieves **25-35 t
 
 - ✅ Model load time ≤ 5 seconds
 - ✅ Zero-downtime model switching
-- ✅ Support 3+ concurrent models on Ryzen 9
+- ✅ Support 3+ concurrent models on Ryzanstein 9
 
 ---
 
@@ -628,7 +628,7 @@ def benchmark_suite():
     # 6. Speculative decoding speedup
 ```
 
-**Target Metrics (Ryzen 9 7950X):**
+**Target Metrics (Ryzanstein 9 7950X):**
 
 - BitNet 7B: 25 tokens/sec, 400ms TTFT
 - Mamba 2.8B: 35 tokens/sec, 350ms TTFT
@@ -662,7 +662,7 @@ def benchmark_suite():
 
 2. **Docker Compose**
 
-   - RYZEN-LLM service
+   - Ryzanstein LLM service
    - Qdrant vector DB
    - Prometheus/Grafana (optional)
 
@@ -796,7 +796,7 @@ Request → Router → [Retrieve RSUs] → Model → [Cache] → Response
 1. **Matrix Multiplication:** 70% of compute time
 
    - **Optimization:** AVX-512 VNNI, T-MAC lookup tables
-   - **Target:** 200 GOPS on Ryzen 9
+   - **Target:** 200 GOPS on Ryzanstein 9
 
 2. **Attention (if applicable):** 20% of compute
 
@@ -815,7 +815,7 @@ Request → Router → [Retrieve RSUs] → Model → [Cache] → Response
 
 **Memory Bandwidth:**
 
-- Ryzen 9 7950X: ~60 GB/s theoretical
+- Ryzanstein 9 7950X: ~60 GB/s theoretical
 - **Target utilization:** 70-80%
 - **Strategy:** Prefetching, cache blocking, quantized KV-cache
 
@@ -853,7 +853,7 @@ jobs:
         uses: codecov/codecov-action@v3
 
   benchmark:
-    runs-on: self-hosted # Ryzen 9 machine
+    runs-on: self-hosted # Ryzanstein 9 machine
     steps:
       - uses: actions/checkout@v3
       - name: Run benchmarks
@@ -1095,4 +1095,4 @@ void matmul_avx512_vnni(...);
 ---
 
 _"Make it work, make it right, make it fast — in that order."_  
-— Kent Beck, adapted for RYZEN-LLM
+— Kent Beck, adapted for Ryzanstein LLM

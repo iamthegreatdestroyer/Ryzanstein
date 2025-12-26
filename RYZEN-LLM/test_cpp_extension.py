@@ -19,22 +19,22 @@ def test_cpp_vs_python():
     print("Testing C++ extension vs Python reference...")
 
     try:
-        import ryzen_llm_bindings as ryzen_llm
+        import ryzen_llm_bindings as ryzanstein_llm
 
         # Check if quantization functions are available
-        has_quantize = hasattr(ryzen_llm, 'quantize_activations_int8')
-        has_naive_matmul = hasattr(ryzen_llm, 'naive_ternary_matmul')
+        has_quantize = hasattr(ryzanstein_llm, 'quantize_activations_int8')
+        has_naive_matmul = hasattr(ryzanstein_llm, 'naive_ternary_matmul')
 
         if not (has_quantize and has_naive_matmul):
             print("❌ C++ quantization functions not available")
-            print("Available functions:", [attr for attr in dir(ryzen_llm) if not attr.startswith('_')])
+            print("Available functions:", [attr for attr in dir(ryzanstein_llm) if not attr.startswith('_')])
             return False
 
         print("✓ C++ quantization functions found")
 
         # Test quantization
         print("Testing quantization...")
-        config = ryzen_llm.QuantConfig()
+        config = ryzanstein_llm.QuantConfig()
         config.activation_clip_value = 6.0
 
         activations = np.random.randn(100).astype(np.float32)
@@ -43,7 +43,7 @@ def test_cpp_vs_python():
         py_result = quantize_activations_int8_py(activations, len(activations), config)
 
         # C++ implementation
-        cpp_result = ryzen_llm.quantize_activations_int8(activations, len(activations), config)
+        cpp_result = ryzanstein_llm.quantize_activations_int8(activations, len(activations), config)
 
         # Compare results
         assert abs(py_result.scale - cpp_result.scale) < 1e-6, f"Scale mismatch: {py_result.scale} vs {cpp_result.scale}"
@@ -57,7 +57,7 @@ def test_cpp_vs_python():
         M, N, K = 8, 8, 8
 
         # Create test data
-        weights = ryzen_llm.TernaryWeight(K, N, 4)  # group_size = 4
+        weights = ryzanstein_llm.TernaryWeight(K, N, 4)  # group_size = 4
         for i in range(len(weights.values)):
             weights.values[i] = np.random.choice([-1, 0, 1])
             weights.scales[i // 4] = np.random.uniform(0.1, 1.0)
@@ -69,7 +69,7 @@ def test_cpp_vs_python():
         naive_ternary_matmul_py(weights, py_result, output_py, M, N, K)
 
         # C++ implementation
-        ryzen_llm.naive_ternary_matmul(weights, cpp_result, output_cpp, M, N, K)
+        ryzanstein_llm.naive_ternary_matmul(weights, cpp_result, output_cpp, M, N, K)
 
         # Compare results
         max_diff = max(abs(a - b) for a, b in zip(output_py, output_cpp))
@@ -92,7 +92,7 @@ def test_cpp_vs_python():
         start = time.perf_counter()
         for _ in range(iterations):
             output_temp = [0.0] * (M * N)
-            ryzen_llm.naive_ternary_matmul(weights, cpp_result, output_temp, M, N, K)
+            ryzanstein_llm.naive_ternary_matmul(weights, cpp_result, output_temp, M, N, K)
         cpp_time = (time.perf_counter() - start) * 1000 / iterations
 
         print(f"  C++ time: {cpp_time:.2f} ms")

@@ -108,7 +108,7 @@ __m512i lookup_batch_simd(pattern, __m512i activations);
 
 ### 2.2 Software Prefetching Strategy
 
-**Cache Hierarchy (Ryzen 9 7950X / Zen 4):**
+**Cache Hierarchy (Ryzanstein 9 7950X / Zen 4):**
 
 ```
 L1: 32 KB/core,  ~4 cycles latency   → _MM_HINT_T0
@@ -447,7 +447,7 @@ inline void gemm_blocked_optimized(
 
 ### 4.1 Theoretical Peak Performance
 
-**Ryzen 9 7950X (Zen 4) Specifications:**
+**Ryzanstein 9 7950X (Zen 4) Specifications:**
 
 - **Cores:** 16 (32 threads)
 - **Clock:** 4.5 GHz boost
@@ -525,7 +525,7 @@ inline void gemm_blocked_optimized(
 
 ```bash
 # Compile with optimizations
-cd RYZEN-LLM
+cd Ryzanstein LLM
 cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_AVX512=ON .
 cmake --build . --config Release
 

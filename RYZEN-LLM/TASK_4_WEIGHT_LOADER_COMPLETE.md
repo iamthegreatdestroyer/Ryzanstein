@@ -341,7 +341,7 @@ BitNet 1.3B Model:
 
 ## ✅ Quality Checklist
 
-- [x] Code follows RYZEN-LLM conventions
+- [x] Code follows Ryzanstein LLM conventions
 - [x] Type hints on all functions
 - [x] Docstrings for all classes/methods
 - [x] Error handling for edge cases

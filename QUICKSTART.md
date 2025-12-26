@@ -1,8 +1,8 @@
-# RYZEN-LLM Quick Start Guide
+# Ryzanstein LLM Quick Start Guide
 
 **Build, Deploy & Run in 5 Minutes**
 
-> **Hardware:** Ryzen 7 7730U | **OS:** Windows 11 | **Status:** ✅ Production Ready
+> **Hardware:** Ryzanstein 7 7730U | **OS:** Windows 11 | **Status:** ✅ Production Ready
 
 ---
 
@@ -26,7 +26,7 @@ python --version
 
 ```powershell
 # Navigate to your workspace
-cd C:\Users\sgbil\Ryot\RYZEN-LLM
+cd C:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 
 # Verify project structure
 dir /B | Select -First 10
@@ -69,7 +69,7 @@ cmake --build . --config Release -j 8
 # ✓ Linking complete
 ```
 
-**Build time:** ~90 seconds on Ryzen 7 7730U
+**Build time:** ~90 seconds on Ryzanstein 7 7730U
 
 ---
 
@@ -80,7 +80,7 @@ cmake --build . --config Release -j 8
 ctest --output-on-failure -C Release
 
 # Expected output:
-# Test project C:\Users\sgbil\Ryot\RYZEN-LLM\build
+# Test project C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build
 # 100% tests passed
 ```
 
@@ -128,7 +128,7 @@ See **[PERFORMANCE_REPORT.md](./PERFORMANCE_REPORT.md)** for detailed metrics.
 ## 🏗️ Project Structure
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/
 │   ├── core/
 │   │   ├── tmac/        ← Token-Aligned Memory (T-MAC)
@@ -167,10 +167,10 @@ See **[ARCHITECTURE.md](./ARCHITECTURE.md)** for component details.
 
 ## ✨ You're Ready!
 
-Your RYZEN-LLM environment is now production-ready. Proceed to **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** to start using BitNet in your applications.
+Your Ryzanstein LLM environment is now production-ready. Proceed to **[INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md)** to start using BitNet in your applications.
 
 **Status:** ✅ All systems operational
 
 ---
 
-_Last updated: December 2025 | Hardware: Ryzen 7 7730U | Windows 11_
+_Last updated: December 2025 | Hardware: Ryzanstein 7 7730U | Windows 11_

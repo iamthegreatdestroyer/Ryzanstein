@@ -29,7 +29,7 @@
 #include <memory>
 #include <string>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace rwkv
     {
@@ -250,6 +250,6 @@ namespace ryzen_llm
         };
 
     } // namespace rwkv
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 
 #endif // RYZEN_LLM_RWKV_WKV_H

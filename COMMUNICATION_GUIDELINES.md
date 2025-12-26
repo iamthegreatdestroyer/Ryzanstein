@@ -155,14 +155,14 @@ DONE
 **Channels**:
 
 ```
-#ryzen-llm-phase3              - General phase 3 discussion
-#ryzen-llm-phase3-standup      - Daily standup notes (threaded)
-#ryzen-llm-phase3-checkpoint   - Wednesday mid-sprint updates
-#ryzen-llm-phase3-review       - Friday sprint reviews
-#ryzen-llm-phase3-retro        - Friday retrospective notes
-#ryzen-llm-blockers            - Real-time blocker escalation (🚨)
-#ryzen-llm-performance         - Performance metrics discussion
-#ryzen-llm-infrastructure      - GPU/infra status updates
+#ryzanstein-llm-phase3              - General phase 3 discussion
+#ryzanstein-llm-phase3-standup      - Daily standup notes (threaded)
+#ryzanstein-llm-phase3-checkpoint   - Wednesday mid-sprint updates
+#ryzanstein-llm-phase3-review       - Friday sprint reviews
+#ryzanstein-llm-phase3-retro        - Friday retrospective notes
+#ryzanstein-llm-blockers            - Real-time blocker escalation (🚨)
+#ryzanstein-llm-performance         - Performance metrics discussion
+#ryzanstein-llm-infrastructure      - GPU/infra status updates
 ```
 
 **When to use Teams**:
@@ -170,7 +170,7 @@ DONE
 - ✓ Quick status updates ("Almost done with X")
 - ✓ Standup answers (threaded in daily standup post)
 - ✓ Fast decision requests ("Can we do X or Y?")
-- ✓ Blocker escalation (tag @ARCHITECT in #ryzen-llm-blockers)
+- ✓ Blocker escalation (tag @ARCHITECT in #ryzanstein-llm-blockers)
 - ✓ Real-time coordination during active work
 - ✓ Social team building & celebration
 
@@ -316,7 +316,7 @@ Reply-all to discuss or ping @ARCHITECT directly.
 **Step 1: Team Awareness (Immediate)**
 
 ```
-Post in #ryzen-llm-blockers:
+Post in #ryzanstein-llm-blockers:
 "🚨 BLOCKER: [Brief description]
 Sprint impact: [What can't proceed]
 Owner: @[Responsible person]
@@ -559,7 +559,7 @@ Reply in GitHub Issue [#XXX] or ask in standup.
 | "URGENT!!1!" without context                     | Creates false urgency       | Provide 30-sec summary of impact             |
 | Decisions made in Slack, never documented        | Institutional forgetting    | Create GitHub issue + decision log entry     |
 | Vague status updates ("working on it")           | No visibility into progress | Be specific: "Completed Part A, Part B next" |
-| No blocker escalation (just complaining in chat) | Blocker stays unresolved    | Post to #ryzen-llm-blockers with @ARCHITECT  |
+| No blocker escalation (just complaining in chat) | Blocker stays unresolved    | Post to #ryzanstein-llm-blockers with @ARCHITECT  |
 | Async decision-making on sync-only topics        | Spirals in comment threads  | Call a meeting instead                       |
 | Cancelling standups                              | Loss of coordination        | Move to async if truly not needed            |
 | Merge without review                             | Regressions                 | Always require code review                   |

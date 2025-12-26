@@ -263,7 +263,7 @@ python -m pytest tests/unit/test_bitnet_matmul.py -v
   - Enables correctness validation of optimized versions
   - Simple to debug and verify
 - **Performance Expectations:**
-  - Baseline: ~10 GFLOPS on Ryzen 9 7950X (scalar code)
+  - Baseline: ~10 GFLOPS on Ryzanstein 9 7950X (scalar code)
   - Target (AVX-512): 80-120 GFLOPS (8-12× speedup)
   - Final (AVX-512 + T-MAC): 150-200 GFLOPS (15-20× speedup)
 

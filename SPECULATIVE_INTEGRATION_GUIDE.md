@@ -4,7 +4,7 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                         RYZEN-LLM                                │
+│                         Ryzanstein LLM                                │
 ├──────────────────────────────────────────────────────────────────┤
 │  API Layer (api/)                                                │
 │  ├─ server.py          → HTTP/gRPC endpoints                     │
@@ -83,7 +83,7 @@ YES → ModelManager (model_manager.py)
 **File:** `src/orchestration/model_manager.py`
 
 ```python
-from ryzen_llm.optimization.speculative import DraftModel, Verifier
+from ryzanstein_llm.optimization.speculative import DraftModel, Verifier
 
 class ModelManager:
     def __init__(self):
@@ -427,7 +427,7 @@ tests/
 
 ## Summary
 
-The **Speculative Decoding** implementation is fully integrated into RYZEN-LLM's optimization layer with:
+The **Speculative Decoding** implementation is fully integrated into Ryzanstein LLM's optimization layer with:
 
 ✅ **Clean API** - Simple generate_candidates() and verify() interfaces  
 ✅ **Flexible Configuration** - All parameters tunable via YAML  

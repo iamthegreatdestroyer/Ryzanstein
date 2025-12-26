@@ -217,7 +217,7 @@ src/core/CMakeLists.txt          (+2 lines: add_subdirectory, link RWKV)
 - ✅ Numerical stability verified (edge cases tested)
 - ✅ Stream inference supported (save_state/load_state)
 - ✅ Multi-head configuration working
-- ⏳ Hardware validation (pending Ryzen 7000+ test)
+- ⏳ Hardware validation (pending Ryzanstein 7000+ test)
 - ⏳ Benchmarking vs BitNet/Mamba (pending full compile)
 
 ## Key Insights

@@ -1,4 +1,4 @@
-# GitHub Projects Setup for RYZEN-LLM Phase 3
+# GitHub Projects Setup for Ryzanstein LLM Phase 3
 
 **Date:** December 20, 2025  
 **Status:** Configuration Guide for Manual Project Creation  
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document provides step-by-step instructions for setting up GitHub Projects for RYZEN-LLM Phase 3 execution. The main infrastructure consists of:
+This document provides step-by-step instructions for setting up GitHub Projects for Ryzanstein LLM Phase 3 execution. The main infrastructure consists of:
 
 1. **Main Project:** "Phase 3 - Production Hardening & Distributed Serving"
 2. **Sprint 1 Board:** "Sprint 1: Distributed Inference Foundation"
@@ -472,7 +472,7 @@ gh issue create \
   --body "$(cat task_description.md)" \
   --label "phase-3,sprint-1,priority:Critical" \
   --assignee "iamthegreatdestroyer" \
-  --repo "iamthegreatdestroyer/Ryot"
+  --repo "iamthegreatdestroyer/Ryzanstein"
 
 # List issues with label
 gh issue list --label "sprint-1" --state open

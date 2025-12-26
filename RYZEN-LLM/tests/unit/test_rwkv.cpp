@@ -18,7 +18,7 @@
 #include <random>
 #include <algorithm>
 
-namespace ryzen_llm::rwkv
+namespace ryzanstein_llm::rwkv
 {
 
     // ===== Test Fixtures =====
@@ -391,7 +391,7 @@ namespace ryzen_llm::rwkv
         EXPECT_LT(std::abs(sum), seq_len * hidden_dim * 100.0f) << "Output sum is too large";
     }
 
-} // namespace ryzen_llm::rwkv
+} // namespace ryzanstein_llm::rwkv
 
 int main(int argc, char **argv)
 {

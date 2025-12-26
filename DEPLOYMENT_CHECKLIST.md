@@ -1,8 +1,8 @@
-# RYZEN-LLM Deployment Checklist
+# Ryzanstein LLM Deployment Checklist
 
 **Production Readiness Verification & Deployment Steps**
 
-> **Target Environment:** Ryzen 7 7730U, Windows 11  
+> **Target Environment:** Ryzanstein 7 7730U, Windows 11  
 > **Status:** ✅ Ready for Production | **Approval Date:** December 2025
 
 ---
@@ -13,12 +13,12 @@
 
 #### 1.1 Hardware Requirements
 
-- [ ] CPU: Ryzen 5000-7000 series (or equivalent Intel 11th+)
+- [ ] CPU: Ryzanstein 5000-7000 series (or equivalent Intel 11th+)
 
   ```powershell
   # Verify CPU
   Get-WmiObject Win32_Processor | Select Name, NumberOfCores
-  # Expected: Ryzen 7 7730U (8 cores)
+  # Expected: Ryzanstein 7 7730U (8 cores)
   ```
 
 - [ ] RAM: Minimum 8GB (16GB recommended)
@@ -261,7 +261,7 @@ ctest --output-on-failure -C Release
 #### 5.1 Model Loading Test
 
 ```python
-from ryzen_llm import BitNetEngine
+from ryzanstein_llm import BitNetEngine
 
 # Test model loading
 engine = BitNetEngine()
@@ -475,7 +475,7 @@ pip-audit
 ```powershell
 # Create deployment package
 $version = "1.0.0"
-$package = "ryzen-llm-$version-windows-x64.zip"
+$package = "ryzanstein-llm-$version-windows-x64.zip"
 
 # Package structure
 $files = @(
@@ -503,7 +503,7 @@ Get-ChildItem -Path $package | Select Name, Length
 ```powershell
 # Create release notes
 @"
-# RYZEN-LLM v1.0.0 Release Notes
+# Ryzanstein LLM v1.0.0 Release Notes
 
 ## Build Information
 - Version: 1.0.0
@@ -527,7 +527,7 @@ Get-ChildItem -Path $package | Select Name, Length
 - Requires 8GB+ RAM
 
 ## Verified On
-- Ryzen 7 7730U
+- Ryzanstein 7 7730U
 - Windows 11 21H2
 
 ## Installation

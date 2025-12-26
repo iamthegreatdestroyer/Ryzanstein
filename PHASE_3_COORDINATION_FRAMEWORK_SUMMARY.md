@@ -2,7 +2,7 @@
 
 **Status**: ✅ COMPLETE AND READY FOR EXECUTION  
 **Date**: December 20, 2025  
-**For**: RYZEN-LLM Phase 3 (Jan 6 - May 3, 2026)
+**For**: Ryzanstein LLM Phase 3 (Jan 6 - May 3, 2026)
 
 ---
 
@@ -276,7 +276,7 @@ Link across issues   Link across tasks    Thread-based        CC stakeholders
 ║ WHEN:  Mon-Fri, 9:15 AM - 9:30 AM UTC   ║
 ║                                          ║
 ║ WHERE: Microsoft Teams Channel           ║
-║        #ryzen-llm-phase3-standup         ║
+║        #ryzanstein-llm-phase3-standup         ║
 ║                                          ║
 ║ 3 QUESTIONS:                             ║
 ║  1. What did you complete?               ║
@@ -284,7 +284,7 @@ Link across issues   Link across tasks    Thread-based        CC stakeholders
 ║  3. What blockers do you have?           ║
 ║                                          ║
 ║ BLOCKER? Report immediately:             ║
-║  #ryzen-llm-blockers with @ARCHITECT     ║
+║  #ryzanstein-llm-blockers with @ARCHITECT     ║
 ║                                          ║
 ║ PHASE 3 LEAD: @ARCHITECT                 ║
 ║                                          ║

@@ -196,7 +196,7 @@ build/src/optimization/Release/ryzen_llm_optimization.lib [2.1 MB]
 
 - **Detected:** NOT AVAILABLE on build machine (development laptop)
 - **Fallback:** Scalar math implementation (AVX-512 optimizations disabled)
-- **Impact:** Correctness verified; performance will improve on Ryzen 7000/9000
+- **Impact:** Correctness verified; performance will improve on Ryzanstein 7000/9000
 
 ---
 
@@ -211,7 +211,7 @@ build/src/optimization/Release/ryzen_llm_optimization.lib [2.1 MB]
 
 ### Short-term (Hardware Deployment)
 
-1. Deploy to Ryzen 7000+ or Intel Ice Lake system with AVX-512
+1. Deploy to Ryzanstein 7000+ or Intel Ice Lake system with AVX-512
 2. Rebuild with native instruction support (AVX-512 enabled)
 3. Benchmark 2-3x speedup vs scalar math
 4. Validate end-to-end inference

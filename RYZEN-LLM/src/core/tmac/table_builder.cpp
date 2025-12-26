@@ -9,7 +9,7 @@
 #include <iostream>
 #include <algorithm>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace tmac
     {
@@ -208,4 +208,4 @@ namespace ryzen_llm
         }
 
     } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

@@ -2,7 +2,7 @@
 
 **Date:** December 14, 2025  
 **Status:** ✅ COMPLETE  
-**Project:** Ryot LLM (RYZEN-LLM)
+**Project:** Ryzanstein LLM (Ryzanstein LLM)
 
 ---
 
@@ -309,7 +309,7 @@ Phase 1B will integrate this tokenizer with:
 
 ## Certification
 
-**Project:** RYZEN-LLM (Ryot LLM)  
+**Project:** Ryzanstein LLM (Ryzanstein LLM)  
 **Phase:** 1A - Tokenizer Implementation  
 **Status:** ✅ **COMPLETE AND VERIFIED**  
 **Date:** December 14, 2025

@@ -19,7 +19,7 @@
 #include <cstring>
 #include <limits>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace rwkv
     {
@@ -224,4 +224,4 @@ namespace ryzen_llm
         }
 
     } // namespace rwkv
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

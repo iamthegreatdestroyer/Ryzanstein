@@ -1,16 +1,16 @@
-# RYZEN-LLM
+# Ryzanstein LLM
 
-**CPU-First Large Language Model Infrastructure for AMD Ryzen Processors**
+**CPU-First Large Language Model Infrastructure for AMD Ryzanstein Processors**
 
 [REF:ES-001] - Executive Summary
 
 ## Overview
 
-RYZEN-LLM is a high-performance LLM inference system designed specifically for AMD Ryzen CPUs, eliminating the need for expensive GPU hardware. By leveraging cutting-edge model architectures (BitNet b1.58, Mamba SSM, RWKV) and CPU-specific optimizations (AVX-512, VNNI, speculative decoding), RYZEN-LLM achieves efficient inference with quality comparable to traditional FP16 models.
+Ryzanstein LLM is a high-performance LLM inference system designed specifically for AMD Ryzanstein CPUs, eliminating the need for expensive GPU hardware. By leveraging cutting-edge model architectures (BitNet b1.58, Mamba SSM, RWKV) and CPU-specific optimizations (AVX-512, VNNI, speculative decoding), Ryzanstein LLM achieves efficient inference with quality comparable to traditional FP16 models.
 
 ### Key Features
 
-- **🚀 Efficient Inference**: 15-30 tokens/second on Ryzen 9, competitive with GPU-based solutions
+- **🚀 Efficient Inference**: 15-30 tokens/second on Ryzanstein 9, competitive with GPU-based solutions
 - **💡 Novel Token Recycling**: Semantic compression and retrieval system for context reuse
 - **🔧 Multi-Model Support**: BitNet (ternary), Mamba (linear SSM), RWKV (attention-free)
 - **⚡ CPU Optimizations**: AVX-512, VNNI, T-MAC lookup tables, speculative decoding
@@ -21,8 +21,8 @@ RYZEN-LLM is a high-performance LLM inference system designed specifically for A
 
 ### Prerequisites
 
-- AMD Ryzen 7000+ series (Zen 4) with AVX-512 support
-- 16GB+ RAM (32GB recommended for Ryzen 9)
+- AMD Ryzanstein 7000+ series (Zen 4) with AVX-512 support
+- 16GB+ RAM (32GB recommended for Ryzanstein 9)
 - Python 3.11+
 - CMake 3.20+
 - Docker (optional, for Qdrant)
@@ -31,7 +31,7 @@ RYZEN-LLM is a high-performance LLM inference system designed specifically for A
 
 ```bash
 # Clone the repository
-cd RYZEN-LLM
+cd Ryzanstein LLM
 
 # Run setup script
 ./scripts/setup.sh
@@ -49,17 +49,17 @@ python -m uvicorn src.api.server:app --host 0.0.0.0 --port 8000
 ### Docker Setup
 
 ```bash
-cd RYZEN-LLM
+cd Ryzanstein LLM
 
 # Build production image
-docker build --target runtime -t ryzen-llm:latest .
+docker build --target runtime -t ryzanstein-llm:latest .
 
 # Run with volume mounts
 docker run -d \
   -p 8000:8000 \
   -v $(pwd)/models:/app/models \
   -v $(pwd)/storage:/app/storage \
-  ryzen-llm:latest
+  ryzanstein-llm:latest
 ```
 
 ## Usage
@@ -69,7 +69,7 @@ docker run -d \
 ```python
 import openai
 
-# Point to RYZEN-LLM server
+# Point to Ryzanstein LLM server
 openai.api_base = "http://localhost:8000/v1"
 
 # Chat completion
@@ -136,7 +136,7 @@ curl http://localhost:8000/v1/chat/completions \
 
 ## Performance
 
-### Ryzen 9 7950X (16 cores, 64MB L3)
+### Ryzanstein 9 7950X (16 cores, 64MB L3)
 
 | Metric | BitNet 7B | Mamba 2.8B | RWKV 7B |
 |--------|-----------|------------|---------|
@@ -148,7 +148,7 @@ curl http://localhost:8000/v1/chat/completions \
 ## Project Structure
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/
 │   ├── core/              # C++ inference engines
 │   ├── optimization/      # CPU optimization layer
@@ -165,9 +165,9 @@ RYZEN-LLM/
 
 ## Documentation
 
-- [Architecture](RYZEN-LLM/docs/architecture/README.md) - System design and components
-- [API Documentation](RYZEN-LLM/docs/api/README.md) - REST API reference
-- [Research Notes](RYZEN-LLM/docs/research/README.md) - Papers and insights
+- [Architecture](Ryzanstein LLM/docs/architecture/README.md) - System design and components
+- [API Documentation](Ryzanstein LLM/docs/api/README.md) - REST API reference
+- [Research Notes](Ryzanstein LLM/docs/research/README.md) - Papers and insights
 
 ## Development
 
@@ -201,13 +201,13 @@ python scripts/benchmark.py --suite inference
 
 ## Hardware Requirements
 
-### Minimum (Ryzen 7)
-- Ryzen 7 7700X or better
+### Minimum (Ryzanstein 7)
+- Ryzanstein 7 7700X or better
 - 16GB RAM
 - 50GB disk space
 
-### Recommended (Ryzen 9)
-- Ryzen 9 7950X or better
+### Recommended (Ryzanstein 9)
+- Ryzanstein 9 7950X or better
 - 32GB RAM
 - 100GB SSD
 
@@ -250,4 +250,4 @@ For questions and support, please open an issue on GitHub.
 
 ---
 
-**RYZEN-LLM**: Making LLMs accessible on consumer CPUs
+**Ryzanstein LLM**: Making LLMs accessible on consumer CPUs

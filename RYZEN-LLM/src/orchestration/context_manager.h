@@ -14,7 +14,7 @@
 #include <memory>
 #include <optional>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace orchestration
     {
@@ -106,4 +106,4 @@ namespace ryzen_llm
         };
 
     } // namespace orchestration
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

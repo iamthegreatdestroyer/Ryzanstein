@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Benchmark Runner for RYZEN-LLM
+Benchmark Runner for Ryzanstein LLM
 [REF:AP-009] - Appendix: Technical Stack
 
 This script runs performance benchmarks for inference, token recycling,
@@ -258,7 +258,7 @@ def save_results(results: List[BenchmarkResult], output_path: Path):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run RYZEN-LLM benchmarks"
+        description="Run Ryzanstein LLM benchmarks"
     )
     parser.add_argument(
         "--suite",
@@ -282,7 +282,7 @@ def main():
     
     results = []
     
-    print("\n=== RYZEN-LLM Benchmark Runner ===\n")
+    print("\n=== Ryzanstein LLM Benchmark Runner ===\n")
     
     # Run benchmarks based on suite
     if args.suite in ["inference", "all"]:

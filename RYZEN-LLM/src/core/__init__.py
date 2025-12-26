@@ -1,4 +1,4 @@
-"""Ryot LLM Core Implementation"""
+"""Ryzanstein LLM Core Implementation"""
 
 from .tokenizer import BPETokenizer, BaseTokenizer
 from .model import BitNetConfig, ModelLoader, QuantizedTensor

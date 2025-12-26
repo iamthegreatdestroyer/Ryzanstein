@@ -216,7 +216,7 @@
 1. **Local Setup** (1 hour)
 
    ```bash
-   cd RYZEN-LLM
+   cd Ryzanstein LLM
    pip install torch torch-distributed nccl
    python -m pytest tests/distributed/ -v
    ```
@@ -313,7 +313,7 @@ Embedded in deliverables:
 ## 🔗 File Structure
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/
 │   └── distributed/
 │       ├── __init__.py                    [50 lines]

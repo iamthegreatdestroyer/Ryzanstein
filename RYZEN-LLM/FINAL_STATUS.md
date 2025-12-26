@@ -62,7 +62,7 @@ Phase 2 Priority 1 is a complete **BitNet quantization integration system** cons
 **Step 1:** Navigate to project
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 ```
 
 **Step 2:** Execute Task 5
@@ -84,7 +84,7 @@ python scripts/task_5_real_weight_testing.py
 
 ## 📋 Documentation Available
 
-All documentation is in the RYZEN-LLM root directory:
+All documentation is in the Ryzanstein LLM root directory:
 
 | Document                             | Pages | Purpose               | Read Time |
 | ------------------------------------ | ----- | --------------------- | --------- |
@@ -308,7 +308,7 @@ Total Time:         16-21 seconds
 ### Immediate (Now)
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 python scripts/task_5_real_weight_testing.py
 ```
 
@@ -384,7 +384,7 @@ Reference:
 ## 🚀 Execute Now
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM && python scripts/task_5_real_weight_testing.py
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM && python scripts/task_5_real_weight_testing.py
 ```
 
 **Estimated Time:** 25-35 minutes (first run with download)

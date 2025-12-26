@@ -23,7 +23,7 @@
 #include <vector>
 #include <memory>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace recycler
     {
@@ -253,4 +253,4 @@ namespace ryzen_llm
         };
 
     } // namespace recycler
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

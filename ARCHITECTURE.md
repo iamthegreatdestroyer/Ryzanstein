@@ -1,4 +1,4 @@
-# RYZEN-LLM Architecture & Design
+# Ryzanstein LLM Architecture & Design
 
 **Technical Deep Dive: Components, Optimization, and Integration**
 
@@ -22,7 +22,7 @@
 
 ## System Overview
 
-RYZEN-LLM is a production-grade LLM inference engine optimized for consumer-grade CPUs with **aggressive quantization** and **memory-aware optimizations**.
+Ryzanstein LLM is a production-grade LLM inference engine optimized for consumer-grade CPUs with **aggressive quantization** and **memory-aware optimizations**.
 
 ### Architecture Diagram
 
@@ -527,7 +527,7 @@ Prefetch distance     ±5%        ±2%       aggressive
 ### 1. Custom Operators
 
 ```cpp
-// Implement new operation in RYZEN-LLM
+// Implement new operation in Ryzanstein LLM
 
 namespace custom_ops {
 

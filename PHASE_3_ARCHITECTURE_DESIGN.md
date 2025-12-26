@@ -1,6 +1,6 @@
 # PHASE 3 ARCHITECTURE DESIGN
 
-## RYZEN-LLM Evolution: Distributed Inference & Advanced Optimization
+## Ryzanstein LLM Evolution: Distributed Inference & Advanced Optimization
 
 **Document Version:** 1.0  
 **Date:** December 20, 2025  
@@ -11,7 +11,7 @@
 
 ## EXECUTIVE SUMMARY
 
-Phase 3 transforms RYZEN-LLM from a **single-node CPU inference engine** to a **distributed, multi-model, enterprise-grade inference platform** with advanced memory optimization, quantization strategies, and fine-tuning capabilities.
+Phase 3 transforms Ryzanstein LLM from a **single-node CPU inference engine** to a **distributed, multi-model, enterprise-grade inference platform** with advanced memory optimization, quantization strategies, and fine-tuning capabilities.
 
 ### Phase 3 Vision
 
@@ -47,7 +47,7 @@ Phase 3: Distribution      (55.5 → 200+ tok/s)     Multi-node scaling
 **Current State:**
 
 - Single CPU core: ~55.5 tok/s peak
-- All cores (theoretical): ~400 tok/s (8-core Ryzen)
+- All cores (theoretical): ~400 tok/s (8-core Ryzanstein)
 - Practical multi-core: ~150 tok/s (contention)
 - Single-node limit: **~200 tok/s**
 
@@ -157,7 +157,7 @@ Phase 3: Distribution      (55.5 → 200+ tok/s)     Multi-node scaling
 - **Fine-Tuning System** (QLoRA framework)
 - Quantization-aware LoRA training
 - <4GB VRAM for 7B model
-- <1 hour fine-tuning (Ryzen CPU)
+- <1 hour fine-tuning (Ryzanstein CPU)
 - LoRA inference integration
 
 ---
@@ -255,7 +255,7 @@ Phase 3: Distribution      (55.5 → 200+ tok/s)     Multi-node scaling
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                  RYZEN-LLM Phase 3 Platform                 │
+│                  Ryzanstein LLM Phase 3 Platform                 │
 ├─────────────────────────────────────────────────────────────┤
 │                                                               │
 │  ┌────────────────────────────────────────────────────┐    │
@@ -464,7 +464,7 @@ QLoRAFineTuner
 
 **Capabilities:**
 
-- **Speed:** 7B model in <1 hour on Ryzen 9
+- **Speed:** 7B model in <1 hour on Ryzanstein 9
 - **Memory:** <4GB peak (quantized base + LoRA)
 - **Quality:** 95%+ performance of full fine-tuning
 - **Portability:** LoRA weights are portable (<50MB)
@@ -483,7 +483,7 @@ QLoRAFineTuner
 
 #### Component 6: Model Conversion Framework
 
-**Responsibility:** Support HuggingFace → RYZEN-LLM pipeline
+**Responsibility:** Support HuggingFace → Ryzanstein LLM pipeline
 
 **Architecture:**
 
@@ -547,7 +547,7 @@ ModelConverter
 ```
 Application
     ↓
-RYZEN-LLM (Phase 2)
+Ryzanstein LLM (Phase 2)
     ↓
 Model Weights + Cache
 ```
@@ -573,7 +573,7 @@ Redis (Cache Coordination)
 ```
 Kubernetes Cluster
     ├─ LoadBalancer Service
-    ├─ Deployment: RYZEN-LLM (N replicas)
+    ├─ Deployment: Ryzanstein LLM (N replicas)
     ├─ StatefulSet: Coordinator (1 replica)
     ├─ ConfigMap: Models
     └─ PersistentVolume: Weights
@@ -895,6 +895,6 @@ Parallel work paths:
 
 ## SUMMARY
 
-Phase 3 architecture strategically extends Phase 2's optimization with **distributed inference, advanced quantization, extended context windows, and fine-tuning capabilities**. By leveraging proven technologies (gRPC, Redis, PyTorch) and building on Phase 2's solid foundation, Phase 3 positions RYZEN-LLM as an **enterprise-grade, competitive LLM inference platform** for CPU-first deployments.
+Phase 3 architecture strategically extends Phase 2's optimization with **distributed inference, advanced quantization, extended context windows, and fine-tuning capabilities**. By leveraging proven technologies (gRPC, Redis, PyTorch) and building on Phase 2's solid foundation, Phase 3 positions Ryzanstein LLM as an **enterprise-grade, competitive LLM inference platform** for CPU-first deployments.
 
 **Next Document:** Feature Roadmap & Prioritization

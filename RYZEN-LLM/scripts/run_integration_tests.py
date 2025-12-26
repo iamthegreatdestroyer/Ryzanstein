@@ -1,5 +1,5 @@
 """
-RYZEN-LLM Test Runner
+Ryzanstein LLM Test Runner
 Automated test execution with build verification
 """
 
@@ -128,7 +128,7 @@ def run_benchmarks() -> bool:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="RYZEN-LLM Test Runner")
+    parser = argparse.ArgumentParser(description="Ryzanstein LLM Test Runner")
     parser.add_argument(
         "--build",
         action="store_true",

@@ -179,7 +179,7 @@ def main():
     
     print("=" * 60)
     print("  T-MAC GEMM BENCHMARK & CORRECTNESS TEST")
-    print("  RYZEN-LLM Performance Validation")
+    print("  Ryzanstein LLM Performance Validation")
     print("=" * 60)
     
     tests_passed = 0

@@ -1,15 +1,15 @@
-# RYZEN-LLM Performance Report
+# Ryzanstein LLM Performance Report
 
 **Comprehensive Benchmarks & Optimization Results**
 
-> **Hardware:** Ryzen 7 7730U | **OS:** Windows 11  
+> **Hardware:** Ryzanstein 7 7730U | **OS:** Windows 11  
 > **Date:** December 2025 | **Status:** ✅ Production Approved
 
 ---
 
 ## Executive Summary
 
-RYZEN-LLM achieves **production-ready performance** on consumer hardware with aggressive quantization and memory optimization:
+Ryzanstein LLM achieves **production-ready performance** on consumer hardware with aggressive quantization and memory optimization:
 
 - **Throughput:** 0.42 tokens/second (baseline)
 - **Memory:** <500 MB per session
@@ -184,7 +184,7 @@ Requests    Queue Time    Process Time    Memory    Status
 
 ## 💻 Hardware Utilization
 
-### CPU Metrics (Ryzen 7 7730U)
+### CPU Metrics (Ryzanstein 7 7730U)
 
 ```
 Cores Used              4-6 of 8
@@ -376,7 +376,7 @@ Quantization Error: Fallback to FP32 ✅
 
 **Hardware:**
 
-- Ryzen 7 7730U (8 cores, 16 threads, 16GB RAM)
+- Ryzanstein 7 7730U (8 cores, 16 threads, 16GB RAM)
 - Windows 11 21H2
 - MSVC 2022 (Release build, /O2 optimizations)
 

@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <iostream>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace io
     {
@@ -312,6 +312,6 @@ namespace ryzen_llm
         }
 
     } // namespace io
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 
 #endif // SAFETENSORS_LOADER_H

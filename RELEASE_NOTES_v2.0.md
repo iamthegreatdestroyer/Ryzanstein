@@ -1,4 +1,4 @@
-# RYZEN-LLM v2.0 Release Notes
+# Ryzanstein LLM v2.0 Release Notes
 
 **Release Date:** December 20, 2025  
 **Version:** 2.0.0  
@@ -8,9 +8,9 @@
 
 ## Executive Summary
 
-RYZEN-LLM v2.0 represents a major milestone in CPU-first LLM inference, achieving **81.6× performance improvement** over Phase 1 through advanced memory optimization and multi-threaded execution. This release delivers production-grade reliability with **28/28 integration tests passing** and comprehensive performance validation.
+Ryzanstein LLM v2.0 represents a major milestone in CPU-first LLM inference, achieving **81.6× performance improvement** over Phase 1 through advanced memory optimization and multi-threaded execution. This release delivers production-grade reliability with **28/28 integration tests passing** and comprehensive performance validation.
 
-**Key Achievement:** 55.5 tokens/second on AMD Ryzen processors with only 34MB peak memory usage.
+**Key Achievement:** 55.5 tokens/second on AMD Ryzanstein processors with only 34MB peak memory usage.
 
 ---
 
@@ -65,8 +65,8 @@ Enterprise-grade quality standards:
 
 ```bash
 # Clone repository
-git clone https://github.com/iamthegreatdestroyer/Ryot.git
-cd Ryot/RYZEN-LLM
+git clone https://github.com/iamthegreatdestroyer/Ryzanstein.git
+cd Ryzanstein/Ryzanstein LLM
 
 # Build with CMake 3.20+
 mkdir build && cd build
@@ -81,10 +81,10 @@ ctest -C Release -V
 
 ```bash
 # Install Python package
-pip install -e RYZEN-LLM/
+pip install -e Ryzanstein LLM/
 
 # Verify installation
-python -c "from ryzen_llm import Engine; print('✅ RYZEN-LLM v2.0 ready')"
+python -c "from ryzanstein_llm import Engine; print('✅ Ryzanstein LLM v2.0 ready')"
 ```
 
 ---
@@ -94,9 +94,9 @@ python -c "from ryzen_llm import Engine; print('✅ RYZEN-LLM v2.0 ready')"
 ### C++ API
 
 ```cpp
-#include "ryzen_llm/core/engine.hpp"
+#include "ryzanstein_llm/core/engine.hpp"
 
-using namespace ryzen_llm;
+using namespace ryzanstein_llm;
 
 // Initialize engine
 Engine engine;
@@ -119,7 +119,7 @@ for (const auto& token : tokens) {
 ### Python API
 
 ```python
-from ryzen_llm import Engine
+from ryzanstein_llm import Engine
 
 # Initialize engine
 engine = Engine()
@@ -141,7 +141,7 @@ print(response)
 ## Performance Benchmarks
 
 ### Hardware Configuration
-- **CPU:** AMD Ryzen 9 7950X3D (16 cores, 5.7GHz boost)
+- **CPU:** AMD Ryzanstein 9 7950X3D (16 cores, 5.7GHz boost)
 - **Memory:** 192GB DDR5 ECC
 - **Model:** BitNet b1.58 (256 hidden, 4 heads, 2 layers)
 
@@ -259,13 +259,13 @@ None. v2.0 maintains full backward compatibility with v1.0 APIs.
 ## System Requirements
 
 ### Minimum
-- **CPU:** Intel Core i7 / AMD Ryzen 5 (4+ cores)
+- **CPU:** Intel Core i7 / AMD Ryzanstein 5 (4+ cores)
 - **RAM:** 8GB
 - **Storage:** 1GB free (code + models)
 - **OS:** Windows 10+, Linux (glibc 2.29+), macOS 11+
 
 ### Recommended
-- **CPU:** AMD Ryzen 7/9 with AVX-512
+- **CPU:** AMD Ryzanstein 7/9 with AVX-512
 - **RAM:** 32GB+ for larger models
 - **Storage:** SSD for model loading
 - **Compiler:** GCC 11+, Clang 14+, MSVC 2022+
@@ -274,9 +274,9 @@ None. v2.0 maintains full backward compatibility with v1.0 APIs.
 
 ## Getting Help
 
-- **Documentation:** See [TESTING_GUIDE.md](RYZEN-LLM/docs/TESTING_GUIDE.md)
-- **Issues:** Report on [GitHub Issues](https://github.com/iamthegreatdestroyer/Ryot/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/iamthegreatdestroyer/Ryot/discussions)
+- **Documentation:** See [TESTING_GUIDE.md](Ryzanstein LLM/docs/TESTING_GUIDE.md)
+- **Issues:** Report on [GitHub Issues](https://github.com/iamthegreatdestroyer/Ryzanstein/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/iamthegreatdestroyer/Ryzanstein/discussions)
 - **Architecture:** See [MASTER_ACTION_PLAN.md](MASTER_ACTION_PLAN.md)
 
 ---
@@ -289,7 +289,7 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-RYZEN-LLM is released under the MIT License. See [LICENSE](LICENSE) for details.
+Ryzanstein LLM is released under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
@@ -332,7 +332,7 @@ RYZEN-LLM is released under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-**Thank you for using RYZEN-LLM v2.0!** 🚀
+**Thank you for using Ryzanstein LLM v2.0!** 🚀
 
 For questions or feedback, please open an issue on GitHub.
 

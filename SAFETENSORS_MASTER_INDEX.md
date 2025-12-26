@@ -149,7 +149,7 @@ struct ValidationResult {
 ## 📁 File Organization
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/io/                           # NEW I/O subsystem
 │   ├── safetensors_loader.h         # 800 lines - Parser header
 │   ├── safetensors_loader.cpp       # 450 lines - Parser impl
@@ -177,7 +177,7 @@ RYZEN-LLM/
 
 ```cpp
 #include "src/io/safetensors_loader.h"
-using namespace ryzen_llm::io;
+using namespace ryzanstein_llm::io;
 
 SafeTensorsLoader loader;
 auto tensors = loader.load("bitnet-7b.safetensors");
@@ -316,7 +316,7 @@ target_link_libraries(main_target PRIVATE safetensors_io)
 ```cpp
 #include "src/io/safetensors_loader.h"
 #include "src/io/weight_validator.h"
-using namespace ryzen_llm::io;
+using namespace ryzanstein_llm::io;
 ```
 
 ### Step 3: Use in Code
@@ -552,7 +552,7 @@ try {
 ```cpp
 #include "src/io/safetensors_loader.h"
 #include "src/io/weight_validator.h"
-using namespace ryzen_llm::io;
+using namespace ryzanstein_llm::io;
 
 // 1. Load
 SafeTensorsLoader loader;

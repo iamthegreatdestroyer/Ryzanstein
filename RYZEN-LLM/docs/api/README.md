@@ -1,8 +1,8 @@
-# RYZEN-LLM API Documentation
+# Ryzanstein LLM API Documentation
 
 ## Overview
 
-The RYZEN-LLM API provides OpenAI-compatible endpoints for chat completions, embeddings, and model management. This allows seamless integration with existing tools and workflows.
+The Ryzanstein LLM API provides OpenAI-compatible endpoints for chat completions, embeddings, and model management. This allows seamless integration with existing tools and workflows.
 
 ## Base URL
 
@@ -31,13 +31,13 @@ Get a list of available models.
       "id": "bitnet-7b",
       "object": "model",
       "created": 1704067200,
-      "owned_by": "ryzen-llm"
+      "owned_by": "ryzanstein-llm"
     },
     {
       "id": "mamba-2.8b",
       "object": "model",
       "created": 1704067200,
-      "owned_by": "ryzen-llm"
+      "owned_by": "ryzanstein-llm"
     }
   ]
 }
@@ -155,7 +155,7 @@ Generate embeddings for text.
 
 ## Model Context Protocol (MCP)
 
-RYZEN-LLM supports the Model Context Protocol for tool use and agent capabilities.
+Ryzanstein LLM supports the Model Context Protocol for tool use and agent capabilities.
 
 ### Tool Registration
 

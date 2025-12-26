@@ -9,7 +9,7 @@
 #include <cstring>
 #include <iomanip>
 
-using namespace ryzen_llm::optimization;
+using namespace ryzanstein_llm::optimization;
 
 // ============================================================================
 // Simulated Components (stand-in for real implementations)

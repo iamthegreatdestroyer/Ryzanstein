@@ -225,11 +225,11 @@ def test_c_extensions():
     print("Testing C++ extension functions...")
 
     try:
-        import ryzen_llm_bindings as ryzen_llm
+        import ryzen_llm_bindings as ryzanstein_llm
 
         # Check if quantization functions are available
-        has_quantize = hasattr(ryzen_llm, 'quantize_activations_int8')
-        has_naive_matmul = hasattr(ryzen_llm, 'naive_ternary_matmul')
+        has_quantize = hasattr(ryzanstein_llm, 'quantize_activations_int8')
+        has_naive_matmul = hasattr(ryzanstein_llm, 'naive_ternary_matmul')
 
         if has_quantize and has_naive_matmul:
             print("✓ C++ quantization functions available")
@@ -242,7 +242,7 @@ def test_c_extensions():
             py_result = quantize_activations_int8(activations, len(activations), config)
 
             # C++ implementation
-            cpp_result = ryzen_llm.quantize_activations_int8(activations, len(activations), config)
+            cpp_result = ryzanstein_llm.quantize_activations_int8(activations, len(activations), config)
 
             # Compare results
             assert abs(py_result.scale - cpp_result.scale) < 1e-6, "Scale mismatch"
@@ -262,7 +262,7 @@ def test_c_extensions():
             output_cpp = [0.0] * (M * N)
 
             naive_ternary_matmul(weights, py_result, output_py, M, N, K)
-            ryzen_llm.naive_ternary_matmul(weights, cpp_result, output_cpp, M, N, K)
+            ryzanstein_llm.naive_ternary_matmul(weights, cpp_result, output_cpp, M, N, K)
 
             max_diff = max(abs(a - b) for a, b in zip(output_py, output_cpp))
             assert max_diff < 1e-6, f"Matrix multiplication results differ by {max_diff}"

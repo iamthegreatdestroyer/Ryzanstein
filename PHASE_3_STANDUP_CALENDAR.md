@@ -181,7 +181,7 @@
 
 ### Primary Teams Channel
 
-- **Name**: RYZEN-LLM-Phase3
+- **Name**: Ryzanstein LLM-Phase3
 - **Link**: [Teams Channel - Standup Discussions]
 - **Recording**: All meetings recorded and archived
 - **Chat**: Used for quick async updates between standups
@@ -192,7 +192,7 @@
 
 ```
 Meeting Link: https://teams.microsoft.com/l/meetup-join/[id]
-Teams Channel: #ryzen-llm-phase3-standup
+Teams Channel: #ryzanstein-llm-phase3-standup
 Recurrence: Mon-Fri, 9:15 AM UTC
 Calendar Invite: YES (required)
 ```
@@ -201,7 +201,7 @@ Calendar Invite: YES (required)
 
 ```
 Meeting Link: https://teams.microsoft.com/l/meetup-join/[id]
-Teams Channel: #ryzen-llm-phase3-checkpoint
+Teams Channel: #ryzanstein-llm-phase3-checkpoint
 Recurrence: Every Wednesday, 2:00 PM UTC
 Calendar Invite: YES (leads required, others optional)
 ```
@@ -210,7 +210,7 @@ Calendar Invite: YES (leads required, others optional)
 
 ```
 Meeting Link: https://teams.microsoft.com/l/meetup-join/[id]
-Teams Channel: #ryzen-llm-phase3-review
+Teams Channel: #ryzanstein-llm-phase3-review
 Recurrence: Every Friday, 4:00 PM UTC
 Calendar Invite: YES (team required, stakeholders recommended)
 Recording: Auto-saved for 90 days
@@ -220,7 +220,7 @@ Recording: Auto-saved for 90 days
 
 ```
 Meeting Link: https://teams.microsoft.com/l/meetup-join/[id]
-Teams Channel: #ryzen-llm-phase3-retro
+Teams Channel: #ryzanstein-llm-phase3-retro
 Recurrence: Every Friday, 4:45 PM UTC (immediately after review)
 Calendar Invite: YES (required for all team)
 ```

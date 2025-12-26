@@ -7,7 +7,7 @@
 
 #include "../../src/optimization/speculative/draft_model.h"
 
-using namespace ryzen_llm::speculative;
+using namespace ryzanstein_llm::speculative;
 
 // ============================================================================
 // Test Fixtures

@@ -86,7 +86,7 @@ Format:
 ├─ Q&A (30 min)
 └─ Whiteboard design discussion (15 min)
 
-Success: Team identifies 3-5 patterns to apply in RYZEN-LLM
+Success: Team identifies 3-5 patterns to apply in Ryzanstein LLM
 ```
 
 **Session 4: Architecture Review & Q&A (Friday 3pm, 1 hour)**
@@ -138,7 +138,7 @@ Success: Team exits with confidence, no major questions
 **Task 1.2.3: Repository Structure**
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├─ src/
 │  └─ distributed/                    # NEW DIRECTORY
 │     ├─ __init__.py

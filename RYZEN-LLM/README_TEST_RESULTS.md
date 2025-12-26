@@ -1,4 +1,4 @@
-# RYZEN-LLM TEST EXECUTION SESSION - FINAL DOCUMENTATION INDEX
+# Ryzanstein LLM TEST EXECUTION SESSION - FINAL DOCUMENTATION INDEX
 
 ## 📋 QUICK NAVIGATION
 
@@ -233,7 +233,7 @@ Next Steps:            ⏳ Apply implementation fixes
 
 ```bash
 # Build all tests
-cd c:\Users\sgbil\Ryot\RYZEN-LLM\build
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build
 cmake --build . --config Release
 
 # Run individual tests

@@ -18,7 +18,7 @@
 #include <unordered_set>
 #include <optional>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace tmac
     {
@@ -151,7 +151,7 @@ namespace ryzen_llm
         };
 
     } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 
 /**
  * Hash function for CanonicalPattern (for unordered containers)
@@ -159,9 +159,9 @@ namespace ryzen_llm
 namespace std
 {
     template <>
-    struct hash<ryzen_llm::tmac::CanonicalPattern>
+    struct hash<ryzanstein_llm::tmac::CanonicalPattern>
     {
-        size_t operator()(const ryzen_llm::tmac::CanonicalPattern &p) const
+        size_t operator()(const ryzanstein_llm::tmac::CanonicalPattern &p) const
         {
             return p.hash();
         }

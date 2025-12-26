@@ -17,7 +17,7 @@ Task 11 (RWKV Time Mixing Implementation) has been thoroughly validated through 
 - **Size:** 313 lines
 - **Key Validations:**
   - ✅ Include guards present: `#ifndef RYZEN_LLM_RWKV_TIME_MIXING_H`
-  - ✅ Proper namespace declarations: `namespace ryzen_llm::rwkv`
+  - ✅ Proper namespace declarations: `namespace ryzanstein_llm::rwkv`
   - ✅ TimeMixingConfig struct properly defined
   - ✅ TimeMixingLayer class fully declared with all methods
   - ✅ All member variables properly typed and initialized in constructors
@@ -45,7 +45,7 @@ Task 11 (RWKV Time Mixing Implementation) has been thoroughly validated through 
 
 **Issues Fixed:**
 
-- Removed duplicate namespace closing (`} // namespace rwkv } // namespace ryzen_llm` → single closure)
+- Removed duplicate namespace closing (`} // namespace rwkv } // namespace ryzanstein_llm` → single closure)
 
 **Code Quality Issues:** None remaining  
 **Compilation Barriers:** None
@@ -326,9 +326,9 @@ void elementwise_divide(const float *a, const float *b, float *out) {
 - **Problem:** Two closing namespace statements
   ```cpp
   } // namespace rwkv
-  } // namespace ryzen_llm
+  } // namespace ryzanstein_llm
   } // namespace rwkv          // <-- DUPLICATE
-  } // namespace ryzen_llm      // <-- DUPLICATE
+  } // namespace ryzanstein_llm      // <-- DUPLICATE
   ```
 - **Fix:** Removed duplicate closing (retained single closure)
 - **Status:** ✅ Fixed
@@ -428,7 +428,7 @@ To complete hardware compilation validation, ensure:
 2. **CPU Support:**
 
    - Intel: Ice Lake (3rd Gen Xeon) or newer
-   - AMD: Ryzen 7000 series (Zen 4) or EPYC 9004 (Genoa) with AVX-512 extension (optional)
+   - AMD: Ryzanstein 7000 series (Zen 4) or EPYC 9004 (Genoa) with AVX-512 extension (optional)
 
 3. **Build Tools:**
 

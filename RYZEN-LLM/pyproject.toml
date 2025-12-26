@@ -1,4 +1,4 @@
-# RYZEN-LLM Python Project Configuration
+# Ryzanstein LLM Python Project Configuration
 # [REF:AP-009] - Appendix: Technical Stack
 
 [build-system]
@@ -6,16 +6,16 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ryzen-llm"
+name = "ryzanstein-llm"
 version = "2.0.0"
-description = "CPU-First Large Language Model Infrastructure for AMD Ryzen"
+description = "CPU-First Large Language Model Infrastructure for AMD Ryzanstein"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "RYZEN-LLM Project"}
+    {name = "Ryzanstein LLM Project"}
 ]
-keywords = ["llm", "inference", "cpu", "amd", "ryzen", "bitnet", "mamba"]
+keywords = ["llm", "inference", "cpu", "amd", "ryzanstein", "bitnet", "mamba"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -75,15 +75,15 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/iamthegreatdestroyer/Ryot"
-Documentation = "https://github.com/iamthegreatdestroyer/Ryot/tree/main/RYZEN-LLM/docs"
-Repository = "https://github.com/iamthegreatdestroyer/Ryot"
-Issues = "https://github.com/iamthegreatdestroyer/Ryot/issues"
+Homepage = "https://github.com/iamthegreatdestroyer/Ryzanstein"
+Documentation = "https://github.com/iamthegreatdestroyer/Ryzanstein/tree/main/Ryzanstein LLM/docs"
+Repository = "https://github.com/iamthegreatdestroyer/Ryzanstein"
+Issues = "https://github.com/iamthegreatdestroyer/Ryzanstein/issues"
 
 [project.scripts]
-ryzen-llm-server = "src.api.server:main"
-ryzen-llm-benchmark = "scripts.benchmark:main"
-ryzen-llm-download = "scripts.download_models:main"
+ryzanstein-llm-server = "src.api.server:main"
+ryzanstein-llm-benchmark = "scripts.benchmark:main"
+ryzanstein-llm-download = "scripts.download_models:main"
 
 [tool.setuptools]
 packages = ["src.recycler", "src.orchestration", "src.api"]

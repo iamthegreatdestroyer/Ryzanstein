@@ -1,4 +1,4 @@
-# RYZEN-LLM Phase 1 - Task 5 Progress Report
+# Ryzanstein LLM Phase 1 - Task 5 Progress Report
 
 **BitNet End-to-End Generation Testing**
 
@@ -357,7 +357,7 @@ memory_mb = measure_memory_usage()
 
 - Naive baseline: ~2-5 tok/s
 - AVX-512 optimized: ~20-40 tok/s (small model)
-- Production (BitNet 7B): ~25 tok/s @ Ryzen 9 7950X
+- Production (BitNet 7B): ~25 tok/s @ Ryzanstein 9 7950X
 
 ---
 

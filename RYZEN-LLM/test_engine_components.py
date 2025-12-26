@@ -201,15 +201,15 @@ def test_safetensors_loading():
 
     try:
         # Try to import the C++ extension
-        import ryzen_llm_bindings as ryzen_llm
+        import ryzen_llm_bindings as ryzanstein_llm
 
         # Test creating basic objects
-        config = ryzen_llm.ModelConfig()
+        config = ryzanstein_llm.ModelConfig()
         print("✓ ModelConfig created successfully")
 
         # Test creating engine with config (may fail if model not loaded)
         try:
-            engine = ryzen_llm.BitNetEngine(config)
+            engine = ryzanstein_llm.BitNetEngine(config)
             print("✓ BitNetEngine created successfully")
         except Exception as e:
             print(f"⚠ BitNetEngine creation failed (expected if no model): {e}")

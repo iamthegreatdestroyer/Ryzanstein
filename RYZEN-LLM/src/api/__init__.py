@@ -1,5 +1,5 @@
 """
-Ryot LLM Public API
+Ryzanstein LLM Public API
 ===================
 """
 

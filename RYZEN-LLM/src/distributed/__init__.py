@@ -1,5 +1,5 @@
 """
-Distributed Inference Module for RYZEN-LLM Phase 3
+Distributed Inference Module for Ryzanstein LLM Phase 3
 
 Provides tensor parallelism, GPU orchestration, and distributed model loading
 for scaling LLM inference across multiple GPUs.
@@ -14,7 +14,7 @@ Components:
 """
 
 __version__ = "1.0.0"
-__author__ = "RYZEN-LLM Team"
+__author__ = "Ryzanstein LLM Team"
 
 # Core interfaces (lazy imports to avoid circular dependencies)
 from .architecture import (

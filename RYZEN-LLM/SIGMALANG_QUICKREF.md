@@ -9,7 +9,7 @@
 ## 📁 NEW FILES (Safe to Ignore for MVP)
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/
 │   ├── optimization/memory/
 │   │   ├── kv_cache.h          [MODIFIED] +88 lines (ΣLANG hooks)
@@ -142,7 +142,7 @@ ctx_mgr.post_inference_hook(prepared.rsu_reference, kv_id, anchors);
 ### Compilation Check (Optional)
 
 ```bash
-cd RYZEN-LLM
+cd Ryzanstein LLM
 cmake -B build -G Ninja
 ninja -C build
 
@@ -236,7 +236,7 @@ ls -la src/orchestration/
 
 ```bash
 # Add to CMakeLists.txt if needed
-target_sources(ryzen_llm PRIVATE
+target_sources(ryzanstein_llm PRIVATE
     src/recycler/basic_recycler.cpp
     src/orchestration/context_manager.cpp
 )

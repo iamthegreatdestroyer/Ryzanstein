@@ -1,7 +1,7 @@
 #include "context_manager.h"
 #include "../recycler/basic_recycler.h"
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace orchestration
     {
@@ -85,4 +85,4 @@ namespace ryzen_llm
         }
 
     } // namespace orchestration
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

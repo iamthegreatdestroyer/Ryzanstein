@@ -1,7 +1,7 @@
 #include "../test_framework.h"
 #include <core/rwkv/channel_mixing.h>
 
-using namespace ryzen_llm::rwkv;
+using namespace ryzanstein_llm::rwkv;
 
 /**
  * Test Suite: Channel Mixing Layer

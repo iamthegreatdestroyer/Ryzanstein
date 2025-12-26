@@ -8,7 +8,7 @@
 
 ## 📚 DELIVERABLE DOCUMENTS
 
-All files created in: `C:\Users\sgbil\Ryot\`
+All files created in: `C:\Users\sgbil\Ryzanstein\`
 
 ### 1. 📊 benchmark_results.txt (21.9 KB)
 
@@ -18,7 +18,7 @@ All files created in: `C:\Users\sgbil\Ryot\`
 
 **Contents:**
 
-- System specifications (Ryzen 7 7730U, 16GB DDR5)
+- System specifications (Ryzanstein 7 7730U, 16GB DDR5)
 - Baseline performance (0.42 tokens/sec reference)
 - Actual optimized performance (0.4157 tokens/sec measured)
 - BitNet inference benchmark results (20 tokens, 48.113 seconds)
@@ -221,7 +221,7 @@ All files created in: `C:\Users\sgbil\Ryot\`
 
 ```
 Model:              BitNet b1.58 (7B parameters, ternary quantization)
-Hardware:           AMD Ryzen 7 7730U (8 cores, 16GB DDR5)
+Hardware:           AMD Ryzanstein 7 7730U (8 cores, 16GB DDR5)
 Test:               20 token generation
 Duration:           48.113 seconds
 Throughput:         0.4157 tokens/sec

@@ -1,12 +1,12 @@
 # Sprint 1.1 Executive Summary: Distributed Inference Foundation
 
-**RYZEN-LLM Phase 3 | Jan 6 - Feb 3, 2026**
+**Ryzanstein LLM Phase 3 | Jan 6 - Feb 3, 2026**
 
 ---
 
 ## 🎯 Mission
 
-Enable RYZEN-LLM to scale inference across multiple GPUs with **tensor parallelism**, achieving **3.8-4.2x speedup on 4 GPUs** while maintaining <10% RPC overhead and >95% memory efficiency.
+Enable Ryzanstein LLM to scale inference across multiple GPUs with **tensor parallelism**, achieving **3.8-4.2x speedup on 4 GPUs** while maintaining <10% RPC overhead and >95% memory efficiency.
 
 **Previous Achievement**: v2.0 achieved 81.6× speedup vs Phase 1  
 **Phase 3 Target**: 4× speedup per GPU cluster → 80-100× total speedup at scale
@@ -337,7 +337,7 @@ By sprint completion, team will understand:
 
 - **Sprint 1.2** (Feb-Mar): Async optimization, pipeline parallelism
 - **Sprint 2** (Mar-Apr): Multi-node support, 16-64 GPU clusters
-- **Production** (Apr+): Serving RYZEN-LLM at scale
+- **Production** (Apr+): Serving Ryzanstein LLM at scale
 
 ---
 
@@ -358,7 +358,7 @@ By sprint completion, team will understand:
 
 **Organization**:
 
-- RYZEN-LLM can serve production workloads with 80-100× speedup vs Phase 1
+- Ryzanstein LLM can serve production workloads with 80-100× speedup vs Phase 1
 - Foundation for scaling to thousands of concurrent users
 - Competitive with enterprise LLM serving systems
 

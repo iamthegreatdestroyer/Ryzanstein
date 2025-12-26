@@ -292,7 +292,7 @@ for (int i = 0; i < 50; ++i) {
 
 ### Projected Performance (Mamba 2.8B)
 
-**Hardware:** Ryzen 9 7950X (16 cores, 32 threads, AVX-512)
+**Hardware:** Ryzanstein 9 7950X (16 cores, 32 threads, AVX-512)
 
 **Prefill (512 tokens):**
 

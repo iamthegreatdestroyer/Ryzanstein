@@ -141,8 +141,8 @@ pip install torch
 ### Execute
 
 ```bash
-# From RYZEN-LLM root
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+# From Ryzanstein LLM root
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 
 # Run Task 5
 python scripts/task_5_real_weight_testing.py
@@ -336,7 +336,7 @@ Next Step:                ▶️  Execute Task 5
 ## 🔗 File Locations
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/
 │   ├── api/bindings/
 │   │   └── bitnet_bindings.cpp          (Task 1 - 194 lines)

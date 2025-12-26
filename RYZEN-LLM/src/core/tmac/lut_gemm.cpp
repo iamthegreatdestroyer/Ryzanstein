@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM T-MAC Lookup Table GEMM Implementation
+ * Ryzanstein LLM T-MAC Lookup Table GEMM Implementation
  * [REF:PHASE1-007] - Table-Based Matrix Multiplication for BitNet
  *
  * This file implements ultra-fast matrix multiplication using precomputed
@@ -30,7 +30,7 @@
 #include <immintrin.h>
 #endif
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace tmac
     {
@@ -453,4 +453,4 @@ namespace ryzen_llm
         }
 
     } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

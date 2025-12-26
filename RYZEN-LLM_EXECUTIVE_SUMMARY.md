@@ -1,4 +1,4 @@
-# 🎯 RYZEN-LLM PROJECT: EXECUTIVE SUMMARY
+# 🎯 Ryzanstein LLM PROJECT: EXECUTIVE SUMMARY
 
 **Document Version:** 2.0  
 **Date:** December 13, 2025  
@@ -12,7 +12,7 @@
 
 ### Mission Statement
 
-RYZEN-LLM is an ambitious **CPU-first Large Language Model inference system** designed specifically for AMD Ryzen processors (Zen 4+), eliminating the need for expensive GPU hardware. The project aims to achieve **25-35 tokens/second** throughput on Ryzen 9 processors through advanced model architectures (BitNet b1.58, Mamba SSM, RWKV), aggressive CPU optimizations (AVX-512, VNNI, T-MAC), and novel token recycling mechanisms.
+Ryzanstein LLM is an ambitious **CPU-first Large Language Model inference system** designed specifically for AMD Ryzanstein processors (Zen 4+), eliminating the need for expensive GPU hardware. The project aims to achieve **25-35 tokens/second** throughput on Ryzanstein 9 processors through advanced model architectures (BitNet b1.58, Mamba SSM, RWKV), aggressive CPU optimizations (AVX-512, VNNI, T-MAC), and novel token recycling mechanisms.
 
 ### Strategic Value Proposition
 
@@ -588,7 +588,7 @@ ryzen_llm_tmac.lib                         (T-MAC lookup)
 **Technical:**
 
 - [ ] BitNet 7B generates coherent text end-to-end
-- [ ] Throughput ≥15 tokens/sec on Ryzen 9 7950X
+- [ ] Throughput ≥15 tokens/sec on Ryzanstein 9 7950X
 - [ ] TTFT ≤600ms
 - [ ] Memory usage ≤10 GB
 - [ ] OpenAI-compatible `/v1/chat/completions` endpoint

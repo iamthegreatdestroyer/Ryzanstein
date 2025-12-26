@@ -31,7 +31,7 @@ import numpy as np
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
-# Add RYZEN-LLM to path
+# Add Ryzanstein LLM to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import our components
@@ -39,8 +39,8 @@ try:
     from src.core.weight_loader import load_weights, WeightLoaderConfig
     from src.core.quantization import QuantizationEngine, create_aggressive_config
 except ImportError as e:
-    print(f"ERROR: Failed to import RYZEN-LLM components: {e}")
-    print("Make sure you're running from the RYZEN-LLM root directory")
+    print(f"ERROR: Failed to import Ryzanstein LLM components: {e}")
+    print("Make sure you're running from the Ryzanstein LLM root directory")
     sys.exit(1)
 
 

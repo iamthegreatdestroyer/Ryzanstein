@@ -51,7 +51,7 @@ Quick reference for everything related to this build:
 ```python
 import sys
 sys.path.insert(0, 'build/python')
-import ryzen_llm.ryzen_llm_bindings as bindings
+import ryzanstein_llm.ryzen_llm_bindings as bindings
 
 # Use the extension
 result = bindings.test_function()
@@ -123,7 +123,7 @@ The C++ extension is now ready for Phase 2 Priority 1 tasks:
 
 ### Current System
 
-- CPU: Ryzen (AVX-512 fallback being used)
+- CPU: Ryzanstein (AVX-512 fallback being used)
 - Fallback Performance: Good (AVX2-based)
 - Production Performance: Will improve on CPUs with AVX-512
 
@@ -131,7 +131,7 @@ The C++ extension is now ready for Phase 2 Priority 1 tasks:
 
 - ✅ Scalar implementation (always available)
 - ✅ AVX2 implementation (fallback)
-- ⚠️ AVX-512 implementation (not used on test system, will be used automatically on Xeon/newer Ryzen)
+- ⚠️ AVX-512 implementation (not used on test system, will be used automatically on Xeon/newer Ryzanstein)
 
 ---
 
@@ -143,7 +143,7 @@ The C++ extension is now ready for Phase 2 Priority 1 tasks:
 import sys
 sys.path.insert(0, 'build/python')
 try:
-    import ryzen_llm.ryzen_llm_bindings
+    import ryzanstein_llm.ryzen_llm_bindings
     print("✅ Success")
 except ImportError as e:
     print(f"❌ Error: {e}")

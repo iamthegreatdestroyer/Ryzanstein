@@ -152,7 +152,7 @@ target_link_libraries(test_tmac_basic
 ### Build & Run Tests
 
 ```powershell
-# From RYZEN-LLM directory
+# From Ryzanstein LLM directory
 cd build
 cmake ..
 cmake --build . --config Release

@@ -1,5 +1,5 @@
 """
-Dynamic KV-Cache Allocation for RYZEN-LLM
+Dynamic KV-Cache Allocation for Ryzanstein LLM
 
 Implements intelligent cache allocation and management for variable-length sequences.
 Optimizes memory usage with smart eviction and reallocation strategies.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully implemented comprehensive performance optimizations for BitNet ternary LLM inference, targeting 5-8× speedup on Ryzen 9 7950X from baseline 0.42 tokens/sec to 4-7 tokens/sec.
+Successfully implemented comprehensive performance optimizations for BitNet ternary LLM inference, targeting 5-8× speedup on Ryzanstein 9 7950X from baseline 0.42 tokens/sec to 4-7 tokens/sec.
 
 **Status:** ✅ **FULLY IMPLEMENTED, COMPILED, AND VERIFIED**
 

@@ -14,7 +14,7 @@ Modules:
 """
 
 __version__ = "0.1.0"
-__author__ = "RYZEN-LLM Project"
+__author__ = "Ryzanstein LLM Project"
 
 # TODO: Export main classes
 # from .density_analyzer import DensityAnalyzer

@@ -3,7 +3,7 @@
 // Include actual RWKV headers
 #include "time_mixing.h"
 
-using namespace ryzen_llm::rwkv;
+using namespace ryzanstein_llm::rwkv;
 
 int main()
 {

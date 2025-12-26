@@ -23,7 +23,7 @@
 **Files:**
 
 - `src/api/bindings/bitnet_bindings.cpp` (Lines 728-922)
-- Extension: `python/ryzen_llm/ryzen_llm_bindings.pyd`
+- Extension: `python/ryzanstein_llm/ryzen_llm_bindings.pyd`
 
 ---
 
@@ -386,7 +386,7 @@ quantized_dict = quantizer.quantize_dict(weights_dict)
 
 ### Build Artifacts
 
-- `python/ryzen_llm/ryzen_llm_bindings.pyd` - Extension (257 KB)
+- `python/ryzanstein_llm/ryzen_llm_bindings.pyd` - Extension (257 KB)
 
 ---
 
@@ -420,5 +420,5 @@ For questions about the quantization system:
 ---
 
 **Generated:** 2025-03-14  
-**Project:** RYZEN-LLM Phase 2 Priority 1  
+**Project:** Ryzanstein LLM Phase 2 Priority 1  
 **Overall Status:** 80% Complete - Ready for Final Validation

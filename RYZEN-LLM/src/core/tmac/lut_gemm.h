@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM T-MAC Lookup Table GEMM
+ * Ryzanstein LLM T-MAC Lookup Table GEMM
  * [REF:PHASE1-007] - Table-Based Matrix Multiplication for BitNet
  *
  * Target: 2-4× speedup over AVX-512 VNNI baseline (20-30× total vs naive)
@@ -23,7 +23,7 @@
 #include <string>
 #include <memory>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace tmac
     {
@@ -281,4 +281,4 @@ namespace ryzen_llm
         extern LookupTableGEMM::Stats g_tmac_stats;
 
     } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

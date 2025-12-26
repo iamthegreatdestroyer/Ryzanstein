@@ -3,7 +3,7 @@
 ## Quick Start
 
 ```bash
-# From RYZEN-LLM root directory
+# From Ryzanstein LLM root directory
 python scripts/task_5_real_weight_testing.py
 ```
 
@@ -171,14 +171,14 @@ except ImportError:
 ### Option 1: Direct Execution
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 python scripts/task_5_real_weight_testing.py
 ```
 
 ### Option 2: With Error Output
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 python scripts/task_5_real_weight_testing.py 2>&1 | tee task_5_output.log
 ```
 
@@ -189,7 +189,7 @@ import sys
 from pathlib import Path
 
 # Add to path
-sys.path.insert(0, str(Path.cwd() / "RYZEN-LLM"))
+sys.path.insert(0, str(Path.cwd() / "Ryzanstein LLM"))
 
 # Run directly
 exec(open("scripts/task_5_real_weight_testing.py").read())

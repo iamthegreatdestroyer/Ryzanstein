@@ -321,7 +321,7 @@ lm_head.weight                     [32000, 4096]  float32
 Run comprehensive tests:
 
 ```bash
-cd RYZEN-LLM/build
+cd Ryzanstein LLM/build
 cmake -DBUILD_TESTS=ON ..
 cmake --build . --config Release -j 8
 ctest --output-on-failure
@@ -456,6 +456,6 @@ For issues or questions:
 - **Thread-safe** for concurrent access
 - **Fully tested** with 8 example scenarios
 
-**Ready for**: Immediate production use in RYZEN-LLM BitNet-7B inference engine
+**Ready for**: Immediate production use in Ryzanstein LLM BitNet-7B inference engine
 
 ✨ **@APEX Engineering Excellence** ✨

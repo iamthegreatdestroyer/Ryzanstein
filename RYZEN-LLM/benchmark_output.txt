@@ -1,5 +1,5 @@
 ================================================================================
-            RYZEN-LLM Phase 2 Comprehensive Performance Benchmarking            
+            Ryzanstein LLM Phase 2 Comprehensive Performance Benchmarking            
 ================================================================================
 
 [TARGET] Phase 2 Performance Targets:
@@ -120,9 +120,9 @@
                                GENERATING REPORTS                               
 ================================================================================
 
-[OK] HTML Report: C:\Users\sgbil\Ryot\RYZEN-LLM\PHASE2_PERFORMANCE_REPORT.html
-[OK] Markdown Report: C:\Users\sgbil\Ryot\RYZEN-LLM\PHASE2_PERFORMANCE_BENCHMARKS.md
-[OK] JSON Data: C:\Users\sgbil\Ryot\RYZEN-LLM\PHASE2_PERFORMANCE_DATA.json
+[OK] HTML Report: C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\PHASE2_PERFORMANCE_REPORT.html
+[OK] Markdown Report: C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\PHASE2_PERFORMANCE_BENCHMARKS.md
+[OK] JSON Data: C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\PHASE2_PERFORMANCE_DATA.json
 
 ================================================================================
                                BENCHMARK SUMMARY                                

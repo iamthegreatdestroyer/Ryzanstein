@@ -41,7 +41,7 @@ Comparison:
 
 ```
 Matrix size: 512 × 32 × 4096
-Available threads: 16 (Ryzen 7 7730U)
+Available threads: 16 (Ryzanstein 7 7730U)
 
 Threads:  1 | Time:  8.95 ms | GFLOPS:  15.00 | Speedup:  1.00× | Efficiency: 100.00%
 ```
@@ -215,7 +215,7 @@ EXCEEDED TARGET BY: 227% (7× better than goal)
 
 **Test Environment:**
 
-- CPU: AMD Ryzen 7 7730U (8 cores, 16 threads)
+- CPU: AMD Ryzanstein 7 7730U (8 cores, 16 threads)
 - Memory: 16 GB DDR5
 - Architecture: x64
 - Compiler: MSVC 2019

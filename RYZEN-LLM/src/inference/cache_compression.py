@@ -1,5 +1,5 @@
 """
-FP8 KV-Cache Compression for RYZEN-LLM
+FP8 KV-Cache Compression for Ryzanstein LLM
 
 Implements FP8 quantization for KV-cache to reduce memory usage by 40-50%
 while maintaining <0.5% accuracy loss.

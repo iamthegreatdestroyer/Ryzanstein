@@ -280,7 +280,7 @@ TIER 4: Fallback (If bugs persist)
 
 - CPU training: 10-50× slower than GPU
 - 7B quantized model: ~4GB base + 1GB LoRA gradients
-- Target: <1 hour on Ryzen 9 7950X (16 cores)
+- Target: <1 hour on Ryzanstein 9 7950X (16 cores)
 - Realistic: 1-2 hours on consumer CPU
 
 **Mitigation Strategy:**
@@ -314,7 +314,7 @@ TIER 4: Stretch Goals
 ```
 
 **Owner:** @TENSOR (fine-tuning)  
-**Success Metric:** 7B fine-tune in <1 hour on Ryzen 9 7950X  
+**Success Metric:** 7B fine-tune in <1 hour on Ryzanstein 9 7950X  
 **Decision Point:** End of Sprint 5 (Week 10) - speed acceptable or not
 
 ---

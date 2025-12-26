@@ -137,7 +137,7 @@ inline void lookup_batch_avx512(
 
 ### 2. Multi-Level Prefetching
 
-**Cache Hierarchy (Ryzen 9 7950X):**
+**Cache Hierarchy (Ryzanstein 9 7950X):**
 
 - L1: 32 KB, 4 cycles → `_MM_HINT_T0`
 - L2: 512 KB, 10 cycles → `_MM_HINT_T1`
@@ -187,7 +187,7 @@ Total:         32 KB ≈ L1 cache
 ### 1. Build and Test
 
 ```bash
-cd RYZEN-LLM
+cd Ryzanstein LLM
 
 # Configure with AVX-512
 cmake -B build -DCMAKE_BUILD_TYPE=Release \
@@ -246,7 +246,7 @@ void TMACGemm::gemm_inner_avx512(...) {
 ## Files Created
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/core/tmac/
 │   ├── tmac_gemm_optimized.h       (120 lines) - API header
 │   └── tmac_gemm_optimized.cpp     (530 lines) - Implementation
@@ -287,7 +287,7 @@ Before deployment:
 ### Integration (If Successful)
 
 1. Update `TMACGemm` class to use optimized kernel
-2. Run integration tests with full RYZEN-LLM pipeline
+2. Run integration tests with full Ryzanstein LLM pipeline
 3. Measure end-to-end inference speedup
 4. Deploy to production
 
@@ -363,13 +363,13 @@ With cache thrashing or memory bandwidth saturation:
 
 - **CPU:** x86-64 with AVX-512F
   - Intel: Ice Lake (10th gen) or newer
-  - AMD: Zen 4 (Ryzen 7000) or newer
+  - AMD: Zen 4 (Ryzanstein 7000) or newer
 - **RAM:** 8 GB (16 GB recommended)
 - **Compiler:** GCC 9+, Clang 10+, MSVC 2019+
 
 ### Optimal (Tested)
 
-- **CPU:** AMD Ryzen 9 7950X (Zen 4)
+- **CPU:** AMD Ryzanstein 9 7950X (Zen 4)
 - **RAM:** DDR5-6400
 - **Compiler:** GCC 12.2
 

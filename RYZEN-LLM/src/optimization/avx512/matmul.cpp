@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM AVX-512 Optimized Matrix Multiplication
+ * Ryzanstein LLM AVX-512 Optimized Matrix Multiplication
  * [REF:PHASE1-006] - VNNI-Accelerated Ternary×INT8 Matmul
  *
  * Target: 8-12× speedup vs naive baseline
@@ -12,7 +12,7 @@
  * - Runtime CPU feature detection with fallback
  *
  * Performance Characteristics:
- * - Theoretical Peak: ~2.5 TFLOPS on Ryzen 9 7950X (AVX-512)
+ * - Theoretical Peak: ~2.5 TFLOPS on Ryzanstein 9 7950X (AVX-512)
  * - Target: 20-40 tok/s on test model (512 hidden, 2 layers)
  * - Target: 25 tok/s on BitNet 7B (4096 hidden, 32 layers)
  */
@@ -31,7 +31,7 @@
 #include <sstream>
 #include <chrono>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace avx512
     {
@@ -307,4 +307,4 @@ namespace ryzen_llm
         }
 
     } // namespace avx512
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

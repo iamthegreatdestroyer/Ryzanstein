@@ -308,7 +308,7 @@
 ## Files Delivered
 
 ```
-c:\Users\sgbil\Ryot\RYZEN-LLM\src\optimization\speculative\
+c:\Users\sgbil\Ryzanstein\Ryzanstein LLM\src\optimization\speculative\
 ├── draft_model.h          ✅ 280 lines
 ├── draft_model.cpp        ✅ 359 lines
 ├── verifier.h             ✅ 240 lines
@@ -345,7 +345,7 @@ c:\Users\sgbil\Ryot\RYZEN-LLM\src\optimization\speculative\
 
 ## Status: ✅ COMPLETE & PRODUCTION-READY
 
-The Speculative Decoding implementation is **complete, tested for correctness, and ready for integration** into the RYZEN-LLM optimization layer.
+The Speculative Decoding implementation is **complete, tested for correctness, and ready for integration** into the Ryzanstein LLM optimization layer.
 
 All code follows best practices, includes comprehensive documentation, handles edge cases gracefully, and is ready for production use with performance tuning.
 

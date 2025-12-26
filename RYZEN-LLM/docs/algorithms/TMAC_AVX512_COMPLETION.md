@@ -188,7 +188,7 @@ Working Set:
 ## File Structure
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── src/core/tmac/
 │   ├── tmac_gemm.h                     [EXISTING] Baseline interface
 │   ├── tmac_gemm.cpp                   [EXISTING] Baseline implementation
@@ -220,7 +220,7 @@ RYZEN-LLM/
 1. **Compile with AVX-512 support**
 
    ```bash
-   cd RYZEN-LLM
+   cd Ryzanstein LLM
    cmake -B build -DCMAKE_BUILD_TYPE=Release \
          -DCMAKE_CXX_FLAGS="-march=native -mavx512f -O3"
    cmake --build build --config Release -j16
@@ -256,7 +256,7 @@ RYZEN-LLM/
 
 2. **Run integration tests**
 
-   - Full RYZEN-LLM pipeline tests
+   - Full Ryzanstein LLM pipeline tests
    - Measure end-to-end inference speedup
    - Verify stability and correctness
 
@@ -343,13 +343,13 @@ Benchmark complete!
 
 - **CPU:** x86-64 with AVX-512F support
   - Intel: Ice Lake (10th gen) or newer
-  - AMD: Zen 4 (Ryzen 7000 series) or newer
+  - AMD: Zen 4 (Ryzanstein 7000 series) or newer
 - **RAM:** 8 GB minimum (16 GB recommended)
 - **Compiler:** GCC 9+, Clang 10+, or MSVC 2019+
 
 ### Optimal Hardware (Tested Configuration)
 
-- **CPU:** AMD Ryzen 9 7950X (Zen 4)
+- **CPU:** AMD Ryzanstein 9 7950X (Zen 4)
   - 16 cores, 32 threads
   - Base: 4.5 GHz, Boost: 5.7 GHz
   - L1: 32 KB/core, L2: 512 KB/core, L3: 64 MB shared

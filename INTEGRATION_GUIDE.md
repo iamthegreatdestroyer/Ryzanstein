@@ -1,9 +1,9 @@
-# RYZEN-LLM Integration Guide
+# Ryzanstein LLM Integration Guide
 
 **Using BitNet in Your Project**
 
-> **Audience:** Developers integrating RYZEN-LLM into applications  
-> **Status:** ✅ Production Ready | **Tested:** Ryzen 7 7730U, Windows 11
+> **Audience:** Developers integrating Ryzanstein LLM into applications  
+> **Status:** ✅ Production Ready | **Tested:** Ryzanstein 7 7730U, Windows 11
 
 ---
 
@@ -12,11 +12,11 @@
 ### Option A: Pre-built Python Package
 
 ```bash
-# Install the RYZEN-LLM package
-pip install ryzen-llm
+# Install the Ryzanstein LLM package
+pip install ryzanstein-llm
 
 # Verify installation
-python -c "import ryzen_llm; print(ryzen_llm.__version__)"
+python -c "import ryzanstein_llm; print(ryzanstein_llm.__version__)"
 ```
 
 ### Option B: Build from Source
@@ -24,7 +24,7 @@ python -c "import ryzen_llm; print(ryzen_llm.__version__)"
 Follow [QUICKSTART.md](./QUICKSTART.md) to build the C++ extension, then:
 
 ```powershell
-cd RYZEN-LLM
+cd Ryzanstein LLM
 pip install -e .
 ```
 
@@ -35,7 +35,7 @@ pip install -e .
 ### 1. Initialize the Engine
 
 ```python
-from ryzen_llm import BitNetEngine
+from ryzanstein_llm import BitNetEngine
 
 # Create engine with default configuration
 engine = BitNetEngine(
@@ -83,7 +83,7 @@ print(f"Throughput: {engine.throughput_tokens_per_sec} tok/s")
 ### Engine Parameters
 
 ```python
-from ryzen_llm import BitNetEngine, EngineConfig
+from ryzanstein_llm import BitNetEngine, EngineConfig
 
 config = EngineConfig(
     # Model architecture
@@ -210,7 +210,7 @@ print(f"Memory peak: {profile['memory_peak_mb']} MB")
 
 ```python
 from fastapi import FastAPI
-from ryzen_llm import BitNetEngine
+from ryzanstein_llm import BitNetEngine
 
 app = FastAPI()
 engine = BitNetEngine()
@@ -243,7 +243,7 @@ curl -X POST http://localhost:8000/generate \
 ```python
 import queue
 from threading import Thread
-from ryzen_llm import BitNetEngine
+from ryzanstein_llm import BitNetEngine
 
 class InferencePipeline:
     def __init__(self, model_path: str):
@@ -285,7 +285,7 @@ for i in range(3):
 ### Pattern 3: Real-time Streaming
 
 ```python
-from ryzen_llm import BitNetEngine
+from ryzanstein_llm import BitNetEngine
 
 engine = BitNetEngine()
 engine.load_weights("./models/bitnet.safetensors")
@@ -304,7 +304,7 @@ print()
 ## 🛡️ Error Handling
 
 ```python
-from ryzen_llm import (
+from ryzanstein_llm import (
     BitNetEngine,
     OutOfMemoryError,
     QuantizationError,
@@ -354,7 +354,7 @@ import logging
 
 # Enable debug logging
 logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("ryzen_llm")
+logger = logging.getLogger("ryzanstein_llm")
 logger.setLevel(logging.DEBUG)
 
 engine = BitNetEngine()
@@ -431,4 +431,4 @@ For issues: Open an issue on GitHub with:
 
 **Status:** ✅ Production Ready  
 **Last Updated:** December 2025  
-**Tested On:** Ryzen 7 7730U, Windows 11
+**Tested On:** Ryzanstein 7 7730U, Windows 11

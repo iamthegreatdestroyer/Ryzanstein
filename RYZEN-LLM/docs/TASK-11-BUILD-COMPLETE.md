@@ -26,7 +26,7 @@
 ### Generated Artifacts
 
 ```
-C:\Users\sgbil\Ryot\RYZEN-LLM\build\src\core\rwkv\Release\ryzen_llm_rwkv.lib
+C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build\src\core\rwkv\Release\ryzen_llm_rwkv.lib
   Size: 226.8 KB (227,020 bytes)
   Format: Static Library (.lib)
   Status: ✅ Ready for linking
@@ -141,7 +141,7 @@ add_test(NAME RWKV COMMAND test_rwkv)
 
 - ✅ **Syntax:** 0 errors (1,247 lines analyzed)
 - ✅ **Headers:** All includes correct and present
-- ✅ **Namespaces:** Proper scoping (ryzen_llm::rwkv::)
+- ✅ **Namespaces:** Proper scoping (ryzanstein_llm::rwkv::)
 - ✅ **Memory:** No raw new/delete (uses std::vector)
 - ✅ **Const-correctness:** Properly applied
 - ✅ **Type safety:** MSVC strict type checking passed

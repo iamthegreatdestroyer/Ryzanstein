@@ -393,7 +393,7 @@ Everything is in place:
 ### Execute Now:
 
 ```bash
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 python scripts/task_5_real_weight_testing.py
 ```
 

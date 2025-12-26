@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM BitNet Matrix Multiplication Kernels
+ * Ryzanstein LLM BitNet Matrix Multiplication Kernels
  * [REF:PHASE1-002] - Ternary Weight Matrix Multiplication
  */
 
@@ -8,7 +8,7 @@
 #include "../quantize.h"
 #include <cstdint>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace bitnet
     {
@@ -87,4 +87,4 @@ namespace ryzen_llm
             size_t size);
 
     } // namespace bitnet
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

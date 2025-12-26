@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM KV Cache Optimization
+ * Ryzanstein LLM KV Cache Optimization
  * [REF:OL-005a] - Optimization Layer: KV Cache Management
  */
 
@@ -27,7 +27,7 @@
 #include <xmmintrin.h> // For prefetch
 #endif
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace memory
     {
@@ -651,4 +651,4 @@ namespace ryzen_llm
         }
 
     } // namespace memory
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

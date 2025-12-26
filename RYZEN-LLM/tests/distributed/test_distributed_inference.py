@@ -21,7 +21,7 @@ class TestDistributedInferenceE2E:
     def test_import_all_modules(self):
         """Test all distributed modules can be imported."""
         try:
-            from ryzen_llm.src.distributed import (
+            from ryzanstein_llm.src.distributed import (
                 DistributedConfig,
                 CommunicationHandler,
                 ParallelModelWrapper,
@@ -93,7 +93,7 @@ class TestCommunicationProfiling:
     def test_profiler_creation(self):
         """Test communication profiler initialization."""
         try:
-            from ryzen_llm.src.distributed.communication import CommunicationProfiler
+            from ryzanstein_llm.src.distributed.communication import CommunicationProfiler
             
             profiler = CommunicationProfiler()
             profiler.record("test_op", 1.5)
@@ -112,7 +112,7 @@ class TestUtilities:
     def test_distributed_logging(self):
         """Test distributed logging setup."""
         try:
-            from ryzen_llm.src.distributed.utils import setup_distributed_logging
+            from ryzanstein_llm.src.distributed.utils import setup_distributed_logging
             
             logger = setup_distributed_logging(rank=0, log_level="INFO")
             logger.info("Test log message")
@@ -123,7 +123,7 @@ class TestUtilities:
     def test_device_count(self):
         """Test GPU device counting."""
         try:
-            from ryzen_llm.src.distributed.utils import get_device_count
+            from ryzanstein_llm.src.distributed.utils import get_device_count
             
             num_gpus = get_device_count()
             logger.info(f"Available GPUs: {num_gpus}")
@@ -133,7 +133,7 @@ class TestUtilities:
     def test_memory_stats(self):
         """Test GPU memory statistics."""
         try:
-            from ryzen_llm.src.distributed.utils import get_memory_stats
+            from ryzanstein_llm.src.distributed.utils import get_memory_stats
             
             device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
             stats = get_memory_stats(device)

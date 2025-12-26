@@ -16,9 +16,9 @@
 #include <random>
 #include <cassert>
 
-using namespace ryzen_llm;
-using namespace ryzen_llm::bitnet;
-using namespace ryzen_llm::tmac;
+using namespace ryzanstein_llm;
+using namespace ryzanstein_llm::bitnet;
+using namespace ryzanstein_llm::tmac;
 
 // ============================================================================
 // TEST UTILITIES

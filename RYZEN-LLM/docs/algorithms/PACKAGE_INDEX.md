@@ -232,7 +232,7 @@ Target: 500 GFLOPS ✓ PASS
 → Follow these commands:
 
 ```bash
-cd RYZEN-LLM
+cd Ryzanstein LLM
 cmake -B build -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_CXX_FLAGS="-march=native -mavx512f -O3"
 cmake --build build --config Release -j16
@@ -275,7 +275,7 @@ Total Speedup: 5-8× (Conservative Estimate)
 ### Quick Build
 
 ```bash
-cd RYZEN-LLM
+cd Ryzanstein LLM
 
 # Configure
 cmake -B build -DCMAKE_BUILD_TYPE=Release \
@@ -325,12 +325,12 @@ cmake --build build --config Release -j16
 
 - **CPU:** x86-64 with AVX-512F
   - Intel: Ice Lake (10th gen) or newer
-  - AMD: Zen 4 (Ryzen 7000) or newer
+  - AMD: Zen 4 (Ryzanstein 7000) or newer
 - **RAM:** 8 GB (16 GB recommended)
 
 ### Optimal (Tested)
 
-- **CPU:** AMD Ryzen 9 7950X (Zen 4)
+- **CPU:** AMD Ryzanstein 9 7950X (Zen 4)
 - **RAM:** DDR5-6400
 - **Compiler:** GCC 12.2
 

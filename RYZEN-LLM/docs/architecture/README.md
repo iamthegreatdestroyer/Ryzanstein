@@ -1,10 +1,10 @@
-# RYZEN-LLM Architecture
+# Ryzanstein LLM Architecture
 
 [REF:PA-002] - Project Architecture
 
 ## Overview
 
-RYZEN-LLM is a CPU-First Large Language Model Infrastructure specifically optimized for AMD Ryzen processors. The system is designed to provide efficient LLM inference without requiring GPU acceleration.
+Ryzanstein LLM is a CPU-First Large Language Model Infrastructure specifically optimized for AMD Ryzanstein processors. The system is designed to provide efficient LLM inference without requiring GPU acceleration.
 
 ## Architecture Stack
 
@@ -70,8 +70,8 @@ RYZEN-LLM is a CPU-First Large Language Model Infrastructure specifically optimi
 ## Hardware Optimization
 
 ### Target Platforms
-1. **Ryzen 7 (8 cores)**: Development baseline
-2. **Ryzen 9 (16 cores)**: Production target
+1. **Ryzanstein 7 (8 cores)**: Development baseline
+2. **Ryzanstein 9 (16 cores)**: Production target
 3. **Threadripper (32+ cores)**: High-throughput deployment
 
 ### CPU Features Utilized
@@ -105,7 +105,7 @@ RYZEN-LLM is a CPU-First Large Language Model Infrastructure specifically optimi
 
 ### Latency
 - Time to First Token (TTFT): <500ms
-- Tokens per Second: 15-25 on Ryzen 9
+- Tokens per Second: 15-25 on Ryzanstein 9
 - Request throughput: 5-10 concurrent users
 
 ### Memory Efficiency

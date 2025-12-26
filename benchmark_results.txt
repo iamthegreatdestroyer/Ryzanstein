@@ -1,5 +1,5 @@
 === PERFORMANCE BENCHMARKING REPORT ===
-RYZEN-LLM Optimization Suite
+Ryzanstein LLM Optimization Suite
 Generated: December 14, 2025
 Executed by: @VELOCITY Performance Analysis Agent
 
@@ -9,7 +9,7 @@ SYSTEM SPECIFICATIONS
 ═══════════════════════════════════════════════════════════════════════════════
 
 Hardware:
-  CPU: AMD Ryzen 7 7730U (8 cores, 16 threads)
+  CPU: AMD Ryzanstein 7 7730U (8 cores, 16 threads)
   Max Boost Clock: 4.5 GHz
   TDP: 28W (mobile processor)
   L3 Cache: 16 MB
@@ -32,7 +32,7 @@ Previous Baseline Results:
   Per-Token Latency: 2,380 ms
   Total Time (20 tokens): ~48 seconds
   
-Model: BitNet 7B on Ryzen 7 7730U
+Model: BitNet 7B on Ryzanstein 7 7730U
 Test Configuration: Single-threaded, no SIMD, scalar GEMM operations
 
 ═══════════════════════════════════════════════════════════════════════════════

@@ -6,7 +6,7 @@
 #include <chrono>
 #include <sstream>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace io
     {
@@ -536,4 +536,4 @@ namespace ryzen_llm
         }
 
     } // namespace io
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

@@ -30,7 +30,7 @@ target_link_libraries(ryzen_llm_tmac PUBLIC
 )
 
 # Enable AVX-512 for T-MAC (vectorized table lookups)
-# Disabled for compatibility - Ryzen 7 7730U doesn't support AVX-512
+# Disabled for compatibility - Ryzanstein 7 7730U doesn't support AVX-512
 # if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 #     target_compile_options(ryzen_llm_tmac PRIVATE
 #         -mavx512f

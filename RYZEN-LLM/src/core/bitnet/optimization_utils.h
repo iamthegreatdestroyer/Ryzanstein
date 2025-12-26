@@ -28,7 +28,7 @@
 #warning "OpenMP not available - multi-threading disabled"
 #endif
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace bitnet
     {
@@ -318,4 +318,4 @@ namespace ryzen_llm
         }
 
     } // namespace bitnet
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

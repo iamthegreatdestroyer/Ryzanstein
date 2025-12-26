@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <chrono>
 
-using namespace ryzen_llm::optimization;
+using namespace ryzanstein_llm::optimization;
 
 // ============================================================================
 // Test Utilities

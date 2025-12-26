@@ -10,7 +10,7 @@
 #include <iomanip>
 #include <cassert>
 
-namespace ryzen_llm::rwkv
+namespace ryzanstein_llm::rwkv
 {
 
     ChannelMixingLayer::ChannelMixingLayer(
@@ -724,4 +724,4 @@ namespace ryzen_llm::rwkv
         return oss.str();
     }
 
-} // namespace ryzen_llm::rwkv
+} // namespace ryzanstein_llm::rwkv

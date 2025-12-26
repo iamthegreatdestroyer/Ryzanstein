@@ -1,10 +1,10 @@
 #!/bin/bash
-# RYZEN-LLM Environment Setup Script
+# Ryzanstein LLM Environment Setup Script
 # [REF:AP-009] - Appendix: Technical Stack
 
 set -e  # Exit on error
 
-echo "=== RYZEN-LLM Environment Setup ==="
+echo "=== Ryzanstein LLM Environment Setup ==="
 echo ""
 
 # Colors for output

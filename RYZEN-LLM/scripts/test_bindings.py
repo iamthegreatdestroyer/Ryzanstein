@@ -6,7 +6,7 @@ import traceback
 
 # Add the bindings path
 bindings_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                              'python', 'ryzen_llm')
+                              'python', 'ryzanstein_llm')
 print(f"Adding path: {bindings_path}")
 sys.path.insert(0, bindings_path)
 

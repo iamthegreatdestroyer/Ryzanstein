@@ -1,4 +1,4 @@
-"""Ryot LLM Stubs for Integration Testing"""
+"""Ryzanstein LLM Stubs for Integration Testing"""
 
 from .mock_engine import MockInferenceEngine, MockTokenizer, MockCacheManager
 

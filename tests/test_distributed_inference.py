@@ -26,7 +26,7 @@ import logging
 
 # Import distributed components
 import sys
-sys.path.append('RYZEN-LLM')
+sys.path.append('Ryzanstein LLM')
 
 from src.distributed.tensor_parallel import (
     RowParallelLinear, ColumnParallelLinear,

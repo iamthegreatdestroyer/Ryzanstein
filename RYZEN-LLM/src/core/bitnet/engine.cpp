@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM BitNet Inference Engine Implementation
+ * Ryzanstein LLM BitNet Inference Engine Implementation
  * [REF:PHASE1-003] - BitNet b1.58 Transformer Engine
  */
 
@@ -11,7 +11,7 @@
 #include <random>
 #include <fstream>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace bitnet
     {
@@ -1060,4 +1060,4 @@ namespace ryzen_llm
         }
 
     } // namespace bitnet
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

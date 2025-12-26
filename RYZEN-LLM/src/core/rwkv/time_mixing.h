@@ -30,7 +30,7 @@
 #include <memory>
 #include <cstring>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace rwkv
     {
@@ -307,6 +307,6 @@ namespace ryzen_llm
         };
 
     } // namespace rwkv
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 
 #endif // RYZEN_LLM_RWKV_TIME_MIXING_H

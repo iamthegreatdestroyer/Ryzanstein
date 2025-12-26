@@ -195,8 +195,8 @@ pip install torch
 ### Execution
 
 ```bash
-# From RYZEN-LLM root directory
-cd c:\Users\sgbil\Ryot\RYZEN-LLM
+# From Ryzanstein LLM root directory
+cd c:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 
 # Run the test
 python scripts/task_5_real_weight_testing.py

@@ -98,7 +98,7 @@
 
 ### Theoretical Performance
 
-- **Ryzen 9 7950X**
+- **Ryzanstein 9 7950X**
   - AVX-512 Peak: ~2.5 TFLOPS FP32
   - INT8 VNNI: ~10 TOPS (4× FP32)
   - Expected Matmul: 40-60 GFLOPS (ternary overhead)
@@ -209,7 +209,7 @@ Cache lines: 64 bytes = 16 INT8 = 1 AVX-512 vector
 
 - **Requires AVX-512 VNNI support**
   - Intel: Ice Lake (10th gen) or newer
-  - AMD: Zen 4 (Ryzen 7000 series) or newer
+  - AMD: Zen 4 (Ryzanstein 7000 series) or newer
   - Older CPUs will use naive fallback
 
 ### 2. Performance Optimization Opportunities
@@ -380,7 +380,7 @@ Cache lines: 64 bytes = 16 INT8 = 1 AVX-512 vector
 1. **Target 8-12× speedup** on AVX-512 VNNI capable CPUs
 2. **20-40 tok/s** on test model (512 hidden, 2 layers)
 3. **25 tok/s** on BitNet 7B (4096 hidden, 32 layers)
-4. **40-60 GFLOPS** on Ryzen 9 7950X
+4. **40-60 GFLOPS** on Ryzanstein 9 7950X
 
 ---
 

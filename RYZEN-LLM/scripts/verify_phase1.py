@@ -114,7 +114,7 @@ def verify_generation():
 def main():
     """Run all verifications."""
     print("=" * 60)
-    print("  PHASE 1: Ryot LLM - Full Completion Verification")
+    print("  PHASE 1: Ryzanstein LLM - Full Completion Verification")
     print("=" * 60)
     print()
     

@@ -1,14 +1,14 @@
-# RYZEN-LLM Documentation Index
+# Ryzanstein LLM Documentation Index
 
 **Complete Production Documentation Package**
 
-> **Generated:** December 2025 | **Status:** ✅ Production Ready | **Hardware:** Ryzen 7 7730U, Windows 11
+> **Generated:** December 2025 | **Status:** ✅ Production Ready | **Hardware:** Ryzanstein 7 7730U, Windows 11
 
 ---
 
 ## 📚 Document Overview
 
-This documentation package provides everything needed to **build, deploy, and operate** RYZEN-LLM in production environments.
+This documentation package provides everything needed to **build, deploy, and operate** Ryzanstein LLM in production environments.
 
 ### Quick Navigation
 
@@ -24,7 +24,7 @@ This documentation package provides everything needed to **build, deploy, and op
 
 ## 📖 QUICKSTART.md
 
-**Build RYZEN-LLM in 5 minutes**
+**Build Ryzanstein LLM in 5 minutes**
 
 ```
 ├─ Prerequisites
@@ -52,7 +52,7 @@ This documentation package provides everything needed to **build, deploy, and op
 - 💡 Troubleshooting matrix
 
 **Time Investment:** 5 minutes  
-**Result:** Working RYZEN-LLM build on local machine
+**Result:** Working Ryzanstein LLM build on local machine
 
 [→ Read QUICKSTART.md](./QUICKSTART.md)
 
@@ -242,7 +242,7 @@ This documentation package provides everything needed to **build, deploy, and op
 
 - 302 tests passing (100%)
 - 20 stress tests completed
-- Hardware: Ryzen 7 7730U verified
+- Hardware: Ryzanstein 7 7730U verified
 - Accuracy: -2.9% vs FP32 baseline
 
 **Time Investment:** 20 minutes  
@@ -397,7 +397,7 @@ PERFORMANCE_REPORT.md (20 min)
 
 ### Hardware
 
-- **Processor:** Ryzen 7 7730U (8 cores, 3.8 GHz)
+- **Processor:** Ryzanstein 7 7730U (8 cores, 3.8 GHz)
 - **Memory:** 16 GB RAM
 - **OS:** Windows 11
 - **Power:** 25-35W during inference
@@ -548,7 +548,7 @@ Time to Read All:       ~100 minutes
 
 **Generated:** December 2025  
 **Status:** ✅ Production Ready  
-**Hardware:** Ryzen 7 7730U, Windows 11  
+**Hardware:** Ryzanstein 7 7730U, Windows 11  
 **Next Review:** January 2026
 
 ---

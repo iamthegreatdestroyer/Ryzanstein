@@ -1,5 +1,5 @@
 """
-Distributed KV-Cache Implementation for RYZEN-LLM
+Distributed KV-Cache Implementation for Ryzanstein LLM
 
 Implements sharded KV-cache across multiple GPUs with consistency management.
 Provides efficient memory usage and low-latency access for distributed inference.

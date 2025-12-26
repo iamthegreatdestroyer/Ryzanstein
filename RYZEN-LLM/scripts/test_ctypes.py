@@ -5,7 +5,7 @@ import os
 
 # Load the DLL via ctypes
 dll_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                        'python', 'ryzen_llm', 'ryzen_llm_bindings.pyd')
+                        'python', 'ryzanstein_llm', 'ryzen_llm_bindings.pyd')
 print(f"Loading: {dll_path}")
 print(f"Exists: {os.path.exists(dll_path)}")
 

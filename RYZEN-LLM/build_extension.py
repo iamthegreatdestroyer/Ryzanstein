@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Build script for Ryzen LLM C++ extension
+Build script for Ryzanstein LLM C++ extension
 Handles setup of build environment and compilation
 """
 
@@ -122,7 +122,7 @@ def install_extension(build_dir: Path, cpp_build_dir: Path):
 
     # The CMakeLists.txt already puts the extension in the correct location
     # Check if it exists
-    python_build_dir = build_dir / "python" / "ryzen_llm"
+    python_build_dir = build_dir / "python" / "ryzanstein_llm"
     extension_files = list(python_build_dir.glob("*.pyd")) + list(python_build_dir.glob("*.dll"))
 
     if not extension_files:
@@ -165,7 +165,7 @@ def test_extension():
         return False
 
 def main():
-    print("=== Ryzen LLM C++ Extension Build Script ===\n")
+    print("=== Ryzanstein LLM C++ Extension Build Script ===\n")
 
     # Check build tools
     if not check_build_tools():

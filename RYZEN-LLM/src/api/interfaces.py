@@ -1,5 +1,5 @@
 """
-Ryot LLM Core Interface Protocols
+Ryzanstein LLM Core Interface Protocols
 =================================
 """
 

@@ -2,7 +2,7 @@
 
 **Version**: 1.0  
 **Created**: December 20, 2025  
-**For**: RYZEN-LLM Phase 3 Execution Team  
+**For**: Ryzanstein LLM Phase 3 Execution Team  
 **Effective**: January 6, 2026
 
 ---
@@ -150,7 +150,7 @@ The Phase 3 execution coordination package consists of 5 comprehensive documents
 ## 🗂️ Document Map
 
 ```
-RYZEN-LLM/
+Ryzanstein LLM/
 ├── PHASE_3_EXECUTION_COORDINATION_PACKAGE.md (Executive summary)
 │
 ├── PHASE_3_STANDUP_CALENDAR.md (Meeting schedule)
@@ -179,14 +179,14 @@ RYZEN-LLM/
 │   └── Columns: BACKLOG → TODO → IN-PROGRESS → IN-REVIEW → DONE
 │
 └── Teams/Slack (Daily coordination)
-    ├── #ryzen-llm-phase3
-    ├── #ryzen-llm-phase3-standup
-    ├── #ryzen-llm-phase3-checkpoint
-    ├── #ryzen-llm-phase3-review
-    ├── #ryzen-llm-phase3-retro
-    ├── #ryzen-llm-blockers (🚨 escalation)
-    ├── #ryzen-llm-performance
-    └── #ryzen-llm-infrastructure
+    ├── #ryzanstein-llm-phase3
+    ├── #ryzanstein-llm-phase3-standup
+    ├── #ryzanstein-llm-phase3-checkpoint
+    ├── #ryzanstein-llm-phase3-review
+    ├── #ryzanstein-llm-phase3-retro
+    ├── #ryzanstein-llm-blockers (🚨 escalation)
+    ├── #ryzanstein-llm-performance
+    └── #ryzanstein-llm-infrastructure
 ```
 
 ---

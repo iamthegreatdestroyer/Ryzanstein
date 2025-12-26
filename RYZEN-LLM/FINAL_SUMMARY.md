@@ -2,7 +2,7 @@
 
 ## Status Overview
 
-**Project:** RYZEN-LLM Phase 2 Priority 1 - BitNet Quantization  
+**Project:** Ryzanstein LLM Phase 2 Priority 1 - BitNet Quantization  
 **Completion:** 80% (4/5 tasks complete)  
 **Quality:** 100% (45/45 tests passing)  
 **Code:** Production-ready  
@@ -25,7 +25,7 @@
 **Files:**
 
 - `src/api/bindings/bitnet_bindings.cpp` (194 lines)
-- `python/ryzen_llm/ryzen_llm_bindings.pyd` (257 KB)
+- `python/ryzanstein_llm/ryzen_llm_bindings.pyd` (257 KB)
 
 **Quality Metrics:**
 

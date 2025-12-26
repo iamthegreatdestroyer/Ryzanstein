@@ -367,7 +367,7 @@ if quantize:
 ## 📋 Build Artifacts
 
 ```
-Extension Module:    python/ryzen_llm/ryzen_llm_bindings.pyd (257 KB)
+Extension Module:    python/ryzanstein_llm/ryzen_llm_bindings.pyd (257 KB)
 Python Module:       src/core/quantization.py (476 lines)
 Test Suite:          tests/test_quantization_api.py (430 lines)
 

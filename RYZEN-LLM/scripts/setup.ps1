@@ -1,9 +1,9 @@
-# RYZEN-LLM Environment Setup Script (Windows/PowerShell)
+# Ryzanstein LLM Environment Setup Script (Windows/PowerShell)
 # [REF:AP-009] - Appendix: Technical Stack
 
 $ErrorActionPreference = "Stop"
 
-Write-Host "=== RYZEN-LLM Environment Setup (Windows) ===" -ForegroundColor Cyan
+Write-Host "=== Ryzanstein LLM Environment Setup (Windows) ===" -ForegroundColor Cyan
 Write-Host ""
 
 # Check Python version
@@ -92,7 +92,7 @@ Write-Host "CPU: $($cpuInfo.Name)" -ForegroundColor White
 
 # Check for AVX-512 (requires external tool or manual verification)
 Write-Host "! AVX-512 detection requires CPU-Z or manual verification" -ForegroundColor Yellow
-Write-Host "  For AMD Ryzen 7000+ (Zen 4), AVX-512 should be supported" -ForegroundColor Yellow
+Write-Host "  For AMD Ryzanstein 7000+ (Zen 4), AVX-512 should be supported" -ForegroundColor Yellow
 
 # Install Python dependencies
 Write-Host ""
@@ -105,7 +105,7 @@ Set-Location $projectRoot
 Write-Host "Installing core dependencies..." -ForegroundColor Yellow
 python -m pip install --upgrade pip setuptools wheel
 
-Write-Host "Installing RYZEN-LLM package..." -ForegroundColor Yellow
+Write-Host "Installing Ryzanstein LLM package..." -ForegroundColor Yellow
 python -m pip install -e .
 
 Write-Host "Installing development dependencies..." -ForegroundColor Yellow

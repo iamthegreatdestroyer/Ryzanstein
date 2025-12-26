@@ -156,7 +156,7 @@ token = sample_from_multinomial(probs)
 
 - Single token latency: <5 ms
 - Throughput: 40-50+ tokens/sec
-- Full Ryzen 9 16-core utilization
+- Full Ryzanstein 9 16-core utilization
 
 ---
 
@@ -287,7 +287,7 @@ auto output = model.generate(prompt, gen_config);
 
 ```
 ┌─────────────────────────────────────────────┐
-│  RYZEN-LLM BITNET INFERENCE ENGINE          │
+│  Ryzanstein LLM BITNET INFERENCE ENGINE          │
 ├─────────────────────────────────────────────┤
 │  Layer 3: BitNet Model                      │
 │    ├─ Token embedding & positional encoding │

@@ -32,8 +32,8 @@
 ### Artifact Location
 
 ```
-Build output: C:\Users\sgbil\Ryot\RYZEN-LLM\build\cpp\
-Python module: C:\Users\sgbil\Ryot\RYZEN-LLM\build\python\ryzen_llm\ryzen_llm_bindings.pyd
+Build output: C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build\cpp\
+Python module: C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build\python\ryzanstein_llm\ryzen_llm_bindings.pyd
 ```
 
 ---
@@ -146,7 +146,7 @@ Platform: Windows 10 x64
 -- AVX-512 support: NO (will use fallback) [CPU limitation, not an error]
 ```
 
-**Note:** AVX-512 is not available on the current test machine (Ryzen CPU), so fallback implementations will be used. This is expected and automatic - the build system handles it gracefully.
+**Note:** AVX-512 is not available on the current test machine (Ryzanstein CPU), so fallback implementations will be used. This is expected and automatic - the build system handles it gracefully.
 
 ---
 
@@ -213,7 +213,7 @@ Platform: Windows 10 x64
 ## Build Artifacts Created
 
 ```
-C:\Users\sgbil\Ryot\RYZEN-LLM\build\
+C:\Users\sgbil\Ryzanstein\Ryzanstein LLM\build\
 ├── cpp/
 │   ├── src/
 │   │   ├── core/bitnet/Release/ryzen_llm_bitnet.lib (quantization engine)
@@ -227,7 +227,7 @@ C:\Users\sgbil\Ryot\RYZEN-LLM\build\
 │   │       └── ryzen_llm_bindings.exp (export table)
 │   └── [CMake build system files]
 └── python/
-    └── ryzen_llm/
+    └── ryzanstein_llm/
         └── ryzen_llm_bindings.pyd (Python importable module)
 ```
 
@@ -238,7 +238,7 @@ C:\Users\sgbil\Ryot\RYZEN-LLM\build\
 To verify the build yourself:
 
 ```bash
-cd C:\Users\sgbil\Ryot\RYZEN-LLM
+cd C:\Users\sgbil\Ryzanstein\Ryzanstein LLM
 python test_extension_load.py
 ```
 

@@ -18,7 +18,7 @@
 #include <cstdlib>
 #endif
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace tmac
     {
@@ -327,4 +327,4 @@ namespace ryzen_llm
         }
 
     } // namespace tmac
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

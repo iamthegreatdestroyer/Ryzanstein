@@ -181,7 +181,7 @@ Implementation Status: ⭐⭐⭐ (3/5 - Enabled but Not Working)
 Configuration:
 ✓ OpenMP enabled in CMakeLists.txt
 ✓ Pragmas likely added to GEMM loops
-✓ 8 cores available (AMD Ryzen 7 7730U)
+✓ 8 cores available (AMD Ryzanstein 7 7730U)
 ✓ Compiler: MSVC with OpenMP support
 
 Theoretical Contribution: 2.0-4.0× speedup
@@ -278,7 +278,7 @@ New Speed = 0.42 / (X_gemm + (100% - 95%) / X_other)
 MEMORY BANDWIDTH ANALYSIS
 ═══════════════════════════════════════════════════════════════════════════════
 
-DDR5 Memory Specifications (Ryzen 7 7730U):
+DDR5 Memory Specifications (Ryzanstein 7 7730U):
 Peak Bandwidth: ~80 GB/s (LPDDR5X typical)
 Effective Bandwidth: ~60-70 GB/s (realistic)
 Latency: ~100-200 ns

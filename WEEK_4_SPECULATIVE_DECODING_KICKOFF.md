@@ -235,6 +235,6 @@ _Target: 2-3x inference speedup through intelligent parallel token generation._
 
 ---
 
-**RYZEN-LLM Phase 3 - Sprint 1.4: Speculative Decoding**  
+**Ryzanstein LLM Phase 3 - Sprint 1.4: Speculative Decoding**  
 **Status: ACTIVE** | **Priority: CRITICAL** | **Timeline: 7 days**</content>
-<parameter name="filePath">c:\Users\sgbil\Ryot\WEEK_4_SPECULATIVE_DECODING_KICKOFF.md
+<parameter name="filePath">c:\Users\sgbil\Ryzanstein\WEEK_4_SPECULATIVE_DECODING_KICKOFF.md

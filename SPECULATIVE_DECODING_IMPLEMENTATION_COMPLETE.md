@@ -21,7 +21,7 @@
 
 ### **2. ✅ Integration with Existing Pipeline**
 
-- **Seamless integration** with RYZEN-LLM inference engine
+- **Seamless integration** with Ryzanstein LLM inference engine
 - **Fallback mechanisms** for error handling and edge cases
 - **Performance monitoring** with detailed statistics tracking
 - **Memory management** with configurable overhead limits
@@ -241,6 +241,6 @@ With real model integration, the framework is designed to achieve:
 
 _Speculative decoding pipeline ready for 2-3x inference acceleration!_
 
-**RYZEN-LLM Phase 3 - Sprint 1.4: Speculative Decoding** ✅  
+**Ryzanstein LLM Phase 3 - Sprint 1.4: Speculative Decoding** ✅  
 **Status: COMPLETE** | **Performance: Framework Established** | **Next: Real Model Integration**</content>
-<parameter name="filePath">c:\Users\sgbil\Ryot\SPECULATIVE_DECODING_IMPLEMENTATION_COMPLETE.md
+<parameter name="filePath">c:\Users\sgbil\Ryzanstein\SPECULATIVE_DECODING_IMPLEMENTATION_COMPLETE.md

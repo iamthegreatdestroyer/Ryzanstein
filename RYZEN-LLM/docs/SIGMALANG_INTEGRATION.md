@@ -400,7 +400,7 @@ if (user_id % 100 < sigma_rollout_percentage) {
 
 ## Conclusion
 
-The RYZEN-LLM codebase now has **architectural hooks in place** for seamless ΣLANG×RSU integration post-MVP:
+The Ryzanstein LLM codebase now has **architectural hooks in place** for seamless ΣLANG×RSU integration post-MVP:
 
 ✅ **KV-Cache:** Anchor metadata and lookup methods (placeholders)  
 ✅ **Recycler Interface:** Abstraction layer for implementation switching  

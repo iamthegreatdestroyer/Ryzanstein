@@ -23,7 +23,7 @@ Phase 2 achieved **56.62 tok/s**, exceeding the 15–25 tok/s target. This plan 
 
 - Source branch: `main` (or `release/phase2` if branching strategy requires)
 - Tag: `v2.0-phase2` (example)
-- Binaries: `ryzen-llm.tar.gz` or Docker images `ryzen-llm:phase2` pushed to registry
+- Binaries: `ryzanstein-llm.tar.gz` or Docker images `ryzanstein-llm:phase2` pushed to registry
 - Release notes: `CHANGELOG.md` and `PHASE2_RESULTS.md`
 
 ## Deployment Steps
@@ -97,8 +97,8 @@ git commit -am "chore(release): Phase 2 deployment" && git push origin release/p
 # Create PR, get approvals, then merge
 
 # Build Docker image
-docker build -t registry.example.com/ryzen-llm:phase2 .
-docker push registry.example.com/ryzen-llm:phase2
+docker build -t registry.example.com/ryzanstein-llm:phase2 .
+docker push registry.example.com/ryzanstein-llm:phase2
 ```
 
 ---

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 RYZEN-LLM Project
+// Copyright (c) 2024 Ryzanstein LLM Project
 // Licensed under MIT License
 //
 // V-Cache Optimization Manager
@@ -24,7 +24,7 @@
 // TODO: Add cache statistics and monitoring
 // TODO: Implement cross-request sharing logic
 
-namespace ryzen_llm {
+namespace ryzanstein_llm {
 namespace optimization {
 
 class CacheManager {
@@ -50,4 +50,4 @@ private:
 };
 
 } // namespace optimization
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

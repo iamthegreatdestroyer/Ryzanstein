@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM KV Cache Unit Tests
+ * Ryzanstein LLM KV Cache Unit Tests
  * [REF:PHASE1-TEST] - Unit tests for KV cache optimization
  */
 
@@ -9,7 +9,7 @@
 #include <cmath>
 #include <algorithm>
 
-using namespace ryzen_llm::memory;
+using namespace ryzanstein_llm::memory;
 
 class KVCacheTest : public ::testing::Test
 {

@@ -1,1 +1,1 @@
-# Python package for Ryzen-LLM bindings
+# Python package for Ryzanstein LLM bindings

@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM AVX-512 Optimized Matrix Multiplication
+ * Ryzanstein LLM AVX-512 Optimized Matrix Multiplication
  * [REF:PHASE1-006] - VNNI-Accelerated Ternary×INT8 Matmul
  *
  * Target: 8-12× speedup vs naive baseline
@@ -16,7 +16,7 @@
 #include <cstdint>
 #include <string>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace avx512
     {
@@ -124,4 +124,4 @@ namespace ryzen_llm
         extern MatmulStats g_matmul_stats;
 
     } // namespace avx512
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

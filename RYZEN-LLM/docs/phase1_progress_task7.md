@@ -32,7 +32,7 @@ Implement T-MAC (Table-based Matrix Multiplication for CPU) to achieve 2-4× add
 | Metric                                  | Baseline (Naive) | AVX-512 VNNI | T-MAC Target | Achievement            |
 | --------------------------------------- | ---------------- | ------------ | ------------ | ---------------------- |
 | **Speedup vs Naive**                    | 1.0×             | 8-12×        | 20-30×       | Infrastructure ready   |
-| **GFLOPS** (Ryzen 9 7950X)              | ~5               | 40-60        | 80-120       | Awaiting hardware test |
+| **GFLOPS** (Ryzanstein 9 7950X)              | ~5               | 40-60        | 80-120       | Awaiting hardware test |
 | **Throughput** (test model, 512 hidden) | 2-4 tok/s        | 20-40 tok/s  | 50-80 tok/s  | Awaiting hardware test |
 | **Throughput** (BitNet 7B, 4096 hidden) | 2-3 tok/s        | 25 tok/s     | 35-45 tok/s  | Awaiting hardware test |
 | **Table Memory** (4096×4096)            | N/A              | N/A          | <2 MB        | ✅ Verified in design  |
@@ -228,7 +228,7 @@ Will update Task 5 integration test suite to:
 - [ ] AVX-512 vectorized kernel shows 1.5-2× speedup over scalar (awaiting hardware)
 - [ ] T-MAC shows 2-4× speedup over AVX-512 VNNI baseline (awaiting hardware)
 - [ ] Combined speedup 20-30× over naive (awaiting hardware)
-- [ ] GFLOPS reaches 80-120 on Ryzen 9 7950X (awaiting hardware)
+- [ ] GFLOPS reaches 80-120 on Ryzanstein 9 7950X (awaiting hardware)
 - [x] Memory usage reasonable (<2 MB per layer for 4096 hidden)
 
 ### Integration (2/3)
@@ -335,7 +335,7 @@ Will update Task 5 integration test suite to:
 ### Hardware Validation (When Available)
 
 - Compile with T-MAC enabled (`use_tmac=true` in ModelConfig)
-- Run `test_tmac` unit tests on AVX-512 capable CPU (Ryzen 7000+ or Intel Ice Lake+)
+- Run `test_tmac` unit tests on AVX-512 capable CPU (Ryzanstein 7000+ or Intel Ice Lake+)
 - Measure actual speedup: target 2-4× over AVX-512, 20-30× over naive
 - Benchmark BitNet 7B generation with T-MAC: target 35-45 tok/s
 - Profile memory usage and cache hit rates

@@ -1,6 +1,6 @@
 # Sprint 1.1 Execution Plan: Distributed Inference Foundation
 
-**RYZEN-LLM Phase 3 | Jan 6 - Feb 3, 2026**
+**Ryzanstein LLM Phase 3 | Jan 6 - Feb 3, 2026**
 
 ## Sprint Overview
 

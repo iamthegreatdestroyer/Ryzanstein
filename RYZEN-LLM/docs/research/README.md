@@ -1,8 +1,8 @@
-# RYZEN-LLM Research Notes
+# Ryzanstein LLM Research Notes
 
 ## Overview
 
-This document contains research notes, paper references, and implementation insights for the RYZEN-LLM project.
+This document contains research notes, paper references, and implementation insights for the Ryzanstein LLM project.
 
 ## Core Technologies
 
@@ -89,7 +89,7 @@ This document contains research notes, paper references, and implementation insi
 
 ### Token Recycling System
 
-**Novel Contribution**: Original to RYZEN-LLM
+**Novel Contribution**: Original to Ryzanstein LLM
 
 **Concept**:
 - Compress semantic-dense token sequences into RSUs
@@ -111,10 +111,10 @@ This document contains research notes, paper references, and implementation insi
 
 ## Hardware Optimization
 
-### AVX-512 on AMD Ryzen
+### AVX-512 on AMD Ryzanstein
 
 **Considerations**:
-- AVX-512 available on Zen 4+ (Ryzen 7000+)
+- AVX-512 available on Zen 4+ (Ryzanstein 7000+)
 - 512-bit vectors = 16× FP32 or 64× INT8
 - VNNI instructions for INT8 dot products
 - Clock speed throttling less severe than Intel
@@ -127,7 +127,7 @@ This document contains research notes, paper references, and implementation insi
 
 ### Memory Hierarchy
 
-**Ryzen 9 7950X Profile**:
+**Ryzanstein 9 7950X Profile**:
 - L1 Cache: 32KB I + 32KB D per core
 - L2 Cache: 1MB per core
 - L3 Cache: 64MB shared
@@ -143,7 +143,7 @@ This document contains research notes, paper references, and implementation insi
 
 ### Target Metrics
 
-| Metric | Ryzen 7 | Ryzen 9 | Threadripper |
+| Metric | Ryzanstein 7 | Ryzanstein 9 | Threadripper |
 |--------|---------|---------|--------------|
 | TTFT (ms) | 600 | 400 | 250 |
 | Tokens/sec | 10-15 | 20-30 | 40-60 |
@@ -154,9 +154,9 @@ This document contains research notes, paper references, and implementation insi
 
 | System | Hardware | Speed | Quality |
 |--------|----------|-------|---------|
-| llama.cpp | Ryzen 9 | 15 tok/s | FP16 baseline |
-| RYZEN-LLM (BitNet) | Ryzen 9 | 25 tok/s | 95% of FP16 |
-| RYZEN-LLM (Mamba) | Ryzen 9 | 35 tok/s | 90% of FP16 |
+| llama.cpp | Ryzanstein 9 | 15 tok/s | FP16 baseline |
+| Ryzanstein LLM (BitNet) | Ryzanstein 9 | 25 tok/s | 95% of FP16 |
+| Ryzanstein LLM (Mamba) | Ryzanstein 9 | 35 tok/s | 90% of FP16 |
 
 ## Open Questions
 
@@ -190,13 +190,13 @@ This document contains research notes, paper references, and implementation insi
 - Qdrant: https://github.com/qdrant/qdrant
 
 ### Documentation
-- AMD Zen 4 Architecture: https://www.amd.com/en/products/processors/desktops/ryzen.html
+- AMD Zen 4 Architecture: https://www.amd.com/en/products/processors/desktops/ryzanstein.html
 - AVX-512 Intrinsics: https://www.intel.com/content/www/us/en/docs/intrinsics-guide/
 - FastAPI: https://fastapi.tiangolo.com/
 - Model Context Protocol: https://modelcontextprotocol.io/
 
 ## Contributors
 
-Research notes compiled by the RYZEN-LLM team.
+Research notes compiled by the Ryzanstein LLM team.
 
 Last updated: 2024

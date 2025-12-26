@@ -25,19 +25,19 @@ from typing import Dict, List, Any, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime
 
-# Add RYZEN-LLM to path
+# Add Ryzanstein LLM to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import available components
 try:
-    import ryzen_llm
-    from ryzen_llm.ryzen_llm_bindings import (
+    import ryzanstein_llm
+    from ryzanstein_llm.ryzen_llm_bindings import (
         TernaryWeight, QuantizedActivation,
         quantize_weights_ternary, quantize_activations_int8
     )
     HAS_RYZEN_LLM = True
 except ImportError as e:
-    print(f"Warning: RYZEN-LLM not available: {e}")
+    print(f"Warning: Ryzanstein LLM not available: {e}")
     print("Running simulation-only benchmark...")
     HAS_RYZEN_LLM = False
 
@@ -145,7 +145,7 @@ class ComponentBenchmark:
                 timestamp=datetime.now().isoformat()
             )
 
-        # Real benchmarking with RYZEN-LLM
+        # Real benchmarking with Ryzanstein LLM
         # Generate test data
         np.random.seed(42)
         W_ternary = np.random.choice([-1, 0, 1], size=(M, K)).astype(np.int8)

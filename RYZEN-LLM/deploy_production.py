@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Production Deployment Script for Ryzen-LLM
+Production Deployment Script for Ryzanstein LLM
 ===========================================
 
 Complete production deployment and hardening script that sets up
@@ -56,7 +56,7 @@ logger = logging.getLogger(__name__)
 
 class ProductionDeployer:
     """
-    Production deployment orchestrator for Ryzen-LLM.
+    Production deployment orchestrator for Ryzanstein LLM.
 
     Handles complete production setup including:
     - Distributed system initialization
@@ -536,7 +536,7 @@ Final Status: {deployment_result.get('final_status', 'unknown').upper()}
 
 def main():
     """Main deployment function."""
-    parser = argparse.ArgumentParser(description="Ryzen-LLM Production Deployment")
+    parser = argparse.ArgumentParser(description="Ryzanstein LLM Production Deployment")
     parser.add_argument("--world-size", type=int, help="Number of processes in distributed setup")
     parser.add_argument("--rank", type=int, help="Process rank")
     parser.add_argument("--config", type=str, help="Configuration file path")

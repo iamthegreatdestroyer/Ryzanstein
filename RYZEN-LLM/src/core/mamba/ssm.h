@@ -1,4 +1,4 @@
-// Copyright (c) 2024 RYZEN-LLM Project
+// Copyright (c) 2024 Ryzanstein LLM Project
 // Licensed under MIT License
 //
 // Mamba Selective State Space Model - Public API
@@ -37,7 +37,7 @@
 #include <memory>
 #include <string>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace mamba
     {
@@ -292,4 +292,4 @@ namespace ryzen_llm
         extern SSMStats g_ssm_stats;
 
     } // namespace mamba
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

@@ -1,4 +1,4 @@
-# RYZEN-LLM Default Configuration
+# Ryzanstein LLM Default Configuration
 # [REF:AP-009] - Appendix: Technical Stack
 
 # Server Configuration
@@ -128,7 +128,7 @@ monitoring:
   logging:
     level: "info"
     format: "json"
-    file: "logs/ryzen-llm.log"
+    file: "logs/ryzanstein-llm.log"
 
 # Hardware Configuration
 hardware:

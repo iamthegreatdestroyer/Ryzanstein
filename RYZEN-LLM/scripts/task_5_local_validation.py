@@ -32,7 +32,7 @@ try:
     )
     from src.core.weight_loader import WeightLoaderConfig
 except ImportError as e:
-    print(f"ERROR: Failed to import RYZEN-LLM components: {e}")
+    print(f"ERROR: Failed to import Ryzanstein LLM components: {e}")
     sys.exit(1)
 
 

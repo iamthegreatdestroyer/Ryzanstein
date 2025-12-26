@@ -9,7 +9,7 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace ryzen_llm::rwkv
+namespace ryzanstein_llm::rwkv
 {
 
     /**
@@ -293,6 +293,6 @@ namespace ryzen_llm::rwkv
             std::vector<float> &output);
     };
 
-} // namespace ryzen_llm::rwkv
+} // namespace ryzanstein_llm::rwkv
 
 #endif // RYZEN_LLM_RWKV_CHANNEL_MIXING_H

@@ -88,7 +88,7 @@ class ProductionHardeningSuite:
         self.error_handler = ProductionErrorHandler()
         self.fault_tolerance = FaultToleranceManager(world_size, rank)
         self.metrics_collector = MetricsCollector()
-        self.tracer = DistributedTracer("ryzen-llm-inference")
+        self.tracer = DistributedTracer("ryzanstein-llm-inference")
         self.health_monitor = HealthMonitor()
         self.performance_benchmarker = PerformanceBenchmarker(enable_distributed=enable_distributed)
         self.resource_optimizer = ResourceOptimizer()

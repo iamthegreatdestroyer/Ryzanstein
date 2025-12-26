@@ -358,9 +358,14 @@ class KVCacheOptimizerTester:
                 logger.info(f"{status} {result.test_name}:")
 
                 if result.test_name == "compression":
-                    logger.info(".1f"                    logger.info(".3f"                elif result.test_name == "coherency":
-                    logger.info(".3f"                    logger.info(".1f"                elif result.test_name == "dynamic_allocation":
-                    logger.info(".1f"                elif result.test_name == "workload_adaptive":
+                    logger.info(f"   Memory reduction: {result.metrics.get('memory_reduction', 0):.1f}%")
+                    logger.info(f"   Accuracy loss: {result.metrics.get('accuracy_loss', 0):.3f}%")
+                elif result.test_name == "coherency":
+                    logger.info(f"   Cache hit rate: {result.metrics.get('cache_hit_rate', 0):.3f}%")
+                    logger.info(f"   Sync latency: {result.metrics.get('sync_latency', 0):.1f}ms")
+                elif result.test_name == "dynamic_allocation":
+                    logger.info(f"   Allocation efficiency: {result.metrics.get('allocation_efficiency', 0):.1f}%")
+                elif result.test_name == "workload_adaptive":
                     logger.info(f"   Workload adaptation: {'Working' if result.success else 'Failed'}")
 
                 if not result.success:

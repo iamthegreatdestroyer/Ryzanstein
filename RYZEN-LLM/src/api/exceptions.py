@@ -1,5 +1,5 @@
 """
-Ryot LLM Custom Exceptions
+Ryzanstein LLM Custom Exceptions
 ==========================
 """
 
@@ -7,7 +7,7 @@ from typing import Optional
 
 
 class RyotError(Exception):
-    """Base exception for all Ryot LLM errors."""
+    """Base exception for all Ryzanstein LLM errors."""
 
     def __init__(self, message: str, error_code: str = "RYOT_ERROR", is_retryable: bool = False):
         super().__init__(message)

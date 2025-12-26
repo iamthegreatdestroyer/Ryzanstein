@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM Memory Pooling System
+ * Ryzanstein LLM Memory Pooling System
  * [REF:OL-005a] - Optimization Layer: Memory Management
  *
  * High-performance memory pool for reducing allocation overhead.
@@ -13,7 +13,7 @@
 #include <memory>
 #include <cstdlib>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace memory
     {
@@ -145,4 +145,4 @@ namespace ryzen_llm
         };
 
     } // namespace memory
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm

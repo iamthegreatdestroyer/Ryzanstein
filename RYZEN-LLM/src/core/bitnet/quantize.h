@@ -1,5 +1,5 @@
 /*
- * RYZEN-LLM BitNet Quantization
+ * Ryzanstein LLM BitNet Quantization
  * [REF:PHASE1-001] - BitNet b1.58 Ternary Quantization
  *
  * This module implements ternary weight quantization (W ∈ {-1, 0, +1})
@@ -17,7 +17,7 @@
 #include <vector>
 #include <memory>
 
-namespace ryzen_llm
+namespace ryzanstein_llm
 {
     namespace bitnet
     {
@@ -448,6 +448,6 @@ namespace ryzen_llm
             size_t size);
 
     } // namespace bitnet
-} // namespace ryzen_llm
+} // namespace ryzanstein_llm
 
 #endif // RYZEN_LLM_BITNET_QUANTIZE_H

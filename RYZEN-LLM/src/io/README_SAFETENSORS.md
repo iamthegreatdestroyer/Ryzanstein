@@ -36,7 +36,7 @@ src/io/
 
 ```cpp
 #include "src/io/safetensors_loader.h"
-using namespace ryzen_llm::io;
+using namespace ryzanstein_llm::io;
 
 SafeTensorsLoader loader;
 auto tensors = loader.load("bitnet-7b.safetensors");
@@ -345,7 +345,7 @@ add_executable(my_app
 #include "src/io/safetensors_loader.h"
 #include "src/io/weight_validator.h"
 
-using namespace ryzen_llm::io;
+using namespace ryzanstein_llm::io;
 ```
 
 ## Testing
@@ -425,7 +425,7 @@ for (const auto& file : model_files) {
 
 ## License
 
-Part of RYZEN-LLM project. See LICENSE for details.
+Part of Ryzanstein LLM project. See LICENSE for details.
 
 ## References
 

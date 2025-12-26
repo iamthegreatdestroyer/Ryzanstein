@@ -5,9 +5,9 @@ temp_ci_updated.yml
 temp_ci_b64.txt
 update_payload.json
 # Local test/build artifacts
-RYZEN-LLM/test_build/
+Ryzanstein LLM/test_build/
 # Model weights and storage (large files)
-RYZEN-LLM/storage/
+Ryzanstein LLM/storage/
 storage/
 *.safetensors
 *.bin
