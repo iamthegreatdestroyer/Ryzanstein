@@ -7,6 +7,7 @@ purpose: "Fast navigation and execution"
 # Sprint 2.2 Quick Reference Guide
 
 ## 🎯 Mission (One-Liner)
+
 **Build 1000+ req/sec distributed inference with paged attention + speculative decoding**
 
 ---
@@ -35,9 +36,11 @@ PHASE2_DEVELOPMENT/src/
 ## 🏗️ Core Components
 
 ### 1. Distributed Inference Engine
+
 **File**: `src/distributed/engine.py`
 
 **Quick Start**:
+
 ```python
 from distributed.engine import DistributedInferenceEngine, DistributedConfig
 
@@ -52,6 +55,7 @@ output = engine.distributed_forward(model, batch)
 ```
 
 **Key Classes**:
+
 - `DistributedInferenceEngine`: Main orchestrator
 - `TensorShardManager`: Model sharding
 - `CollectiveCommunicator`: GPU communication
@@ -60,9 +64,11 @@ output = engine.distributed_forward(model, batch)
 ---
 
 ### 2. KV Cache Manager
+
 **File**: `src/cache/manager.py`
 
 **Quick Start**:
+
 ```python
 from cache.manager import PagedAttentionKVCache, PrefixCache, PageConfig
 
@@ -82,6 +88,7 @@ retrieved = prefix_cache.get_prefix(tokens)
 ```
 
 **Key Classes**:
+
 - `PagedAttentionKVCache`: Paged memory allocation
 - `PrefixCache`: Prefix sharing system
 - `GPUMemoryPool`: Memory pooling
@@ -89,9 +96,11 @@ retrieved = prefix_cache.get_prefix(tokens)
 ---
 
 ### 3. Speculative Decoding
+
 **File**: `src/speculative/decoder.py`
 
 **Quick Start**:
+
 ```python
 from speculative.decoder import (
     SpeculativeDecoder,
@@ -119,6 +128,7 @@ print(f"Speedup: {output.num_iterations / output.num_verified:.2f}x")
 ```
 
 **Key Classes**:
+
 - `SpeculativeDecoder`: Main decoder
 - `DraftModel`: Lightweight draft model
 - `SpeculativeVerifier`: Token verification
@@ -127,9 +137,11 @@ print(f"Speedup: {output.num_iterations / output.num_verified:.2f}x")
 ---
 
 ### 4. Token-Level Batcher
+
 **File**: `src/batching/token_batcher.py`
 
 **Quick Start**:
+
 ```python
 from batching.token_batcher import TokenBatcher, TokenRequest
 
@@ -148,10 +160,10 @@ while True:
     batch = batcher.get_batch()
     if batch is None:
         break
-    
+
     # Process batch
     output = model(batch.tokens)
-    
+
     # Mark requests complete
     for req_id in batch.request_ids:
         batcher.mark_completed(req_id)
@@ -161,6 +173,7 @@ stats = batcher.get_stats()
 ```
 
 **Key Classes**:
+
 - `TokenBatcher`: Token-level batching
 - `TokenRequest`: Request representation
 - `TokenBatch`: Batch representation
@@ -192,25 +205,29 @@ Return response
 ## ✅ Implementation Checklist
 
 ### Foundation (✅ Complete - Day 1)
+
 - [x] Distributed Engine (700 lines)
 - [x] KV Cache Manager (650 lines)
 - [x] Speculative Decoder (600 lines)
 - [x] Token Batcher (500 lines)
 
 ### Phase 1 - Integration (🔄 Days 2-3)
-- [ ] Create module __init__.py files
+
+- [ ] Create module **init**.py files
 - [ ] Write comprehensive test suite (100+ tests)
 - [ ] Build request handler
 - [ ] Implement unified pipeline
 - [ ] Run initial benchmarks
 
 ### Phase 2 - Optimization (🔄 Days 4-8)
+
 - [ ] Advanced KV cache features
 - [ ] Speculative decoding tuning
 - [ ] Batching optimization
 - [ ] Load balancing
 
 ### Phase 3 - Production (🔄 Day 9)
+
 - [ ] Full integration testing
 - [ ] Performance validation
 - [ ] Documentation
@@ -220,18 +237,19 @@ Return response
 
 ## 📊 Performance Targets
 
-| Metric | Target | How to Achieve |
-|--------|--------|----------------|
-| Throughput | 1000+ req/sec | Token batching + speculative decoding |
-| P99 Latency | <100ms | Continuous batching + priority scheduling |
-| Memory/Token | <500MB | Paged attention + prefix caching |
-| GPU Util | >85% | Token-level batching + speculative parallelism |
+| Metric       | Target        | How to Achieve                                 |
+| ------------ | ------------- | ---------------------------------------------- |
+| Throughput   | 1000+ req/sec | Token batching + speculative decoding          |
+| P99 Latency  | <100ms        | Continuous batching + priority scheduling      |
+| Memory/Token | <500MB        | Paged attention + prefix caching               |
+| GPU Util     | >85%          | Token-level batching + speculative parallelism |
 
 ---
 
 ## 🧪 Testing Strategy
 
 ### Unit Tests (per component)
+
 ```python
 # tests/test_distributed.py
 - test_tensor_sharding()
@@ -255,6 +273,7 @@ Return response
 ```
 
 ### Integration Tests
+
 ```python
 # End-to-end pipeline
 - test_e2e_inference()
@@ -268,6 +287,7 @@ Return response
 ## 🔍 Debugging Tips
 
 ### Distributed Engine Issues
+
 ```python
 # Check sharding
 engine.shard_manager.shard_linear_weight(weight)
@@ -280,6 +300,7 @@ stats = engine.memory_manager.get_memory_stats()
 ```
 
 ### KV Cache Issues
+
 ```python
 # Check allocation
 kv_cache.allocate_pages(4, "seq_1")
@@ -292,6 +313,7 @@ stats = kv_cache.get_memory_stats()
 ```
 
 ### Speculative Decoding Issues
+
 ```python
 # Check draft generation
 draft_ids = draft_model.generate_draft(input_ids, 4)
@@ -306,6 +328,7 @@ if acceptance_rate < 0.5:
 ```
 
 ### Batching Issues
+
 ```python
 # Check queue size
 pending = batcher.get_pending_count()
@@ -323,6 +346,7 @@ stats = batcher.get_stats()
 ## 📚 Key Formulas
 
 ### Paged Attention Memory
+
 ```
 Total Memory = num_pages × page_size × elements_per_page × bytes_per_element
              = 4096 × 16 × 8192 × 2 (float16)
@@ -330,12 +354,14 @@ Total Memory = num_pages × page_size × elements_per_page × bytes_per_element
 ```
 
 ### Speculative Speedup
+
 ```
 Speedup ≈ (1 + speculation_depth × acceptance_rate)
         ≈ (1 + 4 × 0.75) = 4x (with 75% acceptance)
 ```
 
 ### Token Batching Throughput
+
 ```
 Throughput = (batch_size × tokens_per_seq) / latency_per_batch
            = (128 × 512) / 0.1s ≈ 655k tokens/sec
@@ -346,6 +372,7 @@ Throughput = (batch_size × tokens_per_seq) / latency_per_batch
 ## 🚀 Quick Commands
 
 ### Run Tests
+
 ```bash
 cd PHASE2_DEVELOPMENT
 pytest tests/test_distributed.py -v
@@ -354,6 +381,7 @@ pytest tests/ -v --cov=src
 ```
 
 ### Profile Performance
+
 ```python
 from src.perf.benchmarks import benchmark_pipeline
 
@@ -363,6 +391,7 @@ print(f"P99 Latency: {results['p99_latency_ms']} ms")
 ```
 
 ### Monitor GPU
+
 ```bash
 nvidia-smi watch -n 0.5
 ```
@@ -373,33 +402,36 @@ nvidia-smi watch -n 0.5
 
 **What file do I edit for...**
 
-| Task | File |
-|------|------|
-| GPU sharding | `src/distributed/engine.py` |
-| KV cache | `src/cache/manager.py` |
-| Draft model | `src/speculative/decoder.py` |
-| Token batching | `src/batching/token_batcher.py` |
+| Task           | File                                      |
+| -------------- | ----------------------------------------- |
+| GPU sharding   | `src/distributed/engine.py`               |
+| KV cache       | `src/cache/manager.py`                    |
+| Draft model    | `src/speculative/decoder.py`              |
+| Token batching | `src/batching/token_batcher.py`           |
 | HTTP interface | `src/serving/request_handler.py` (future) |
-| Tests | `tests/test_*.py` |
-| Benchmarks | `src/perf/benchmarks.py` (future) |
+| Tests          | `tests/test_*.py`                         |
+| Benchmarks     | `src/perf/benchmarks.py` (future)         |
 
 ---
 
 ## 🎯 Daily Goals
 
 ### Day 2 (Tomorrow)
-- [ ] Add __init__.py for all modules
+
+- [ ] Add **init**.py for all modules
 - [ ] Write 20 distributed engine tests
 - [ ] Write 20 cache tests
 - [ ] Basic request handler sketch
 
 ### Day 3
+
 - [ ] 20 speculative decoding tests
 - [ ] 20 batching tests
 - [ ] Unified pipeline implementation
 - [ ] Initial E2E test
 
 ### Days 4-9
+
 - Follow implementation plan in SPRINT_2.2_KICKOFF.md
 
 ---
@@ -426,14 +458,17 @@ nvidia-smi watch -n 0.5
 ## 🎓 Learning Resources
 
 **For distributed training**:
+
 - Megatron-LM paper & code
 - PyTorch distributed documentation
 
 **For inference optimization**:
+
 - vLLM paper & code
 - TensorRT-LLM repository
 
 **For speculative decoding**:
+
 - DeepMind paper
 - Implementation in vLLM
 
@@ -441,6 +476,6 @@ nvidia-smi watch -n 0.5
 
 **Last Updated**: 2025-12-26  
 **Sprint Phase**: Foundation ✅ → Integration 🔄  
-**Next Review**: Day 2 End  
+**Next Review**: Day 2 End
 
 🚀 **Ready to build!**
