@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'PHASE2_DEVELOP
 
 from cache.kv_cache_compression import (
     QuantizationType,
+    ScalingMode,
     QuantizationConfig,
     Int8Quantizer,
     Int4Quantizer,
@@ -110,7 +111,7 @@ class TestInt8Quantizer:
         """Test per-channel scaling mode."""
         config = QuantizationConfig(
             quant_type=QuantizationType.INT8,
-            scaling_mode="per_channel"
+            scaling_mode=ScalingMode.PER_CHANNEL
         )
         quantizer = Int8Quantizer(config)
         
