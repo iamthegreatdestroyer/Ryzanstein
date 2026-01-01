@@ -136,7 +136,7 @@ namespace ryzanstein_llm
             uint32_t num_vectors = size / hidden_dim;
 
 // Parallelize layer norm computation
-#pragma omp parallel for schedule(dynamic) if (num_vectors > 4)
+#pragma omp parallel for schedule(dynamic, 4) if (num_vectors > 4)
             for (int32_t i = 0; i < (int32_t)num_vectors; ++i)
             {
                 const float *in_vec = input + i * hidden_dim;
@@ -287,7 +287,7 @@ namespace ryzanstein_llm
 // ATTENTION SCORES COMPUTATION WITH PREFETCHING
 // ============================================================
 // Parallelize over sequence positions with dynamic scheduling
-#pragma omp parallel for schedule(dynamic) if (seq_len > 16)
+#pragma omp parallel for schedule(dynamic, 4) if (seq_len > 16)
                     for (int32_t i = 0; i < (int32_t)seq_len; ++i)
                     {
                         // Prefetch Q values for next iteration
@@ -356,7 +356,7 @@ namespace ryzanstein_llm
 // ATTENTION OUTPUT COMPUTATION WITH PREFETCHING
 // ============================================================
 // Parallelize over output positions
-#pragma omp parallel for schedule(dynamic) if (seq_len > 16)
+#pragma omp parallel for schedule(dynamic, 4) if (seq_len > 16)
                     for (int32_t i = 0; i < (int32_t)seq_len; ++i)
                     {
                         // Prefetch next row of scores

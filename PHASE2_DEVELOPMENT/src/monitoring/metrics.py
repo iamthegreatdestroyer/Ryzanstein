@@ -376,14 +376,14 @@ class MetricRegistry:
 class BaseMetrics(ABC):
     """Base class for metric collectors."""
     
-    def __init__(self, registry: MetricRegistry):
+    def __init__(self, registry: Optional[MetricRegistry] = None):
         """
         Initialize base metrics.
         
         Args:
             registry: The metric registry to use
         """
-        self._registry = registry
+        self._registry = registry if registry is not None else MetricRegistry()
         self._register_metrics()
     
     @property

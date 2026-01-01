@@ -163,14 +163,15 @@ class AlertManager:
         manager.start(interval_seconds=15.0)
     """
     
-    def __init__(self, registry: MetricRegistry):
+    def __init__(self, registry: Optional[MetricRegistry] = None):
         """
         Initialize the alert manager.
         
         Args:
-            registry: The metric registry to evaluate
+            registry: The metric registry to evaluate (optional, creates default if not provided)
         """
-        self._registry = registry
+        from .metrics import MetricRegistry  # Avoid circular import at module level
+        self._registry = registry if registry is not None else MetricRegistry()
         self._rules: Dict[str, AlertRule] = {}
         self._pending_alerts: Dict[str, Alert] = {}  # fingerprint -> Alert
         self._active_alerts: Dict[str, Alert] = {}   # fingerprint -> Alert

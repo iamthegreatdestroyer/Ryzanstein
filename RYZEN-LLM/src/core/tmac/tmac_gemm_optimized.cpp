@@ -441,7 +441,7 @@ namespace ryzanstein_llm
             int num_threads = omp_get_max_threads();
 
 // Parallelize block processing
-#pragma omp parallel for schedule(dynamic) num_threads(num_threads)
+#pragma omp parallel for schedule(dynamic, 8) num_threads(num_threads)
             for (uint32_t block_idx = 0; block_idx < num_m_blocks * num_n_blocks; ++block_idx)
             {
                 uint32_t mb = block_idx / num_n_blocks;

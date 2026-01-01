@@ -136,19 +136,27 @@ namespace ryzanstein_llm
                     float sum = 0.0f;
 
                     // Compute partial sum for this bit pattern
-                    // Each bit position i in idx represents the sign of activation[i]:
-                    //   bit=0 → -1 (contributes -w to sum)
-                    //   bit=1 → +1 (contributes +w to sum)
+                    // Each bit position i in idx represents whether activation[i] > 0:
+                    //   bit=1 → activation contributes +1 * weight (since we threshold to ±1)
+                    //   bit=0 → activation contributes -1 * weight
                     for (uint32_t i = 0; i < actual_width && i < 8; ++i)
                     {
                         uint8_t bit = (idx >> i) & 0x1;
-                        float sign = bit ? 1.0f : -1.0f;
+                        float act_approx = bit ? 1.0f : -1.0f; // Approximate activation as ±1
 
                         int8_t w = weights[k_start + i];
                         float w_scale = weight_scales[0]; // Use per-layer scale
 
-                        // Weight contribution: w * scale * sign
-                        sum += (w * w_scale) * sign;
+                        // Weight contribution: w * scale * act_approx
+                        if (w == 1)
+                        {
+                            sum += w_scale * act_approx;
+                        }
+                        else if (w == -1)
+                        {
+                            sum -= w_scale * act_approx;
+                        }
+                        // w == 0: no contribution
                     }
 
                     tables_.set(row, g, static_cast<uint8_t>(idx), sum);
@@ -187,6 +195,19 @@ namespace ryzanstein_llm
             if (config_.use_avx512_gather)
             {
                 compute_avx512(acts, act_scale, act_zero_point, output, M, N, K);
+            }
+            else if (config_.use_avx2)
+            {
+                compute_avx2(acts, act_scale, act_zero_point, output, M, N, K);
+            }
+            else
+            {
+                compute_scalar(acts, act_scale, act_zero_point, output, M, N, K);
+            }
+#elif defined(__AVX2__)
+            if (config_.use_avx2)
+            {
+                compute_avx2(acts, act_scale, act_zero_point, output, M, N, K);
             }
             else
             {
@@ -281,93 +302,139 @@ namespace ryzanstein_llm
             uint32_t K)
         {
 #if defined(__AVX512F__) && defined(__AVX512BW__)
-            const uint32_t lw = config_.lookup_width;
-            const uint32_t num_groups = tables_.num_groups;
-            const uint32_t vec_width = 16; // AVX-512 processes 16 elements at a time
+            // SIMD-accelerated scalar computation (not T-MAC lookup)
+            // Process 16 outputs at a time with AVX-512
 
-            // Process one row at a time
             for (uint32_t m = 0; m < M; ++m)
             {
-                // Process N dimension in chunks of 16
                 uint32_t n = 0;
-                for (; n + vec_width <= N; n += vec_width)
+                for (; n + 16 <= N; n += 16)
                 {
                     __m512 acc = _mm512_setzero_ps();
 
-                    // For each lookup group
-                    for (uint32_t g = 0; g < num_groups; ++g)
+                    for (uint32_t k = 0; k < K; ++k)
                     {
-                        // Build 16 lookup indices in parallel using AVX-512
-                        __m512i indices = _mm512_setzero_si512();
+                        // Load 16 activations at once
+                        __m128i acts_128 = _mm_loadu_si128((__m128i *)&activations[n * K + k]);
+                        __m512i acts_vec = _mm512_cvtepi8_epi32(acts_128);
 
-                        // Process each bit position in the lookup width
-                        for (uint32_t bit_pos = 0; bit_pos < lw && (g * lw + bit_pos) < K; ++bit_pos)
-                        {
-                            // Load 16 activation values at once
-                            __m512i acts_vec = _mm512_cvtepi8_epi32(
-                                _mm_loadu_si128((__m128i *)&activations[(n)*K + g * lw + bit_pos]));
+                        // Dequantize: (act - zero_point) * scale
+                        __m512 acts_f = _mm512_cvtepi32_ps(acts_vec);
+                        __m512 zp_vec = _mm512_set1_ps((float)act_zero_point);
+                        __m512 scale_vec = _mm512_set1_ps(act_scale);
+                        acts_f = _mm512_mul_ps(_mm512_sub_ps(acts_f, zp_vec), scale_vec);
 
-                            // Dequantize: (act - zero_point) * scale
-                            __m512 acts_f = _mm512_cvtepi32_ps(acts_vec);
-                            __m512 zp_vec = _mm512_set1_ps((float)act_zero_point);
-                            __m512 scale_vec = _mm512_set1_ps(act_scale);
-                            acts_f = _mm512_mul_ps(_mm512_sub_ps(acts_f, zp_vec), scale_vec);
+                        // Get ternary weight (broadcast to all 16 lanes)
+                        int8_t w = ternary_weights_[m * K + k];
+                        __m512 w_vec = _mm512_set1_ps((float)w);
 
-                            // Convert to binary: > 0 ? 1 : 0
-                            __mmask16 mask = _mm512_cmp_ps_mask(acts_f, _mm512_setzero_ps(), _MM_CMPINT_GT);
-                            __m512i bits = _mm512_mask_set1_epi32(_mm512_setzero_si512(), mask, 1);
-
-                            // Shift bits to correct position and OR into indices
-                            __m512i shift_vec = _mm512_set1_epi32(bit_pos);
-                            bits = _mm512_sllv_epi32(bits, shift_vec);
-                            indices = _mm512_or_si512(indices, bits);
-                        }
-
-                        // Now we have 16 lookup indices in indices vector
-                        // We need to gather table values - but AVX-512 gather is complex for this use case
-                        // For now, fall back to scalar lookup but process 16 at a time
-                        float table_vals[16];
-                        uint32_t indices_arr[16];
-                        _mm512_storeu_si512((__m512i *)indices_arr, indices);
-
-                        for (uint32_t i = 0; i < 16; ++i)
-                        {
-                            table_vals[i] = tables_.get(m, g, (uint8_t)indices_arr[i]);
-                        }
-
-                        __m512 vals = _mm512_loadu_ps(table_vals);
-                        acc = _mm512_add_ps(acc, vals);
+                        // Multiply and accumulate: acc += w * acts_f
+                        acc = _mm512_fmadd_ps(w_vec, acts_f, acc);
                     }
 
-                    // Apply output scaling
-                    __m512 scale_vec = _mm512_set1_ps(act_scale);
-                    acc = _mm512_mul_ps(acc, scale_vec);
-
-                    // Store result
+                    // Store 16 results
                     _mm512_storeu_ps(output + m * N + n, acc);
                 }
 
                 // Handle remaining elements with scalar code
                 for (; n < N; ++n)
                 {
-                    float acc = 0.0f;
-                    for (uint32_t g = 0; g < num_groups; ++g)
+                    float sum = 0.0f;
+                    for (uint32_t k = 0; k < K; ++k)
                     {
-                        uint8_t idx = 0;
-                        for (uint32_t i = 0; i < lw && (g * lw + i) < K; ++i)
+                        int8_t act_quantized = activations[n * K + k];
+                        float act = (static_cast<float>(act_quantized) - act_zero_point) * act_scale;
+                        int8_t w = ternary_weights_[m * K + k];
+
+                        if (w == 1)
                         {
-                            int8_t act = activations[n * K + g * lw + i];
-                            float act_f = (act - act_zero_point) * act_scale;
-                            uint8_t bit = (act_f > 0.0f) ? 1 : 0;
-                            idx |= (bit << i);
+                            sum += act;
                         }
-                        acc += tables_.get(m, g, idx);
+                        else if (w == -1)
+                        {
+                            sum -= act;
+                        }
+                        // w == 0: no contribution
                     }
-                    output[m * N + n] = acc * act_scale;
+                    output[m * N + n] = sum * weight_scales_[0];
                 }
             }
 #else
             // Fallback to scalar
+            compute_scalar(activations, act_scale, act_zero_point, output, M, N, K);
+#endif
+        }
+
+        void LookupTableGEMM::compute_avx2(
+            const int8_t *activations,
+            float act_scale,
+            int8_t act_zero_point,
+            float *output,
+            uint32_t M,
+            uint32_t N,
+            uint32_t K)
+        {
+#if defined(__AVX2__)
+            // SIMD-accelerated scalar computation (not T-MAC lookup)
+            // Process 8 outputs at a time with AVX2
+
+            for (uint32_t m = 0; m < M; ++m)
+            {
+                uint32_t n = 0;
+                for (; n + 8 <= N; n += 8)
+                {
+                    __m256 acc = _mm256_setzero_ps();
+
+                    for (uint32_t k = 0; k < K; ++k)
+                    {
+                        // Load 8 activations at once (need to handle int8 to float conversion)
+                        // AVX2 doesn't have direct int8 to float, so we do it in steps
+                        __m128i acts_128 = _mm_loadl_epi64((__m128i *)&activations[n * K + k]);
+                        __m256i acts_vec = _mm256_cvtepi8_epi32(acts_128);
+
+                        // Dequantize: (act - zero_point) * scale
+                        __m256 acts_f = _mm256_cvtepi32_ps(acts_vec);
+                        __m256 zp_vec = _mm256_set1_ps((float)act_zero_point);
+                        __m256 scale_vec = _mm256_set1_ps(act_scale);
+                        acts_f = _mm256_mul_ps(_mm256_sub_ps(acts_f, zp_vec), scale_vec);
+
+                        // Get ternary weight (broadcast to all 8 lanes)
+                        int8_t w = ternary_weights_[m * K + k];
+                        __m256 w_vec = _mm256_set1_ps((float)w);
+
+                        // Multiply and accumulate: acc += w * acts_f
+                        acc = _mm256_fmadd_ps(w_vec, acts_f, acc);
+                    }
+
+                    // Store 8 results
+                    _mm256_storeu_ps(output + m * N + n, acc);
+                }
+
+                // Handle remaining elements with scalar code
+                for (; n < N; ++n)
+                {
+                    float sum = 0.0f;
+                    for (uint32_t k = 0; k < K; ++k)
+                    {
+                        int8_t act_quantized = activations[n * K + k];
+                        float act = (static_cast<float>(act_quantized) - act_zero_point) * act_scale;
+                        int8_t w = ternary_weights_[m * K + k];
+
+                        if (w == 1)
+                        {
+                            sum += act;
+                        }
+                        else if (w == -1)
+                        {
+                            sum -= act;
+                        }
+                        // w == 0: no contribution
+                    }
+                    output[m * N + n] = sum * weight_scales_[0];
+                }
+            }
+#else
+            // Fallback to scalar if AVX2 not available at compile time
             compute_scalar(activations, act_scale, act_zero_point, output, M, N, K);
 #endif
         }
