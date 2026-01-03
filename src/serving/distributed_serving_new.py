@@ -11,11 +11,11 @@ Comprehensive serving layer for distributed inference with:
 
 Architecture:
   DistributedServingEngine (main orchestrator)
-  ├─ RequestQueue (FIFO + priority)
-  ├─ DynamicBatcher (token-level batching)
-  ├─ LoadBalancer (multi-GPU distribution)
-  ├─ HealthMonitor (GPU + request health)
-  └─ MetricsCollector (performance tracking)
+  |- RequestQueue (FIFO + priority)
+  |- DynamicBatcher (token-level batching)
+  |- LoadBalancer (multi-GPU distribution)
+  |- HealthMonitor (GPU + request health)
+  |- MetricsCollector (performance tracking)
 """
 
 import asyncio
@@ -23,9 +23,6 @@ import logging
 import time
 import uuid
 from typing import Dict, List, Optional, Tuple, Any
-
-# Import lock-free logger
-from .lockfree_logger import lockfree_logger
 from dataclasses import dataclass, field
 from enum import Enum
 from collections import defaultdict
@@ -130,19 +127,19 @@ class InferenceResponse:
 # ============================================================================
 
 class RequestQueue:
-    """Priority queue for managing inference requests with timeout handling."""
+    """Priority queue for managing inference requests with timeout handling and fine-grained locking."""
     
     def __init__(self, max_queue_size: int = 10000):
         """Initialize request queue."""
         self.max_queue_size = max_queue_size
         self.queue: List[InferenceRequest] = []
         self.request_map: Dict[str, InferenceRequest] = {}
-        
+
         # Fine-grained locks: separate locks for different operations
         self.enqueue_lock = asyncio.Lock()  # For enqueue operations
         self.dequeue_lock = asyncio.Lock()  # For dequeue operations
         self.map_lock = asyncio.Lock()      # For request_map operations
-        
+
         # Statistics
         self.total_enqueued = 0
         self.total_dequeued = 0
@@ -160,18 +157,26 @@ class RequestQueue:
         """
         async with self.enqueue_lock:
             if len(self.queue) >= self.max_queue_size:
-                await lockfree_logger.warning(f"Request queue full: {len(self.queue)}/{self.max_queue_size}")
+                logger.warning(f"Request queue full: {len(self.queue)}/{self.max_queue_size}")
                 return False
             
             heapq.heappush(self.queue, request)
+            async with self.map_lock:
+                self.request_map[request.request_id] = request
             self.total_enqueued += 1
             
-        async with self.map_lock:
-            self.request_map[request.request_id] = request
-            
-            await lockfree_logger.debug(f"Enqueued request {request.request_id}")
+            logger.debug(f"Enqueued request {request.request_id}")
             return True
     
+    async def dequeue(self, count: int = 1) -> List[InferenceRequest]:
+        """
+        Dequeue top N requests.
+        
+        Args:
+            count: Number of requests to dequeue
+        
+        Returns:
+            List of dequeued requests
     async def dequeue(self, count: int = 1) -> List[InferenceRequest]:
         """
         Dequeue top N requests.
@@ -191,8 +196,10 @@ class RequestQueue:
                 req = heapq.heappop(self.queue)
                 
                 if req.is_timed_out():
+                    async with self.map_lock:
+                        del self.request_map[req.request_id]
                     self.total_timeouts += 1
-                    await lockfree_logger.warning(f"Request {req.request_id} timed out")
+                    logger.warning(f"Request {req.request_id} timed out")
                 else:
                     non_timeout.append(req)
             
@@ -206,18 +213,6 @@ class RequestQueue:
                 dequeued.append(req)
                 req.state = RequestState.BATCHING
                 self.total_dequeued += 1
-        
-        # Remove dequeued requests from map
-        async with self.map_lock:
-            for req in dequeued:
-                if req.request_id in self.request_map:
-                    del self.request_map[req.request_id]
-            
-            # Remove timed-out requests from map
-            for req in non_timeout:
-                if req.is_timed_out():
-                    if req.request_id in self.request_map:
-                        del self.request_map[req.request_id]
             
             return dequeued
     
@@ -232,11 +227,12 @@ class RequestQueue:
             if request_id in self.request_map:
                 req = self.request_map.pop(request_id)
                 req.state = RequestState.CANCELLED
+                # Remove from queue (need dequeue lock)
                 async with self.dequeue_lock:
                     self.queue = [r for r in self.queue if r.request_id != request_id]
                     heapq.heapify(self.queue)
                 return True
-            return False
+        return False
     
     async def get_stats(self) -> Dict[str, Any]:
         """Get queue statistics."""
@@ -249,9 +245,9 @@ class RequestQueue:
             "queue_size": queue_size,
             "map_size": map_size,
             "total_enqueued": self.total_enqueued,
-            "total_dequeued": self.total_dequeued,
-            "total_timeouts": self.total_timeouts,
-        }
+                "total_dequeued": self.total_dequeued,
+                "total_timeouts": self.total_timeouts,
+            }
 
 
 # ============================================================================
@@ -390,19 +386,19 @@ class DynamicBatcher:
 # ============================================================================
 
 class LoadBalancer:
-    """Multi-GPU load balancer with health-aware routing."""
+    """Multi-GPU load balancer with health-aware routing and fine-grained locking."""
     
     def __init__(self, num_gpus: int = 1):
         """Initialize load balancer."""
         self.num_gpus = num_gpus
         self.gpu_loads: Dict[int, float] = {i: 0.0 for i in range(num_gpus)}
         self.gpu_health: Dict[int, bool] = {i: True for i in range(num_gpus)}
-        
+
         # Fine-grained locks: one per GPU for state updates
         self.gpu_locks = {i: asyncio.Lock() for i in range(num_gpus)}
         # Global lock for selection operations (reads all GPU states)
         self.selection_lock = asyncio.Lock()
-        
+
         # Statistics
         self.total_routed = 0
         self.batch_distribution = defaultdict(int)
@@ -410,24 +406,24 @@ class LoadBalancer:
     async def select_gpu(self) -> int:
         """
         Select best GPU for next batch.
-        
+
         Returns:
             GPU ID with lowest load
         """
         async with self.selection_lock:
             # Filter healthy GPUs
             healthy_gpus = [i for i in range(self.num_gpus) if self.gpu_health[i]]
-            
+
             if not healthy_gpus:
-                await lockfree_logger.error("No healthy GPUs available")
+                logger.error("No healthy GPUs available")
                 raise RuntimeError("No healthy GPUs")
-            
+
             # Select GPU with lowest load
             gpu_id = min(healthy_gpus, key=lambda i: self.gpu_loads[i])
-            
+
             self.total_routed += 1
             self.batch_distribution[gpu_id] += 1
-            
+
             return gpu_id
     
     async def update_load(self, gpu_id: int, load: float):
@@ -437,18 +433,18 @@ class LoadBalancer:
     
     async def set_health(self, gpu_id: int, healthy: bool):
         """Update GPU health status."""
-        async with self.gpu_locks[gpu_id]:
+        async with self.lock:
             old_status = self.gpu_health[gpu_id]
             self.gpu_health[gpu_id] = healthy
             
             if old_status and not healthy:
-                await lockfree_logger.warning(f"GPU {gpu_id} marked unhealthy")
+                logger.warning(f"GPU {gpu_id} marked unhealthy")
             elif not old_status and healthy:
-                await lockfree_logger.info(f"GPU {gpu_id} recovered")
+                logger.info(f"GPU {gpu_id} recovered")
     
     async def get_stats(self) -> Dict[str, Any]:
         """Get load balancer statistics."""
-        async with self.selection_lock:
+        async with self.lock:
             return {
                 "total_routed": self.total_routed,
                 "batch_distribution": dict(self.batch_distribution),
@@ -471,8 +467,7 @@ class HealthMonitor:
         self.gpu_memory: Dict[int, float] = {}
         self.error_counts: Dict[int, int] = {i: 0 for i in range(num_gpus)}
         
-        # Fine-grained locks: one per GPU
-        self.gpu_locks = {i: asyncio.Lock() for i in range(num_gpus)}
+        self.lock = asyncio.Lock()
     
     async def check_gpu_health(self, gpu_id: int) -> bool:
         """
@@ -491,22 +486,22 @@ class HealthMonitor:
     
     async def record_error(self, gpu_id: int):
         """Record an error for GPU."""
-        async with self.gpu_locks[gpu_id]:
+        async with self.lock:
             self.error_counts[gpu_id] += 1
     
     async def reset_errors(self, gpu_id: int):
         """Reset error count for GPU."""
-        async with self.gpu_locks[gpu_id]:
+        async with self.lock:
             self.error_counts[gpu_id] = 0
     
     async def get_stats(self) -> Dict[str, Any]:
         """Get health statistics."""
-        # Collect stats from all GPUs (no locking needed for reads in this case)
-        return {
-            "error_counts": dict(self.error_counts),
-            "gpu_temps": dict(self.gpu_temps),
-            "gpu_memory": dict(self.gpu_memory),
-        }
+        async with self.lock:
+            return {
+                "error_counts": dict(self.error_counts),
+                "gpu_temps": dict(self.gpu_temps),
+                "gpu_memory": dict(self.gpu_memory),
+            }
 
 
 # ============================================================================
@@ -514,7 +509,7 @@ class HealthMonitor:
 # ============================================================================
 
 class MetricsCollector:
-    """Collect and track serving metrics."""
+    """Collect and track serving metrics with fine-grained locking."""
     
     def __init__(self):
         """Initialize metrics collector."""
@@ -528,11 +523,12 @@ class MetricsCollector:
         
         # Fine-grained locks
         self.record_lock = asyncio.Lock()  # For recording operations
+        self.stats_lock = asyncio.Lock()   # For statistics computation
         self.start_time = time.time()
     
     async def record_request(self, response: InferenceResponse):
         """Record request metrics."""
-        async with self.lock:
+        async with self.record_lock:
             self.request_latencies.append(response.total_time_ms)
             
             if response.total_time_ms > 0:
@@ -546,7 +542,7 @@ class MetricsCollector:
     
     async def get_stats(self) -> Dict[str, Any]:
         """Get metrics statistics."""
-        async with self.record_lock:
+        async with self.stats_lock:
             if not self.request_latencies:
                 return {"status": "no_data"}
             
@@ -661,7 +657,7 @@ class DistributedServingEngine:
         4. Return responses
         """
         self.running = True
-        await lockfree_logger.info("Serving loop started")
+        logger.info("Serving loop started")
         
         while self.running:
             try:
@@ -683,7 +679,7 @@ class DistributedServingEngine:
                     await self._process_batch(batch)
                 
             except Exception as e:
-                await lockfree_logger.error(f"Error in serving loop: {e}")
+                logger.error(f"Error in serving loop: {e}")
                 await asyncio.sleep(0.1)
     
     async def _process_batch(self, batch: InferenceBatch):
@@ -723,7 +719,7 @@ class DistributedServingEngine:
             await self.health_monitor.reset_errors(gpu_id)
             
         except Exception as e:
-            await lockfree_logger.error(f"Error processing batch {batch.batch_id}: {e}")
+            logger.error(f"Error processing batch {batch.batch_id}: {e}")
             
             # Mark batch as failed and record errors
             gpu_id = batch.gpu_id
@@ -746,7 +742,7 @@ class DistributedServingEngine:
     async def shutdown(self):
         """Shutdown the serving engine."""
         self.running = False
-        await lockfree_logger.info("Serving engine shutdown complete")
+        logger.info("Serving engine shutdown complete")
 
 
 if __name__ == "__main__":
