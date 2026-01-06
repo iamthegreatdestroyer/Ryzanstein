@@ -1,285 +1,51 @@
-# Jaeger Configuration for Ryot LLM Inference Engine
-# Part of Step 1: Distributed Tracing & Logging
-# ============================================
+# Jaeger Configuration for Ryzanstein LLM
+# Sprint 3.2: Distributed Tracing
+# Created: January 6, 2026
 
-# Jaeger Agent Configuration
-agent:
-  # UDP port for receiving spans via Thrift compact protocol
-  reporter:
-    grpc:
-      host-port: "jaeger-collector:14250"
-    thrift:
-      host-port: "localhost:6831"
-
-  # HTTP sampling server
-  http:
-    host-port: "localhost:5778"
-
-# Jaeger Collector Configuration
+# Collector settings
 collector:
-  # gRPC endpoint for agents/SDKs
-  grpc:
-    host-port: "0.0.0.0:14250"
-    tls:
-      enabled: false
-      # cert: "/path/to/cert.pem"
-      # key: "/path/to/key.pem"
-
-  # HTTP endpoint for spans
+  queue-size: 2000
+  num-workers: 50
+  
+  # HTTP collector
   http:
-    host-port: "0.0.0.0:14268"
-
+    server:
+      host-port: ":14268"
+  
+  # gRPC collector  
+  grpc:
+    server:
+      host-port: ":14250"
+      max-message-size: 16777216
+  
   # Zipkin compatible endpoint
   zipkin:
-    host-port: "0.0.0.0:9411"
+    host-port: ":9411"
 
-  # OTLP gRPC endpoint (OpenTelemetry)
-  otlp:
-    grpc:
-      host-port: "0.0.0.0:4317"
-    http:
-      host-port: "0.0.0.0:4318"
-
-# Jaeger Query Service
+# Query service settings
 query:
-  # UI and API endpoint
+  base-path: /jaeger
+  static-files: /usr/share/jaeger-ui
+  ui:
+    config-file: /etc/jaeger/ui-config.json
+  
+  # Query service ports
   http:
-    host-port: "0.0.0.0:16686"
-
-  # gRPC endpoint
+    server:
+      host-port: ":16686"
   grpc:
-    host-port: "0.0.0.0:16685"
+    server:
+      host-port: ":16685"
 
-# Storage Configuration
+# Storage configuration
 storage:
-  # Storage backend type: memory, badger, elasticsearch, cassandra, kafka
-  type: "memory"
-
-  # Memory storage (for development/testing)
+  type: memory
   memory:
     max-traces: 100000
 
-  # Elasticsearch storage (for production)
-  elasticsearch:
-    enabled: false
-    server-urls: "http://elasticsearch:9200"
-    username: ""
-    password: ""
-    index-prefix: "jaeger"
-    create-index-templates: true
-    version: 7
-    num-shards: 5
-    num-replicas: 1
-    bulk:
-      size: 5000000
-      workers: 1
-      actions: 1000
-      flush-interval: "200ms"
-
-  # Badger storage (embedded, good for single-node)
-  badger:
-    enabled: false
-    ephemeral: false
-    directory-key: "/data/jaeger/keys"
-    directory-value: "/data/jaeger/values"
-    span-store-ttl: "72h"
-
-# Sampling Configuration
+# Sampling configuration
 sampling:
-  # Sampling strategy type: const, probabilistic, ratelimiting, remote
-  type: "probabilistic"
+  strategies-file: /etc/jaeger/sampling-strategies.json
 
-  # Constant sampling (all or nothing)
-  const:
-    decision: true
-
-  # Probabilistic sampling (0.0 to 1.0)
-  probabilistic:
-    sampling-rate: 0.1 # Sample 10% of traces
-
-  # Rate limiting sampling
-  ratelimiting:
-    max-traces-per-second: 100
-
-  # Remote sampling (fetches from collector)
-  remote:
-    host-port: "localhost:5778"
-    initial-sampling-rate: 0.1
-    max-operations: 256
-    sampling-refresh-interval: "1m"
-
-# Per-Service Sampling Strategies
-service_strategies:
-  # LLM Inference Engine - higher sampling for debugging
-  - service: "ryot-inference-engine"
-    type: "probabilistic"
-    param: 0.25 # 25% sampling
-    operation_strategies:
-      # Always sample errors
-      - operation: "error"
-        type: "const"
-        param: 1.0
-      # High sampling for generation
-      - operation: "llm.generate"
-        type: "probabilistic"
-        param: 0.5
-      # Lower sampling for health checks
-      - operation: "health.check"
-        type: "probabilistic"
-        param: 0.01
-
-  # Model Loader - lower sampling (less frequent ops)
-  - service: "ryot-model-loader"
-    type: "probabilistic"
-    param: 0.5
-
-  # Tokenizer - very high volume, low sampling
-  - service: "ryot-tokenizer"
-    type: "ratelimiting"
-    param: 50 # 50 traces/second max
-
-  # API Gateway - moderate sampling
-  - service: "ryot-gateway"
-    type: "probabilistic"
-    param: 0.15
-
-  # Distributed Coordinator - always sample
-  - service: "ryot-coordinator"
-    type: "const"
-    param: 1.0
-
-# Span Processing Configuration
-span_processing:
-  # Maximum queue size for span processing
-  queue_size: 10000
-
-  # Batch processing settings
-  batch:
-    max_batch_size: 100
-    max_export_batch_size: 512
-    export_timeout_ms: 30000
-    schedule_delay_ms: 5000
-
-  # Span enrichment
-  enrichment:
-    # Add host information
-    add_host_info: true
-    # Add service version
-    add_service_version: true
-    # Add environment info
-    add_environment: true
-
-# LLM-Specific Tracing Configuration
-llm_tracing:
-  # Enable detailed LLM tracing
-  enabled: true
-
-  # Trace generation parameters
-  trace_generation_params: true
-
-  # Trace token counts
-  trace_token_counts: true
-
-  # Trace attention patterns (can be large)
-  trace_attention: false
-
-  # Trace KV cache operations
-  trace_kv_cache: true
-
-  # Maximum prompt length to log (truncate for privacy/size)
-  max_prompt_length: 500
-
-  # Maximum response length to log
-  max_response_length: 1000
-
-  # Redact sensitive patterns
-  redact_patterns:
-    - "Bearer [a-zA-Z0-9-._~+/]+=*" # Bearer tokens
-    - "api[_-]?key[_-]?[=:][^\\s]+" # API keys
-    - "password[_-]?[=:][^\\s]+" # Passwords
-
-# Metrics Export (for integration with Prometheus)
-metrics:
-  enabled: true
-
-  # Prometheus endpoint
-  prometheus:
-    host-port: "0.0.0.0:14269"
-
-  # Metrics to export
-  export:
-    span_count: true
-    span_duration: true
-    span_size: true
-    error_count: true
-
-# Logging Configuration for Jaeger itself
-logging:
-  level: "info" # debug, info, warn, error
-  format: "json"
-
-  # Log span details (for debugging)
-  log_spans: false
-
-# Health Check Endpoints
-health:
-  http:
-    host-port: "0.0.0.0:14269"
-
-  # Liveness probe path
-  liveness: "/health/live"
-
-  # Readiness probe path
-  readiness: "/health/ready"
-
-# Admin Interface
-admin:
-  http:
-    host-port: "0.0.0.0:14269"
-
-  # Enable pprof profiling endpoints
-  pprof: true
-
-# Resource Limits
-resources:
-  # Memory limits for in-memory storage
-  max_memory: "2Gi"
-
-  # CPU limits
-  max_cpu: 2
-
-  # Disk limits for badger storage
-  max_disk: "50Gi"
-
-# TLS Configuration (Production)
-tls:
-  enabled: false
-  # CA certificate
-  # ca: "/etc/jaeger/ca.crt"
-  # Server certificate
-  # cert: "/etc/jaeger/tls.crt"
-  # Server key
-  # key: "/etc/jaeger/tls.key"
-  # Client authentication
-  # client_auth: "require_and_verify"
-
-# Docker Compose Integration
-# Use this section when deploying with docker-compose
-docker:
-  image: "jaegertracing/all-in-one:1.53"
-  ports:
-    - "6831:6831/udp" # Thrift compact
-    - "6832:6832/udp" # Thrift binary
-    - "5778:5778" # Sampling config
-    - "16686:16686" # Web UI
-    - "4317:4317" # OTLP gRPC
-    - "4318:4318" # OTLP HTTP
-    - "14250:14250" # Model accept
-    - "14268:14268" # HTTP accept
-    - "14269:14269" # Admin/health
-    - "9411:9411" # Zipkin
-  environment:
-    - "COLLECTOR_ZIPKIN_HOST_PORT=:9411"
-    - "COLLECTOR_OTLP_ENABLED=true"
-    - "SPAN_STORAGE_TYPE=memory"
-    - "MEMORY_MAX_TRACES=100000"
+# Logging
+log-level: info
