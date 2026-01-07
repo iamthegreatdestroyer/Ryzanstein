@@ -11,12 +11,14 @@
 ### ✅ IMMEDIATE ACTIONS (Next 4 hours)
 
 **Action 1: Create Sprint 6 Branch**
+
 ```bash
 git checkout -b sprint6/api-integration
 git push origin sprint6/api-integration
 ```
 
 **Action 2: Create Sprint 6 Project Board**
+
 ```bash
 # GitHub Actions Automation:
 # .github/workflows/create-sprint-board.yml
@@ -27,6 +29,7 @@ git push origin sprint6/api-integration
 ```
 
 **Action 3: Setup CI/CD Pipeline**
+
 ```bash
 # Copy CI/CD templates
 cp .github/workflows/sprint6-ci.yml .github/workflows/sprint6-ci.yml
@@ -38,6 +41,7 @@ cp .github/workflows/quality-gates.yml .github/workflows/quality-gates.yml
 ```
 
 **Action 4: Create Issue Templates**
+
 ```bash
 # All issues will use automated templates:
 scripts/sprint6/create_issue_templates.sh
@@ -462,16 +466,19 @@ By EOD Friday January 25:
 ### 🎯 DO NOT SKIP THESE
 
 1. **Enable CI/CD First** (Day 1)
+
    - Saves the most time
    - Catches issues early
    - Enables all other automation
 
 2. **Use Code Generation** (Days 1-2)
+
    - 60+ hours of coding work
    - Less prone to errors
    - Consistent patterns
 
 3. **Automated Testing** (Days 3-5)
+
    - 90% of bugs caught before merging
    - Zero regressions
    - Confidence in deploys
@@ -496,7 +503,7 @@ By EOD Friday January 25:
 
 # Example:
 ./scripts/sprint6/debug_issue.sh --component chat_service
-# Output: "Chat service tests failing at MCP connection. 
+# Output: "Chat service tests failing at MCP connection.
 #         Check MCP server is running on port 50051."
 ```
 
@@ -522,6 +529,7 @@ By EOD Friday January 25:
 ### 🚀 YOU'VE GOT THIS
 
 This plan is designed to be:
+
 - ✅ Doable in 3 weeks
 - ✅ 80%+ automated
 - ✅ Risk-mitigated
