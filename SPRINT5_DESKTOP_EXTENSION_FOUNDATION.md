@@ -16,6 +16,7 @@ Sprint 5 establishes the complete foundational architecture for two complementar
 2. **VS Code Extension** - Integrated IDE extension for inline AI assistance
 
 Both applications share:
+
 - Unified API contracts for seamless data flow
 - Shared type definitions and interfaces
 - Common build and deployment pipelines
@@ -71,18 +72,19 @@ desktop/
 
 ### Technology Stack
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **Framework** | Wails | v2.5+ |
-| **Backend** | Go | 1.21+ |
-| **Frontend** | Svelte | 4.0+ |
-| **Build Tool** | Vite | 5.0+ |
-| **Styling** | CSS3 | Modern |
-| **IPC** | TCP Sockets | Custom |
+| Component      | Technology  | Version |
+| -------------- | ----------- | ------- |
+| **Framework**  | Wails       | v2.5+   |
+| **Backend**    | Go          | 1.21+   |
+| **Frontend**   | Svelte      | 4.0+    |
+| **Build Tool** | Vite        | 5.0+    |
+| **Styling**    | CSS3        | Modern  |
+| **IPC**        | TCP Sockets | Custom  |
 
 ### Key Services
 
 #### ChatService
+
 - Message history management
 - Agent and model routing
 - Inference request handling
@@ -94,6 +96,7 @@ ClearHistory()
 ```
 
 #### ModelsService
+
 - Model discovery and loading
 - Status tracking
 - Active model management
@@ -106,6 +109,7 @@ UnloadModel(modelID) -> error
 ```
 
 #### AgentsService
+
 - Agent registry (40+ Elite Agents)
 - Tool invocation
 - Capability discovery
@@ -117,11 +121,13 @@ InvokeTool(ctx, agent, tool, params) -> result
 ```
 
 #### ConfigManager
+
 - Persistent configuration storage (~/.ryzanstein/config.json)
 - Type-safe config access
 - Theme, model, and agent preferences
 
 #### IPCServer
+
 - Frontend-Backend communication
 - Broadcast messaging
 - Client connection management
@@ -129,11 +135,13 @@ InvokeTool(ctx, agent, tool, params) -> result
 ### UI Components
 
 #### Main Application (App.svelte)
+
 - Tab-based navigation (Chat, Models, Agents, Settings)
 - Dark theme with gradient background
 - Status bar with current state
 
 #### ChatPanel
+
 - Real-time message display with timestamps
 - Model and agent selectors
 - Message input with Shift+Enter support
@@ -141,18 +149,21 @@ InvokeTool(ctx, agent, tool, params) -> result
 - Auto-scroll to latest message
 
 #### ModelSelector
+
 - Browse available models
 - Load/unload models
 - Display model metadata (size, context length)
 - Usage statistics
 
 #### AgentPanel
+
 - List all 40+ Elite Agents
 - Filter by tier and capability
 - View agent details
 - Tool catalog per agent
 
 #### SettingsPanel
+
 - Theme selection (light/dark/auto)
 - API endpoint configuration
 - MCP server connection settings
@@ -205,12 +216,12 @@ vscode-extension/
 
 ### Technology Stack
 
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| **Language** | TypeScript | 5.0+ |
-| **Build Tool** | esbuild | 0.19+ |
-| **API** | VS Code API | 1.85+ |
-| **gRPC** | @grpc/grpc-js | 1.10+ |
+| Component      | Technology    | Version |
+| -------------- | ------------- | ------- |
+| **Language**   | TypeScript    | 5.0+    |
+| **Build Tool** | esbuild       | 0.19+   |
+| **API**        | VS Code API   | 1.85+   |
+| **gRPC**       | @grpc/grpc-js | 1.10+   |
 
 ### Registered Commands (10+)
 
@@ -229,23 +240,26 @@ ryzanstein.openSettings          - Open extension settings
 
 ### Keybindings
 
-| Command | Windows/Linux | macOS |
-|---------|---------------|-------|
-| Open Chat | Ctrl+Shift+R | Cmd+Shift+R |
-| Explain Code | Ctrl+Shift+E | Cmd+Shift+E |
+| Command      | Windows/Linux | macOS       |
+| ------------ | ------------- | ----------- |
+| Open Chat    | Ctrl+Shift+R  | Cmd+Shift+R |
+| Explain Code | Ctrl+Shift+E  | Cmd+Shift+E |
 
 ### UI Components
 
 #### Activity Bar (Sidebar)
+
 - **Agents** - Tree view of all 40+ agents by tier
 - **Models** - Tree view of available models
 - **Chat** - Integrated chat WebView
 
 #### Context Menus
+
 - Editor context: Refactor, Explain, Generate Tests, Find Bugs
 - Explorer context: Analyze Performance, Suggest Architecture
 
 #### Status Bar
+
 - Right-aligned status showing Ryzanstein active
 - Click to open chat
 
@@ -281,6 +295,7 @@ Defines the complete contract between Desktop, Extension, and Backend services.
 #### RyzansteinAPI (LLM Interface)
 
 **Inference**
+
 ```typescript
 infer(request: InferenceRequest) -> InferenceResponse
 inferStream(request: InferenceRequest) -> AsyncIterable<string>
@@ -306,6 +321,7 @@ interface InferenceResponse {
 ```
 
 **Model Management**
+
 ```typescript
 listModels() -> Promise<ModelInfo[]>
 loadModel(modelId: string) -> Promise<void>
@@ -326,6 +342,7 @@ interface ModelInfo {
 #### MCPAPI (Agent & Tool Interface)
 
 **Agent Management**
+
 ```typescript
 listAgents() -> Promise<AgentCapability[]>
 getAgent(codename: string) -> Promise<AgentCapability>
@@ -344,6 +361,7 @@ interface AgentCapability {
 ```
 
 **Memory Interface**
+
 ```typescript
 storeExperience(experience: ExperienceTuple) -> Promise<void>
 retrieveExperience(query: string) -> Promise<ExperienceTuple[]>
@@ -399,27 +417,27 @@ interface AppConfig {
 ```typescript
 class RyzansteinError extends Error {
   constructor(
-    code: string,           // Error code (see below)
-    message: string,        // Human-readable message
-    statusCode?: number,    // HTTP status code
-    details?: any           // Additional error context
-  )
+    code: string, // Error code (see below)
+    message: string, // Human-readable message
+    statusCode?: number, // HTTP status code
+    details?: any // Additional error context
+  );
 }
 
 ErrorCodes: {
-  CONNECTION_FAILED
-  TIMEOUT
-  SERVER_UNAVAILABLE
-  MODEL_NOT_FOUND
-  MODEL_LOAD_FAILED
-  INFERENCE_FAILED
-  AGENT_NOT_FOUND
-  TOOL_NOT_FOUND
-  AGENT_INVOCATION_FAILED
-  INVALID_CONFIG
-  CONFIG_SAVE_FAILED
-  INTERNAL_ERROR
-  INVALID_REQUEST
+  CONNECTION_FAILED;
+  TIMEOUT;
+  SERVER_UNAVAILABLE;
+  MODEL_NOT_FOUND;
+  MODEL_LOAD_FAILED;
+  INFERENCE_FAILED;
+  AGENT_NOT_FOUND;
+  TOOL_NOT_FOUND;
+  AGENT_INVOCATION_FAILED;
+  INVALID_CONFIG;
+  CONFIG_SAVE_FAILED;
+  INTERNAL_ERROR;
+  INVALID_REQUEST;
 }
 ```
 
@@ -435,12 +453,14 @@ bash build.sh
 ```
 
 **Output:**
+
 - `dist/Ryzanstein.exe` (Windows)
 - `dist/Ryzanstein.dmg` (macOS)
 - `dist/Ryzanstein.AppImage` (Linux)
 - `dist/SHA256SUMS` (checksums)
 
 **Features:**
+
 - Multi-platform support
 - Automated installer creation
 - Checksum generation
@@ -454,9 +474,11 @@ bash build.sh
 ```
 
 **Output:**
+
 - `ryzanstein-1.0.0.vsix` (installable package)
 
 **Features:**
+
 - TypeScript compilation
 - Type checking
 - Linting (ESLint)
@@ -470,12 +492,15 @@ bash build.sh
 ### Desktop App Workflow (`desktop-build.yml`)
 
 **Triggers:**
+
 - Push to `main` or `phase3/distributed-serving`
 - Changes to `desktop/**` or workflow file
 - Manual trigger
 
 **Jobs:**
+
 1. **Build** (matrix: Linux, Windows, macOS)
+
    - Platform detection
    - Dependency installation
    - Wails build compilation
@@ -483,6 +508,7 @@ bash build.sh
    - Release creation (tagged commits)
 
 2. **Test**
+
    - Go test execution
    - Race condition detection
    - Coverage reporting to Codecov
@@ -492,6 +518,7 @@ bash build.sh
    - gosec security scanning
 
 **Artifacts:**
+
 - Per-platform binaries
 - Build logs
 - Coverage reports
@@ -499,18 +526,22 @@ bash build.sh
 ### VS Code Extension Workflow (`extension-build.yml`)
 
 **Triggers:**
+
 - Push to `main` or `phase3/distributed-serving`
 - Changes to `vscode-extension/**` or workflow file
 - Manual trigger with publish option
 
 **Jobs:**
+
 1. **Build**
+
    - Dependency installation
    - TypeScript compilation
    - VSIX packaging
    - Marketplace publication (tagged commits)
 
 2. **Test**
+
    - Unit test execution
    - Test coverage reporting
 
@@ -519,6 +550,7 @@ bash build.sh
    - SonarQube analysis
 
 **Artifacts:**
+
 - VSIX package
 - Build logs
 - Quality reports
@@ -575,26 +607,30 @@ OVERALL FOUNDATION: ~2,850 lines
 ✅ REST client structure  
 ✅ Configuration management  
 ✅ Error handling framework  
-✅ Build infrastructure  
+✅ Build infrastructure
 
 ### Next Steps (Sprint 6)
 
 1. **Implement API Clients**
+
    - RyzansteinClient (REST) - full implementation
    - MCPClient (gRPC) - full implementation
 
 2. **Integrate with Backend**
+
    - Connect to MCP server (port 50051)
    - Connect to Ryzanstein API (port 8000)
    - Real inference calls (not mocked)
 
 3. **Complete UI Implementation**
+
    - Chat message handling
    - Agent selection and tool invocation
    - Model management UI
    - Settings persistence
 
 4. **End-to-End Testing**
+
    - Desktop to MCP communication
    - Extension to MCP communication
    - Chat functionality
@@ -668,7 +704,7 @@ cd vscode-extension && npm update
 ✅ API contract documentation  
 ✅ Build instructions  
 ✅ Deployment guides  
-✅ Configuration reference  
+✅ Configuration reference
 
 **Next:** Integration guides (Sprint 6)
 

@@ -3,6 +3,7 @@
 ## 📍 Where Everything Is
 
 ### Desktop Application
+
 **Location:** `s:\Ryot\desktop\`
 
 ```
@@ -22,18 +23,21 @@ Key Files:
 ```
 
 **To Build:**
+
 ```bash
 cd desktop
 bash build.sh
 ```
 
 **To Develop:**
+
 ```bash
 cd desktop
 wails dev
 ```
 
 ### VS Code Extension
+
 **Location:** `s:\Ryot\vscode-extension\`
 
 ```
@@ -46,21 +50,25 @@ Key Files:
 ```
 
 **To Build:**
+
 ```bash
 cd vscode-extension
 bash build.sh
 ```
 
 **To Develop:**
+
 ```bash
 cd vscode-extension
 npm run watch
 ```
 
 ### API Contracts
+
 **Location:** `s:\Ryot\shared\api-contracts.ts`
 
 All interface definitions in one file:
+
 - RyzansteinAPI (inference, models)
 - MCPAPI (agents, tools, memory)
 - ContinueAPI (IDE integration)
@@ -68,6 +76,7 @@ All interface definitions in one file:
 - ConfigAPI (settings)
 
 ### CI/CD Workflows
+
 **Location:** `s:\Ryot\.github\workflows\`
 
 ```
@@ -79,11 +88,11 @@ All interface definitions in one file:
 
 ## 📚 Documentation
 
-| Document | Purpose | Location |
-|----------|---------|----------|
-| **Sprint 5 Foundation Guide** | Complete architecture & implementation | `SPRINT5_DESKTOP_EXTENSION_FOUNDATION.md` |
-| **Sprint 5 Completion Report** | Deliverables & metrics | `SPRINT5_COMPLETION_REPORT.md` |
-| **This File** | Quick reference | `SPRINT5_QUICK_REFERENCE.md` |
+| Document                       | Purpose                                | Location                                  |
+| ------------------------------ | -------------------------------------- | ----------------------------------------- |
+| **Sprint 5 Foundation Guide**  | Complete architecture & implementation | `SPRINT5_DESKTOP_EXTENSION_FOUNDATION.md` |
+| **Sprint 5 Completion Report** | Deliverables & metrics                 | `SPRINT5_COMPLETION_REPORT.md`            |
+| **This File**                  | Quick reference                        | `SPRINT5_QUICK_REFERENCE.md`              |
 
 ---
 
@@ -120,6 +129,7 @@ cd vscode-extension && npm run compile && vsce package
 ## 📦 API Contracts Quick Reference
 
 ### RyzansteinAPI
+
 ```typescript
 infer(request: InferenceRequest) -> InferenceResponse
 listModels() -> ModelInfo[]
@@ -127,6 +137,7 @@ loadModel(modelId: string) -> void
 ```
 
 ### MCPAPI
+
 ```typescript
 listAgents() -> AgentCapability[]
 invokeAgent(request: MCPRequest) -> MCPResponse
@@ -134,18 +145,21 @@ storeExperience(experience: ExperienceTuple) -> void
 ```
 
 ### ContinueAPI
+
 ```typescript
 processRequest(request: ContinueProviderRequest) -> ContinueProviderResponse
 streamResponse(request: ContinueProviderRequest) -> AsyncIterable<string>
 ```
 
 ### ChatAPI
+
 ```typescript
 sendMessage(sessionId: string, message: string) -> ChatMessage
 getSession(sessionId: string) -> ChatSession
 ```
 
 ### ConfigAPI
+
 ```typescript
 getConfig() -> AppConfig
 saveConfig(config: Partial<AppConfig>) -> void
@@ -156,12 +170,14 @@ saveConfig(config: Partial<AppConfig>) -> void
 ## 🚀 What's Ready for Sprint 6
 
 ✅ **All Scaffolding Complete**
+
 - Desktop app structure
 - Extension structure
 - API contracts defined
 - Build infrastructure ready
 
 🔲 **Needs Implementation (Sprint 6)**
+
 - Connect to MCP server (gRPC)
 - Connect to Ryzanstein API (REST)
 - Real inference calls
@@ -190,16 +206,19 @@ Next: Sprint 6 - API Integration
 ## 🎯 Key Contacts & Resources
 
 ### Desktop App Tech Stack
+
 - **Framework:** Wails v2.5+
 - **Backend:** Go 1.21+
 - **Frontend:** Svelte 4.0+
 
 ### Extension Tech Stack
+
 - **Language:** TypeScript 5.0+
 - **VS Code API:** v1.85+
 - **Build:** esbuild 0.19+
 
 ### CI/CD
+
 - **Platform:** GitHub Actions
 - **Languages:** Bash, YAML
 - **Testing:** Go test, npm test
@@ -234,20 +253,23 @@ Next: Sprint 6 - API Integration
 ## 🔗 Next Steps
 
 ### Sprint 6 Preparation
+
 - Review `SPRINT5_DESKTOP_EXTENSION_FOUNDATION.md` for full architecture
 - Understand API contracts in `shared/api-contracts.ts`
 - Set up local development environment:
+
   ```bash
   # Desktop requirements
   go 1.21+
   node 20+
-  
+
   # VS Code requirements
   node 20+
   vscode 1.85+
   ```
 
 ### Integration Points (Sprint 6)
+
 1. RyzansteinClient → Ryzanstein API (port 8000)
 2. MCPClient → MCP server (port 50051)
 3. Chat service → Both backends
@@ -275,6 +297,7 @@ A: Yes, but sync changes between desktop and extension clients. The TypeScript c
 ## 📞 Support
 
 For implementation details, see:
+
 - **Desktop:** `SPRINT5_DESKTOP_EXTENSION_FOUNDATION.md` section "Desktop Application Architecture"
 - **Extension:** `SPRINT5_DESKTOP_EXTENSION_FOUNDATION.md` section "VS Code Extension Architecture"
 - **APIs:** Look at types and examples in `shared/api-contracts.ts`
