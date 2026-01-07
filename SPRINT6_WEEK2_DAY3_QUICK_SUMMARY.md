@@ -71,5 +71,5 @@ Week:  █████████░░░  90%  (1,890/2,100)
 
 ---
 
-*Generated: January 15, 2026*  
-*Next: Day 4 briefing (January 16)*
+_Generated: January 15, 2026_  
+_Next: Day 4 briefing (January 16)_
