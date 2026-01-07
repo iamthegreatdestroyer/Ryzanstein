@@ -1,9 +1,9 @@
 /**
  * Continue.dev Configuration for Ryzanstein LLM
- * 
+ *
  * This configuration integrates the Ryzanstein LLM inference engine
  * with Continue.dev for in-editor AI assistance.
- * 
+ *
  * Features:
  * - OpenAI-compatible API endpoint
  * - Streaming response support
