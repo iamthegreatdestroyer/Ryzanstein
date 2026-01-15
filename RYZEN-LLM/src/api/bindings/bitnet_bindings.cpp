@@ -6,6 +6,7 @@
 #include <memory>
 #include <cmath>
 #include "bitnet/quantize.h"
+#include "bitnet/engine.h" // Add BitNetEngine
 
 // C interface for ctypes
 extern "C"
@@ -799,24 +800,24 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
               }
               return ryzanstein_llm::bitnet::quantize_weights_ternary(
                   static_cast<float*>(buf.ptr), rows, cols, config); }, py::arg("weights"), py::arg("rows"), py::arg("cols"), py::arg("config") = ryzanstein_llm::bitnet::QuantConfig(), "Quantize FP32 weights to ternary {-1, 0, +1}\n\n"
-                                                                                                                           "Args:\n"
-                                                                                                                           "  weights: FP32 weight array [rows x cols]\n"
-                                                                                                                           "  rows: Number of rows\n"
-                                                                                                                           "  cols: Number of columns\n"
-                                                                                                                           "  config: QuantConfig instance\n\n"
-                                                                                                                           "Returns:\n"
-                                                                                                                           "  TernaryWeight with quantized values and scales");
+                                                                                                                                "Args:\n"
+                                                                                                                                "  weights: FP32 weight array [rows x cols]\n"
+                                                                                                                                "  rows: Number of rows\n"
+                                                                                                                                "  cols: Number of columns\n"
+                                                                                                                                "  config: QuantConfig instance\n\n"
+                                                                                                                                "Returns:\n"
+                                                                                                                                "  TernaryWeight with quantized values and scales");
 
     m.def("quantize_activations_int8", [](py::array_t<float> activations, const ryzanstein_llm::bitnet::QuantConfig &config) -> ryzanstein_llm::bitnet::QuantizedActivation
           {
               auto buf = activations.request();
               return ryzanstein_llm::bitnet::quantize_activations_int8(
                   static_cast<float*>(buf.ptr), buf.size, config); }, py::arg("activations"), py::arg("config") = ryzanstein_llm::bitnet::QuantConfig(), "Quantize FP32 activations to INT8\n\n"
-                                                                                             "Args:\n"
-                                                                                             "  activations: FP32 activation array\n"
-                                                                                             "  config: QuantConfig instance\n\n"
-                                                                                             "Returns:\n"
-                                                                                             "  QuantizedActivation with quantized values and scale");
+                                                                                                  "Args:\n"
+                                                                                                  "  activations: FP32 activation array\n"
+                                                                                                  "  config: QuantConfig instance\n\n"
+                                                                                                  "Returns:\n"
+                                                                                                  "  QuantizedActivation with quantized values and scale");
 
     m.def("dequantize_weights", [](const ryzanstein_llm::bitnet::TernaryWeight &weights) -> py::array_t<float>
           {
@@ -890,4 +891,66 @@ PYBIND11_MODULE(ryzen_llm_bindings, m)
             py::arg("num_scales") = (int32_t)ternary.scales.size(),
             py::arg("shape") = py::tuple(py::cast(std::vector<uint32_t>{ternary.rows, ternary.cols}))
         ); }, "Test ternary quantization and return metadata");
+
+    // ========================================================================
+    // Model Configuration
+    // ========================================================================
+
+    py::class_<ryzanstein_llm::bitnet::ModelConfig>(m, "ModelConfig")
+        .def(py::init<>())
+        .def_readwrite("vocab_size", &ryzanstein_llm::bitnet::ModelConfig::vocab_size)
+        .def_readwrite("hidden_size", &ryzanstein_llm::bitnet::ModelConfig::hidden_size)
+        .def_readwrite("intermediate_size", &ryzanstein_llm::bitnet::ModelConfig::intermediate_size)
+        .def_readwrite("num_layers", &ryzanstein_llm::bitnet::ModelConfig::num_layers)
+        .def_readwrite("num_heads", &ryzanstein_llm::bitnet::ModelConfig::num_heads)
+        .def_readwrite("head_dim", &ryzanstein_llm::bitnet::ModelConfig::head_dim)
+        .def_readwrite("max_seq_length", &ryzanstein_llm::bitnet::ModelConfig::max_seq_length)
+        .def_readwrite("rms_norm_eps", &ryzanstein_llm::bitnet::ModelConfig::rms_norm_eps)
+        .def_readwrite("use_tmac", &ryzanstein_llm::bitnet::ModelConfig::use_tmac)
+        .def_readwrite("use_speculative_decoding", &ryzanstein_llm::bitnet::ModelConfig::use_speculative_decoding)
+        .def_readwrite("speculative_k", &ryzanstein_llm::bitnet::ModelConfig::speculative_k)
+        .def("__repr__", [](const ryzanstein_llm::bitnet::ModelConfig &c)
+             { return "<ModelConfig vocab=" + std::to_string(c.vocab_size) +
+                      " hidden=" + std::to_string(c.hidden_size) +
+                      " layers=" + std::to_string(c.num_layers) + ">"; });
+
+    // ========================================================================
+    // Generation Configuration
+    // ========================================================================
+
+    py::class_<ryzanstein_llm::bitnet::GenerationConfig>(m, "GenerationConfig")
+        .def(py::init<>())
+        .def_readwrite("max_tokens", &ryzanstein_llm::bitnet::GenerationConfig::max_tokens)
+        .def_readwrite("temperature", &ryzanstein_llm::bitnet::GenerationConfig::temperature)
+        .def_readwrite("top_k", &ryzanstein_llm::bitnet::GenerationConfig::top_k)
+        .def_readwrite("top_p", &ryzanstein_llm::bitnet::GenerationConfig::top_p)
+        .def_readwrite("repetition_penalty", &ryzanstein_llm::bitnet::GenerationConfig::repetition_penalty)
+        .def_readwrite("seed", &ryzanstein_llm::bitnet::GenerationConfig::seed)
+        .def("__repr__", [](const ryzanstein_llm::bitnet::GenerationConfig &c)
+             { return "<GenerationConfig max_tokens=" + std::to_string(c.max_tokens) +
+                      " temp=" + std::to_string(c.temperature) +
+                      " top_k=" + std::to_string(c.top_k) + ">"; });
+
+    // ========================================================================
+    // BitNet Inference Engine
+    // ========================================================================
+
+    py::class_<ryzanstein_llm::bitnet::BitNetEngine>(m, "BitNetEngine")
+        .def(py::init<const ryzanstein_llm::bitnet::ModelConfig &>(), py::arg("config"))
+        .def("load_weights", &ryzanstein_llm::bitnet::BitNetEngine::load_weights,
+             py::arg("weights_path"),
+             "Load model weights from file")
+        .def("generate", &ryzanstein_llm::bitnet::BitNetEngine::generate,
+             py::arg("input_tokens"),
+             py::arg("gen_config") = ryzanstein_llm::bitnet::GenerationConfig(),
+             "Generate tokens from input")
+        .def("forward", &ryzanstein_llm::bitnet::BitNetEngine::forward,
+             py::arg("token_id"),
+             py::arg("position"),
+             "Single forward pass, returns logits")
+        .def("reset_cache", &ryzanstein_llm::bitnet::BitNetEngine::reset_cache,
+             "Reset the KV cache for new sequence")
+        .def("get_config", &ryzanstein_llm::bitnet::BitNetEngine::get_config,
+             py::return_value_policy::reference,
+             "Get model configuration");
 }
