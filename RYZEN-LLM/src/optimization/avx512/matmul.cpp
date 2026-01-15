@@ -306,5 +306,25 @@ namespace ryzanstein_llm
             g_matmul_stats.record_call(M, N, K, time_ms);
         }
 
+        void dispatch_ternary_matvec(
+            const bitnet::TernaryWeight &weights,
+            const bitnet::QuantizedActivation &input,
+            float *output,
+            uint32_t M,
+            uint32_t K)
+        {
+            auto start = std::chrono::high_resolution_clock::now();
+
+            // For now, always use the scalar implementation
+            // TODO: Add AVX2/AVX-512 optimized matvec if needed
+            bitnet::ternary_matvec(weights, input, output, M, K);
+
+            auto end = std::chrono::high_resolution_clock::now();
+            double time_ms = std::chrono::duration<double, std::milli>(end - start).count();
+
+            // Record performance statistics (treat as M×1 output)
+            g_matmul_stats.record_call(M, 1, K, time_ms);
+        }
+
     } // namespace avx512
 } // namespace ryzanstein_llm

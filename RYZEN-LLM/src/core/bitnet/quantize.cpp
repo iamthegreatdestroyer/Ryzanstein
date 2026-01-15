@@ -335,6 +335,46 @@ namespace ryzanstein_llm
             }
         }
 
+        void ternary_matvec(
+            const TernaryWeight &weights,
+            const QuantizedActivation &input,
+            float *output,
+            uint32_t M,
+            uint32_t K)
+        {
+            // Performs: output[m] = sum_k(weights[m,k] * input[k])
+            // weights is [M × K] stored row-major: weights.values[m * K + k]
+            // input is [K]: input.values[k]
+            // output is [M]: output[m]
+
+            const float activation_scale = input.scale;
+            const int8_t activation_zero_point = input.zero_point;
+
+            for (uint32_t m = 0; m < M; ++m)
+            {
+                float sum = 0.0f;
+
+                for (uint32_t k = 0; k < K; ++k)
+                {
+                    // Get quantized activation (1D vector)
+                    const int8_t quantized_x = input.values[k];
+                    const float dequantized_x =
+                        (static_cast<float>(quantized_x) - activation_zero_point) * activation_scale;
+
+                    // Get ternary weight from [M×K] matrix
+                    const size_t weight_idx = static_cast<size_t>(m) * K + k;
+                    const int8_t ternary_w = weights.values[weight_idx];
+                    const float weight_scale = weights.get_scale(weight_idx);
+                    const float scaled_weight = static_cast<float>(ternary_w) * weight_scale;
+
+                    // Accumulate
+                    sum += dequantized_x * scaled_weight;
+                }
+
+                output[m] = sum;
+            }
+        }
+
         // Scalar-only versions for CPU compatibility (no SIMD instructions)
 
         TernaryWeightCPU quantize_weights_ternary_scalar(

@@ -362,6 +362,25 @@ namespace ryzanstein_llm
             uint32_t N,
             uint32_t K);
 
+        /**
+         * Ternary matrix-vector multiplication
+         *
+         * Performs: output[m] = sum_k(weights[m,k] * input[k]) for m in [0, M)
+         * This is the standard linear layer operation: y = W @ x
+         *
+         * @param weights Ternary weight matrix [M × K] stored row-major
+         * @param input Quantized activation vector of size K
+         * @param output Output vector of size M
+         * @param M Number of output features (rows in weights)
+         * @param K Number of input features (columns in weights, size of input)
+         */
+        void ternary_matvec(
+            const TernaryWeight &weights,
+            const QuantizedActivation &input,
+            float *output,
+            uint32_t M,
+            uint32_t K);
+
         // Scalar-only versions for CPU compatibility (no SIMD instructions)
 
         /**
