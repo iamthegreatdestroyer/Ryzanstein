@@ -13,7 +13,7 @@ pybind11_add_module(ryzen_llm_bindings
 target_link_libraries(ryzen_llm_bindings PRIVATE
     ryzen_llm_core
     ryzen_llm_bitnet
-    # ryzen_llm_optimization  # Temporarily disabled for AVX-512 compatibility testing
+    ryzen_llm_optimization  # Re-enabled for BitNetEngine speculative decoding
 )
 
 # Set output directory for Python module
