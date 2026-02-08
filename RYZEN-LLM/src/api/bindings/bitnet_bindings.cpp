@@ -10,7 +10,7 @@
 
 // Cross-platform export macro
 #ifdef _WIN32
-#define RYZEN_EXPORT RYZEN_EXPORT
+#define RYZEN_EXPORT __declspec(dllexport)
 #else
 #define RYZEN_EXPORT __attribute__((visibility("default")))
 #endif
