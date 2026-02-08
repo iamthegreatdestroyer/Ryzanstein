@@ -8,6 +8,8 @@ add_library(ryzen_llm_bitnet STATIC
     quantize.cpp
     engine.cpp
     kernels/matmul.cpp
+    kernels/lut_gemm.cpp
+    kernels/parallel_kernels.cpp
     bitnet_layer.cpp
     bitnet_model.cpp
 )
@@ -78,7 +80,11 @@ endif()
 # Install headers
 install(FILES
     quantize.h
+    optimization_utils.h
+    engine.h
     kernels/matmul.h
+    kernels/lut_gemm.h
+    kernels/parallel_kernels.h
     bitnet_layer.h
     bitnet_model.h
     DESTINATION include/ryzanstein_llm/bitnet
