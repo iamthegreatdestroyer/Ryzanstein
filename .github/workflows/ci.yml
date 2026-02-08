@@ -16,7 +16,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup CMake
-        uses: jacobtomlinson/setup-cmake@v1
+        uses: jwlawson/actions-setup-cmake@v1.14
+        with:
+          cmake-version: '3.28.x'
 
       - name: Configure (Linux)
         if: matrix.os == 'ubuntu-latest'
