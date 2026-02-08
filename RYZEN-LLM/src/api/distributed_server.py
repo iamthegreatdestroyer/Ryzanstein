@@ -35,7 +35,7 @@ from src.serving.batch_engine import BatchEngine
 from src.api.request_router import RequestRouter
 from src.monitoring.metrics import MetricsCollector
 from src.core.engine.inference import RyotEngine
-from src.api.types import GenerationConfig, GenerationResult, StreamChunk as EngineStreamChunk, StopReason
+from src.api.api_types import GenerationConfig, GenerationResult, StreamChunk as EngineStreamChunk, StopReason
 
 logger = logging.getLogger(__name__)
 

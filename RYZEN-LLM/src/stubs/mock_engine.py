@@ -7,7 +7,7 @@ import time
 import random
 from typing import Iterator, List, Optional
 
-from ..api.types import (
+from ..api.api_types import (
     GenerationConfig, GenerationResult, KVCacheState, ModelInfo,
     ModelType, QuantizationType, StopReason, StreamChunk, TokenSequence,
 )
@@ -159,3 +159,4 @@ class MockInferenceEngine(InferenceEngine):
 
     def get_cache_manager(self) -> CacheManagerProtocol:
         return self._cache_manager
+

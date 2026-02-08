@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"sync"
 
-	pb "github.com/iamthegreatdestroyer/Ryzanstein/mcp"
+	pb "github.com/iamthegreatdestroyer/Ryzanstein/mcp/proto"
 )
 
 // AgentRegistry manages all 40 Elite Agents and their tools

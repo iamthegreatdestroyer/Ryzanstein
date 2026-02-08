@@ -7,7 +7,7 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import AsyncIterator, Iterator, List, Optional, Protocol, runtime_checkable
 
-from .types import (
+from .api_types import (
     AgentRequest, AgentResponse, CacheStrategy, GenerationConfig,
     GenerationResult, KVCacheState, ModelInfo, ModelType,
     RSUReference, SigmaEncodedContext, StreamChunk, TokenSequence,
@@ -203,3 +203,4 @@ class EngineFactoryProtocol(Protocol):
     @abstractmethod
     def get_available_models(self) -> List[ModelInfo]:
         ...
+

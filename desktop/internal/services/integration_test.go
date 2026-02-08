@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/iamthegreatdestroyer/ryzanstein/desktop/internal/config"
+	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/config"
 )
 
 // TestCompleteModelLifecycle tests full model lifecycle from discovery to unload.
@@ -442,3 +442,4 @@ func TestModelCacheConsistency(t *testing.T) {
 		}
 	})
 }
+

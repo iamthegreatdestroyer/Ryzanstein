@@ -179,13 +179,16 @@ namespace ryzanstein_llm
 
             for (size_t stride = 1; stride < length; stride *= 2)
             {
-// Parallelize inner loop - iterations are independent within each stride level
-// Each thread gets its own temp SSMOperator constructed in the loop body
+                // Parallelize inner loop - iterations are independent within each stride level
+                // Each thread gets its own temp SSMOperator constructed in the loop body
+                // Note: OpenMP requires signed integer loop variable
+                const ptrdiff_t len = static_cast<ptrdiff_t>(length);
+                const ptrdiff_t str = static_cast<ptrdiff_t>(stride);
 #pragma omp parallel for schedule(static)
-                for (size_t i = 0; i < length; i += stride * 2)
+                for (ptrdiff_t i = 0; i < len; i += str * 2)
                 {
-                    size_t left_idx = i + stride - 1;
-                    size_t right_idx = i + stride * 2 - 1;
+                    size_t left_idx = static_cast<size_t>(i) + stride - 1;
+                    size_t right_idx = static_cast<size_t>(i) + stride * 2 - 1;
 
                     if (right_idx < length)
                     {
@@ -210,13 +213,16 @@ namespace ryzanstein_llm
             // Traverse tree top-down
             for (size_t stride = length / 2; stride > 0; stride /= 2)
             {
-// Parallelize inner loop - iterations are independent within each stride level
-// Each thread gets its own temp/composed SSMOperators constructed in the loop body
+                // Parallelize inner loop - iterations are independent within each stride level
+                // Each thread gets its own temp/composed SSMOperators constructed in the loop body
+                // Note: OpenMP requires signed integer loop variable
+                const ptrdiff_t len = static_cast<ptrdiff_t>(length);
+                const ptrdiff_t str = static_cast<ptrdiff_t>(stride);
 #pragma omp parallel for schedule(static)
-                for (size_t i = 0; i < length; i += stride * 2)
+                for (ptrdiff_t i = 0; i < len; i += str * 2)
                 {
-                    size_t left_idx = i + stride - 1;
-                    size_t right_idx = i + stride * 2 - 1;
+                    size_t left_idx = static_cast<size_t>(i) + stride - 1;
+                    size_t right_idx = static_cast<size_t>(i) + stride * 2 - 1;
 
                     if (right_idx < length)
                     {

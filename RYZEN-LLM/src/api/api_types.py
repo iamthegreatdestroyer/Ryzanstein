@@ -213,3 +213,4 @@ class InferenceError:
     is_retryable: bool = False
     suggested_action: Optional[str] = None
     stack_trace: Optional[str] = None
+

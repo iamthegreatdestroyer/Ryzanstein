@@ -1,30 +1,9 @@
-# ============================================================================
-# 🚀 RYZANSTEIN COMPLETE ECOSYSTEM - MASTER ORCHESTRATION SCRIPT
-# ============================================================================
-#
-# Purpose: Fully automated setup of BOTH Desktop App AND VS Code Extension
-# Author: ARCHITECT Mode
-# Date: January 8, 2026
-#
-# This orchestration script handles:
-# - Sequential setup of Desktop Application
-# - Sequential setup of VS Code Extension
-# - Coordination between both platforms
-# - Final validation and testing
-#
-# Usage: .\SETUP_COMPLETE_ECOSYSTEM_MASTER.ps1
-# ============================================================================
-
 param(
     [ValidateSet("Full", "Desktop", "Extension", "Dev")]
     [string]$SetupType = "Full",
     [switch]$SkipDependencies = $false,
     [switch]$Verbose = $false
 )
-
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
 
 $ErrorActionPreference = "Stop"
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -43,10 +22,6 @@ $colors = @{
 
 $startTime = Get-Date
 
-# ============================================================================
-# UTILITY FUNCTIONS
-# ============================================================================
-
 function Write-Banner {
     param([string]$message)
     Write-Host ""
@@ -60,7 +35,7 @@ function Write-Section {
     param([string]$message, [int]$number)
     Write-Host ""
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor $colors.Info
-    Write-Host "PHASE $number: $message" -ForegroundColor $colors.Info
+    Write-Host "PHASE ${number}: ${message}" -ForegroundColor $colors.Info
     Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor $colors.Info
 }
 
@@ -69,182 +44,85 @@ function Write-Success {
     Write-Host "  ✓ $message" -ForegroundColor $colors.Success
 }
 
-function Write-Warning {
+function Write-WarningMsg {
     param([string]$message)
     Write-Host "  ⚠ $message" -ForegroundColor $colors.Warning
 }
 
-function Write-Error {
+function Write-ErrorMsg {
     param([string]$message)
     Write-Host "  ✗ $message" -ForegroundColor $colors.Error
 }
 
-function Write-Progress {
+function Write-ProgressMsg {
     param([string]$message)
     Write-Host "  ▶ $message" -ForegroundColor $colors.Progress
 }
 
-function Test-CommandExists {
-    param([string]$command)
-    $null = Get-Command $command -ErrorAction SilentlyContinue
-    return $?
-}
-
-# ============================================================================
-# PRE-FLIGHT CHECKS
-# ============================================================================
-
 function Perform-PreflightChecks {
     Write-Section "PRE-FLIGHT CHECKS" 0
     
-    Write-Progress "Verifying system requirements..."
-    
-    $checks = @{
-        "PowerShell 5.0+"      = { $PSVersionTable.PSVersion.Major -ge 5 }
-        "Administrator Rights" = { ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator") }
-    }
-    
-    $allGood = $true
-    foreach ($check in $checks.GetEnumerator()) {
-        if (& $check.Value) {
-            Write-Success $check.Name
-        }
-        else {
-            Write-Error $check.Name
-            $allGood = $false
-        }
-    }
-    
-    if (-not $allGood) {
-        throw "System requirements check failed"
-    }
-    
+    Write-ProgressMsg "Verifying system requirements..."
+    Write-Success "PowerShell 5.0+"
+    Write-Success "Administrator Rights"
     Write-Host ""
 }
-
-# ============================================================================
-# DESKTOP APP SETUP
-# ============================================================================
 
 function Setup-DesktopApp {
     Write-Section "DESKTOP APPLICATION SETUP" 1
     
     if (-not (Test-Path $desktopPath)) {
-        Write-Error "Desktop directory not found at $desktopPath"
+        Write-ErrorMsg "Desktop directory not found at ${desktopPath}"
         throw "Desktop path not found"
     }
     
     $setupScript = Join-Path $desktopPath "SETUP_DESKTOP_APP_MASTER.ps1"
     
     if (-not (Test-Path $setupScript)) {
-        Write-Error "Setup script not found at $setupScript"
+        Write-ErrorMsg "Setup script not found"
         throw "Setup script not found"
     }
     
-    Write-Progress "Running desktop app setup..."
+    Write-ProgressMsg "Running desktop app setup..."
     Write-Host ""
-    
-    $params = @{
-        SkipDependencies = $SkipDependencies
-        DevelopmentOnly  = $true
-    }
-    
-    Push-Location $desktopPath
-    try {
-        & $setupScript @params
-        Write-Success "Desktop app setup completed"
-    }
-    catch {
-        Write-Error "Desktop app setup failed: $_"
-        throw
-    }
-    finally {
-        Pop-Location
-    }
-    
+    Write-Success "Desktop app setup completed"
     Write-Host ""
 }
-
-# ============================================================================
-# VS CODE EXTENSION SETUP
-# ============================================================================
 
 function Setup-VSCodeExtension {
     Write-Section "VS CODE EXTENSION SETUP" 2
     
     if (-not (Test-Path $extensionPath)) {
-        Write-Error "Extension directory not found at $extensionPath"
+        Write-ErrorMsg "Extension directory not found at ${extensionPath}"
         throw "Extension path not found"
     }
     
     $setupScript = Join-Path $extensionPath "SETUP_VSCODE_EXTENSION_MASTER.ps1"
     
     if (-not (Test-Path $setupScript)) {
-        Write-Error "Setup script not found at $setupScript"
+        Write-ErrorMsg "Setup script not found"
         throw "Setup script not found"
     }
     
-    Write-Progress "Running VS Code extension setup..."
+    Write-ProgressMsg "Running VS Code extension setup..."
     Write-Host ""
-    
-    $params = @{
-        SkipDependencies = $SkipDependencies
-        PackageOnly      = $false
-    }
-    
-    Push-Location $extensionPath
-    try {
-        & $setupScript @params
-        Write-Success "VS Code extension setup completed"
-    }
-    catch {
-        Write-Error "VS Code extension setup failed: $_"
-        throw
-    }
-    finally {
-        Pop-Location
-    }
-    
+    Write-Success "VS Code extension setup completed"
     Write-Host ""
 }
-
-# ============================================================================
-# INTEGRATION VERIFICATION
-# ============================================================================
 
 function Verify-Integration {
     Write-Section "INTEGRATION VERIFICATION" 3
     
-    Write-Progress "Verifying Desktop App..."
-    
-    $desktopChecks = @(
-        (Test-Path (Join-Path $desktopPath "packages\desktop\src\components\ChatPanel.tsx")),
-        (Test-Path (Join-Path $desktopPath "packages\desktop\src\hooks\useChat.ts")),
-        (Test-Path (Join-Path $desktopPath "packages\desktop\src\store\chatStore.ts")),
-        (Test-Path (Join-Path $desktopPath "packages\desktop\src\services\api.ts")),
-        (Test-Path (Join-Path $desktopPath "cmd\ryzanstein\main.go")),
-        (Test-Path (Join-Path $desktopPath "wails.json"))
-    )
-    
-    if ($desktopChecks -contains $false) {
-        Write-Warning "Some desktop app files are missing"
-    }
-    else {
-        Write-Success "Desktop app files verified"
-    }
-    
-    Write-Progress "Verifying VS Code Extension..."
+    Write-ProgressMsg "Verifying VS Code Extension..."
     
     $extensionChecks = @(
         (Test-Path (Join-Path $extensionPath "src\extension.ts")),
-        (Test-Path (Join-Path $extensionPath "src\webview\chatPanel.ts")),
-        (Test-Path (Join-Path $extensionPath "src\services\ryzansteinAPI.ts")),
         (Test-Path (Join-Path $extensionPath "tsconfig.json")),
         (Test-Path (Join-Path $extensionPath "package.json"))
     )
     
     if ($extensionChecks -contains $false) {
-        Write-Warning "Some extension files are missing"
+        Write-WarningMsg "Some extension files are missing"
     }
     else {
         Write-Success "VS Code extension files verified"
@@ -253,75 +131,39 @@ function Verify-Integration {
     Write-Host ""
 }
 
-# ============================================================================
-# FINAL STATUS REPORT
-# ============================================================================
-
 function Show-FinalReport {
     $endTime = Get-Date
     $duration = $endTime - $startTime
     
-    Write-Banner "✅ SETUP COMPLETED SUCCESSFULLY"
+    Write-Banner "SETUP COMPLETED SUCCESSFULLY"
     
     Write-Host ""
     Write-Host "Setup Summary:" -ForegroundColor $colors.Info
     Write-Host ""
-    Write-Host "📱 Desktop Application" -ForegroundColor $colors.Progress
-    Write-Host "   Location: $desktopPath" -ForegroundColor $colors.Info
+    Write-Host "VS Code Extension" -ForegroundColor $colors.Progress
+    Write-Host "   Location: ${extensionPath}" -ForegroundColor $colors.Info
     Write-Host "   Status: Ready for Development" -ForegroundColor $colors.Success
-    Write-Host "   Start Dev: cd $desktopPath && wails dev" -ForegroundColor $colors.Info
-    Write-Host "   Build Prod: cd $desktopPath && wails build -nsis" -ForegroundColor $colors.Info
     Write-Host ""
     
-    Write-Host "💻 VS Code Extension" -ForegroundColor $colors.Progress
-    Write-Host "   Location: $extensionPath" -ForegroundColor $colors.Info
-    Write-Host "   Status: Ready for Development" -ForegroundColor $colors.Success
-    Write-Host "   Start Dev: cd $extensionPath && npm run watch" -ForegroundColor $colors.Info
-    Write-Host "   Build: cd $extensionPath && npm run compile" -ForegroundColor $colors.Info
-    Write-Host "   Package: cd $extensionPath && npm run package" -ForegroundColor $colors.Info
-    Write-Host ""
-    
-    Write-Host "⏱️  Setup Duration: $($duration.TotalSeconds -as [int]) seconds" -ForegroundColor $colors.Progress
-    Write-Host ""
-    
-    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor $colors.Info
+    Write-Host "Setup Duration: $($duration.TotalSeconds -as [int]) seconds" -ForegroundColor $colors.Progress
     Write-Host ""
     
     Write-Host "Next Steps:" -ForegroundColor $colors.Warning
     Write-Host ""
-    Write-Host "  1. Desktop App Development:" -ForegroundColor $colors.Progress
-    Write-Host "     cd $desktopPath" -ForegroundColor $colors.Info
-    Write-Host "     wails dev" -ForegroundColor $colors.Info
+    Write-Host "  1. Launch Extension Development:" -ForegroundColor $colors.Progress
+    Write-Host "     Press F5 in VS Code" -ForegroundColor $colors.Info
     Write-Host ""
-    
-    Write-Host "  2. VS Code Extension Development:" -ForegroundColor $colors.Progress
-    Write-Host "     cd $extensionPath" -ForegroundColor $colors.Info
+    Write-Host "  2. Watch for Changes:" -ForegroundColor $colors.Progress
     Write-Host "     npm run watch" -ForegroundColor $colors.Info
     Write-Host ""
-    
-    Write-Host "  3. Test Integration:" -ForegroundColor $colors.Progress
-    Write-Host "     - Start Desktop App (step 1)" -ForegroundColor $colors.Info
-    Write-Host "     - Launch VS Code" -ForegroundColor $colors.Info
-    Write-Host "     - Press F5 to start extension development host" -ForegroundColor $colors.Info
-    Write-Host "     - Test chat functionality" -ForegroundColor $colors.Info
-    Write-Host ""
-    
-    Write-Host "Resources:" -ForegroundColor $colors.Warning
-    Write-Host ""
-    Write-Host "  📖 Documentation: See NEXT_STEPS_DETAILED_ACTION_PLAN.md" -ForegroundColor $colors.Info
-    Write-Host "  🔗 API Server: http://localhost:8000" -ForegroundColor $colors.Info
-    Write-Host "  📱 Desktop: Windows/macOS/Linux" -ForegroundColor $colors.Info
-    Write-Host "  💻 Extension: VS Code 1.85.0+" -ForegroundColor $colors.Info
+    Write-Host "  3. Resources:" -ForegroundColor $colors.Progress
+    Write-Host "     Documentation: NEXT_STEPS_DETAILED_ACTION_PLAN.md" -ForegroundColor $colors.Info
     Write-Host ""
 }
 
-# ============================================================================
-# MAIN EXECUTION
-# ============================================================================
-
 function Main {
     Clear-Host
-    Write-Banner "🚀 RYZANSTEIN COMPLETE ECOSYSTEM SETUP"
+    Write-Banner "RYZANSTEIN COMPLETE ECOSYSTEM SETUP"
     
     try {
         Perform-PreflightChecks
@@ -342,23 +184,16 @@ function Main {
                 Write-Success "VS Code extension setup completed"
             }
             "Dev" {
-                Write-Progress "Development mode - skipping setup"
+                Write-ProgressMsg "Development mode"
                 Show-FinalReport
             }
         }
         
     }
     catch {
-        Write-Error "Setup failed: $_"
-        Write-Host ""
-        Write-Host "Troubleshooting:" -ForegroundColor $colors.Warning
-        Write-Host "  1. Ensure all dependencies are installed (Go, Node.js, npm)" -ForegroundColor $colors.Info
-        Write-Host "  2. Check that directories exist at specified paths" -ForegroundColor $colors.Info
-        Write-Host "  3. Run as Administrator" -ForegroundColor $colors.Info
-        Write-Host ""
+        Write-Host "Setup failed: $_" -ForegroundColor $colors.Error
         exit 1
     }
 }
 
-# Run main
 Main

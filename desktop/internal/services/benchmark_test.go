@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/iamthegreatdestroyer/ryzanstein/desktop/internal/config"
+	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/config"
 )
 
 // BenchmarkInferenceLatency measures single inference request latency.
@@ -228,3 +228,4 @@ func TestLoadScaling(t *testing.T) {
 		})
 	}
 }
+

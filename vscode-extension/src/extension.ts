@@ -3,6 +3,10 @@ import { ExtensionContext, window, commands, ViewColumn } from "vscode";
 import { AgentTreeProvider } from "./providers/AgentTreeProvider";
 import { ModelTreeProvider } from "./providers/ModelTreeProvider";
 import { ChatWebviewProvider } from "./providers/ChatWebviewProvider";
+import {
+  RyzansteinChatModelProvider,
+  RyzansteinChatResponseProvider,
+} from "./providers/RyzansteinChatModelProvider";
 import { RyzansteinClient } from "./client/RyzansteinClient";
 import { MCPClient } from "./client/MCPClient";
 import { CommandHandler } from "./commands/CommandHandler";
@@ -48,6 +52,20 @@ export async function activate(context: ExtensionContext) {
 
   vscode.window.registerTreeDataProvider("ryzanstein.agents", agentProvider);
   vscode.window.registerTreeDataProvider("ryzanstein.models", modelProvider);
+
+  // Register Copilot Chat model provider
+  const chatModelProvider = new RyzansteinChatModelProvider(ryzansteinClient);
+  const chatResponseProvider = new RyzansteinChatResponseProvider(
+    ryzansteinClient
+  );
+
+  context.subscriptions.push(
+    vscode.chat.registerChatModelProvider("ryzanstein", chatModelProvider),
+    vscode.chat.registerChatResponseProvider(
+      { vendor: "ryzanstein" },
+      chatResponseProvider
+    )
+  );
 
   // Register chat webview provider
   const chatProvider = new ChatWebviewProvider(

@@ -2,17 +2,18 @@
   "name": "Ryzanstein",
   "type": "desktop",
   "outputType": "desktop",
-  "frontend": "packages/desktop",
+  "frontend": "frontend",
   "build": {
     "appType": "desktop",
     "frontend": {
-      "dir": "packages/desktop",
+      "dir": "frontend",
       "install": "npm install",
       "build": "npm run build",
       "dev": "npm run dev"
     },
     "backend": {
-      "main": "cmd/ryzanstein/main.go"
+      "dir": "cmd/ryzanstein",
+      "main": "main.go"
     }
   },
   "app": {

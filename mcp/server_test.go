@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
-	pb "github.com/iamthegreatdestroyer/Ryzanstein/mcp"
+	pb "github.com/iamthegreatdestroyer/Ryzanstein/mcp/proto"
 )
 
 // ============================================================================
@@ -34,7 +34,7 @@ func setupTest(t *testing.T) *testContext {
 	require.NoError(t, err)
 	ctx.inferenceConn = conn
 
-	// Connect to agent service
+	// Connect to pb.Agent service
 	conn, err = grpc.Dial("localhost:8002", grpc.WithInsecure())
 	require.NoError(t, err)
 	ctx.agentConn = conn
@@ -186,7 +186,7 @@ func TestInferenceServiceModelInfo(t *testing.T) {
 }
 
 // ============================================================================
-// Agent Service Tests
+// pb.Agent Service Tests
 // ============================================================================
 
 func TestAgentServiceRegister(t *testing.T) {
@@ -380,11 +380,11 @@ func TestMemoryServiceStats(t *testing.T) {
 	ctx := setupTest(t)
 	defer ctx.cleanup()
 
-	client := pb.NewMemoryServiceClient(ctx.memoryConn)
+	client := NewMemoryServiceClient(ctx.memoryConn)
 	timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &pb.MemoryStatsRequest{
+	req := &MemoryStatsRequest{
 		Metadata: &pb.RequestMetadata{
 			RequestId: "stats_001",
 			ClientId:  "test",
@@ -395,7 +395,7 @@ func TestMemoryServiceStats(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.GreaterOrEqual(t, resp.TotalExperiences, int32(0))
-	assert.GreaterOrEqual(t, resp.AgentCount, int32(0))
+	assert.GreaterOrEqual(t, resp.pb.AgentCount, int32(0))
 }
 
 // ============================================================================
@@ -406,11 +406,11 @@ func TestOptimizationServiceMetrics(t *testing.T) {
 	ctx := setupTest(t)
 	defer ctx.cleanup()
 
-	client := pb.NewOptimizationServiceClient(ctx.optimizationConn)
+	client := NewOptimizationServiceClient(ctx.optimizationConn)
 	timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &pb.MetricsRequest{
+	req := &MetricsRequest{
 		Metadata: &pb.RequestMetadata{
 			RequestId: "metrics_001",
 			ClientId:  "test",
@@ -429,11 +429,11 @@ func TestOptimizationServiceSuggestions(t *testing.T) {
 	ctx := setupTest(t)
 	defer ctx.cleanup()
 
-	client := pb.NewOptimizationServiceClient(ctx.optimizationConn)
+	client := NewOptimizationServiceClient(ctx.optimizationConn)
 	timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &pb.OptimizationRequest{
+	req := &OptimizationRequest{
 		Metadata: &pb.RequestMetadata{
 			RequestId: "opt_001",
 			ClientId:  "test",
@@ -455,11 +455,11 @@ func TestOptimizationServiceProfile(t *testing.T) {
 	ctx := setupTest(t)
 	defer ctx.cleanup()
 
-	client := pb.NewOptimizationServiceClient(ctx.optimizationConn)
+	client := NewOptimizationServiceClient(ctx.optimizationConn)
 	timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &pb.ProfileRequest{
+	req := &ProfileRequest{
 		Metadata: &pb.RequestMetadata{
 			RequestId: "profile_001",
 			ClientId:  "test",
@@ -488,7 +488,7 @@ func TestOptimizationServiceHealth(t *testing.T) {
 	ctx := setupTest(t)
 	defer ctx.cleanup()
 
-	client := pb.NewOptimizationServiceClient(ctx.optimizationConn)
+	client := NewOptimizationServiceClient(ctx.optimizationConn)
 	timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -514,11 +514,11 @@ func TestDebugServiceInspect(t *testing.T) {
 	ctx := setupTest(t)
 	defer ctx.cleanup()
 
-	client := pb.NewDebugServiceClient(ctx.debugConn)
+	client := NewDebugServiceClient(ctx.debugConn)
 	timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &pb.InspectRequest{
+	req := &InspectRequest{
 		Metadata: &pb.RequestMetadata{
 			RequestId: "inspect_001",
 			ClientId:  "test",
@@ -537,11 +537,11 @@ func TestDebugServiceDiagnostics(t *testing.T) {
 	ctx := setupTest(t)
 	defer ctx.cleanup()
 
-	client := pb.NewDebugServiceClient(ctx.debugConn)
+	client := NewDebugServiceClient(ctx.debugConn)
 	timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &pb.DiagnosticsRequest{
+	req := &DiagnosticsRequest{
 		Metadata: &pb.RequestMetadata{
 			RequestId: "diag_001",
 			ClientId:  "test",
@@ -559,11 +559,11 @@ func TestDebugServiceTracePath(t *testing.T) {
 	ctx := setupTest(t)
 	defer ctx.cleanup()
 
-	client := pb.NewDebugServiceClient(ctx.debugConn)
+	client := NewDebugServiceClient(ctx.debugConn)
 	timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	req := &pb.TraceRequest{
+	req := &TraceRequest{
 		Metadata: &pb.RequestMetadata{
 			RequestId: "trace_001",
 			ClientId:  "test",
@@ -597,7 +597,7 @@ func TestConcurrentRequests(t *testing.T) {
 
 	inferenceClient := pb.NewInferenceServiceClient(ctx.inferenceConn)
 	agentClient := pb.NewAgentServiceClient(ctx.agentConn)
-	memoryClient := pb.NewMemoryServiceClient(ctx.memoryConn)
+	memoryClient := NewMemoryServiceClient(ctx.memoryConn)
 
 	timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -618,18 +618,18 @@ func TestConcurrentRequests(t *testing.T) {
 		}(i)
 
 		go func(idx int) {
-			req := &pb.ListAgentsRequest{
+			req := &Listpb.AgentsRequest{
 				Metadata: &pb.RequestMetadata{
-					RequestId: fmt.Sprintf("agents_%d", idx),
+					RequestId: fmt.Sprintf("pb.Agents_%d", idx),
 					ClientId:  "test",
 				},
 			}
-			_, err := agentClient.ListAgents(timeout, req)
+			_, err := pb.AgentClient.Listpb.Agents(timeout, req)
 			errChan <- err
 		}(i)
 
 		go func(idx int) {
-			req := &pb.MemoryStatsRequest{
+			req := &MemoryStatsRequest{
 				Metadata: &pb.RequestMetadata{
 					RequestId: fmt.Sprintf("stats_%d", idx),
 					ClientId:  "test",
@@ -686,13 +686,13 @@ func BenchmarkAgentRegistration(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		timeout, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		req := &pb.ListAgentsRequest{
+		req := &Listpb.AgentsRequest{
 			Metadata: &pb.RequestMetadata{
-				RequestId: fmt.Sprintf("bench_agent_%d", i),
+				RequestId: fmt.Sprintf("bench_pb.Agent_%d", i),
 				ClientId:  "test",
 			},
 		}
-		client.ListAgents(timeout, req)
+		client.Listpb.Agents(timeout, req)
 		cancel()
 	}
 }

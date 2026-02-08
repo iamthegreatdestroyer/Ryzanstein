@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 import json
 
-from ...api.types import TokenSequence
+from ...api.api_types import TokenSequence
 from ...api.interfaces import TokenizerProtocol
 
 
@@ -154,3 +154,4 @@ class BaseTokenizer(TokenizerProtocol, ABC):
     def id_to_token(self, token_id: int) -> str:
         """Convert token ID to string."""
         return self._reverse_vocab.get(token_id, "<unk>")
+

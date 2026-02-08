@@ -17,7 +17,7 @@ from .rope import compute_rope_frequencies
 from ..tokenizer import BPETokenizer
 from ..model import ModelLoader, BitNetConfig
 
-from ...api.types import (
+from ...api.api_types import (
     GenerationConfig, GenerationResult, ModelInfo, 
     StreamChunk, StopReason, TokenSequence,
 )
@@ -276,3 +276,4 @@ class RyotEngine(InferenceEngine):
     def get_tokenizer(self):
         """Get the tokenizer."""
         return self._tokenizer
+
