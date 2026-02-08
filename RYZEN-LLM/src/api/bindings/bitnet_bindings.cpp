@@ -8,22 +8,29 @@
 #include "bitnet/quantize.h"
 #include "bitnet/engine.h" // Add BitNetEngine
 
+// Cross-platform export macro
+#ifdef _WIN32
+#define RYZEN_EXPORT RYZEN_EXPORT
+#else
+#define RYZEN_EXPORT __attribute__((visibility("default")))
+#endif
+
 // C interface for ctypes
 extern "C"
 {
-    __declspec(dllexport) int test_function()
+    RYZEN_EXPORT int test_function()
     {
         return 42;
     }
 
     // Test function that returns a constant
-    __declspec(dllexport) int test_quantize_scalar()
+    RYZEN_EXPORT int test_quantize_scalar()
     {
         return 12345;
     }
 
     // Test function that just creates a TernaryWeight object
-    __declspec(dllexport) int test_simple_loop()
+    RYZEN_EXPORT int test_simple_loop()
     {
         try
         {
@@ -43,7 +50,7 @@ extern "C"
     }
 
     // Test nested loops like in quantization
-    __declspec(dllexport) int test_nested_loops()
+    RYZEN_EXPORT int test_nested_loops()
     {
         try
         {
@@ -67,7 +74,7 @@ extern "C"
     }
 
     // Test quantization-like operations step by step
-    __declspec(dllexport) int test_quantization_steps()
+    RYZEN_EXPORT int test_quantization_steps()
     {
         try
         {
@@ -113,7 +120,7 @@ extern "C"
     }
 
     // Test just vector allocation
-    __declspec(dllexport) int test_vector_allocation()
+    RYZEN_EXPORT int test_vector_allocation()
     {
         try
         {
@@ -129,7 +136,7 @@ extern "C"
     }
 
     // Test vector access
-    __declspec(dllexport) int test_vector_access()
+    RYZEN_EXPORT int test_vector_access()
     {
         try
         {
@@ -147,7 +154,7 @@ extern "C"
         }
     }
 
-    __declspec(dllexport) int test_weight_quantize_only()
+    RYZEN_EXPORT int test_weight_quantize_only()
     {
         try
         {
@@ -175,7 +182,7 @@ extern "C"
         }
     }
 
-    __declspec(dllexport) int test_activation_quantize_only()
+    RYZEN_EXPORT int test_activation_quantize_only()
     {
         try
         {
@@ -203,7 +210,7 @@ extern "C"
         }
     }
 
-    __declspec(dllexport) int test_scalar_quantize_direct()
+    RYZEN_EXPORT int test_scalar_quantize_direct()
     {
         try
         {
@@ -235,7 +242,7 @@ extern "C"
     }
 
     // Test function that calls quantize_weights_ternary_scalar without creating objects
-    __declspec(dllexport) int test_quantize_weights_only_scalar()
+    RYZEN_EXPORT int test_quantize_weights_only_scalar()
     {
         try
         {
@@ -264,7 +271,7 @@ extern "C"
     }
 
     // Test function that replicates test_basic_quantize_ops but with larger data
-    __declspec(dllexport) int test_basic_quantize_large()
+    RYZEN_EXPORT int test_basic_quantize_large()
     {
         try
         {
@@ -312,7 +319,7 @@ extern "C"
     }
 
     // Quantization functions
-    __declspec(dllexport) int test_quantize_weights_only(const float *weights, uint32_t rows, uint32_t cols)
+    RYZEN_EXPORT int test_quantize_weights_only(const float *weights, uint32_t rows, uint32_t cols)
     {
         std::cout << "DEBUG: test_quantize_weights_only called" << std::endl;
         // Just do some basic computation without creating objects
@@ -323,7 +330,7 @@ extern "C"
         }
         return static_cast<int>(sum * 1000); // Return scaled sum
     }
-    __declspec(dllexport) void *quantize_weights_ternary_c(
+    RYZEN_EXPORT void *quantize_weights_ternary_c(
         const float *weights, uint32_t rows, uint32_t cols)
     {
         ryzanstein_llm::bitnet::QuantConfig config;
@@ -334,7 +341,7 @@ extern "C"
         return result_ptr;
     }
 
-    __declspec(dllexport) void *quantize_activations_int8_c(
+    RYZEN_EXPORT void *quantize_activations_int8_c(
         const float *activations, size_t size)
     {
         ryzanstein_llm::bitnet::QuantConfig config;
@@ -345,39 +352,39 @@ extern "C"
         return result_ptr;
     }
 
-    __declspec(dllexport) void dequantize_weights_c(
+    RYZEN_EXPORT void dequantize_weights_c(
         void *ternary_weight_ptr, float *output, uint32_t rows, uint32_t cols)
     {
         auto *ternary_weight = static_cast<ryzanstein_llm::bitnet::TernaryWeightCPU *>(ternary_weight_ptr);
         ryzanstein_llm::bitnet::dequantize_weights_scalar(*ternary_weight, output, rows, cols);
     }
 
-    __declspec(dllexport) void dequantize_activations_c(
+    RYZEN_EXPORT void dequantize_activations_c(
         void *quantized_ptr, float *output, size_t size)
     {
         auto *quantized = static_cast<ryzanstein_llm::bitnet::QuantizedActivationCPU *>(quantized_ptr);
         ryzanstein_llm::bitnet::dequantize_activations_scalar(*quantized, output, size);
     }
 
-    __declspec(dllexport) float compute_quantization_error_c(
+    RYZEN_EXPORT float compute_quantization_error_c(
         const float *original, const float *quantized, size_t size)
     {
         return ryzanstein_llm::bitnet::compute_quantization_error_scalar(original, quantized, size);
     }
 
     // Memory management
-    __declspec(dllexport) void free_ternary_weight(void *ptr)
+    RYZEN_EXPORT void free_ternary_weight(void *ptr)
     {
         delete static_cast<ryzanstein_llm::bitnet::TernaryWeight *>(ptr);
     }
 
-    __declspec(dllexport) void free_quantized_activation(void *ptr)
+    RYZEN_EXPORT void free_quantized_activation(void *ptr)
     {
         delete static_cast<ryzanstein_llm::bitnet::QuantizedActivation *>(ptr);
     }
 
     // Test floating-point accumulation operations
-    __declspec(dllexport) int test_floating_point_accumulation()
+    RYZEN_EXPORT int test_floating_point_accumulation()
     {
         // Test basic floating-point operations
         float a = 1.0f;
@@ -403,7 +410,7 @@ extern "C"
     }
 
     // Test division operations
-    __declspec(dllexport) int test_division_operations()
+    RYZEN_EXPORT int test_division_operations()
     {
         // Test basic division
         float numerator = 10.0f;
@@ -432,7 +439,7 @@ extern "C"
     }
 
     // Test std::vector operations
-    __declspec(dllexport) int test_vector_operations()
+    RYZEN_EXPORT int test_vector_operations()
     {
         // Test basic vector creation
         std::vector<int8_t> values;
@@ -471,7 +478,7 @@ extern "C"
     }
 
     // Test avoiding std::min_element and std::max_element
-    __declspec(dllexport) int test_min_max_avoidance()
+    RYZEN_EXPORT int test_min_max_avoidance()
     {
         // Test data - same as used in quantize_activations_int8_scalar
         float activations[4] = {1.0f, -2.0f, 3.0f, -4.0f};
@@ -504,7 +511,7 @@ extern "C"
         return 42; // Success
     }
 
-    __declspec(dllexport) int test_int8_vector_operations()
+    RYZEN_EXPORT int test_int8_vector_operations()
     {
         try
         {
@@ -540,7 +547,7 @@ extern "C"
 
     // CPU-compatible quantization functions (no std::vector)
 
-    __declspec(dllexport) void *quantize_weights_ternary_cpu_c(
+    RYZEN_EXPORT void *quantize_weights_ternary_cpu_c(
         const float *weights, uint32_t rows, uint32_t cols)
     {
         ryzanstein_llm::bitnet::QuantConfig config;
@@ -550,7 +557,7 @@ extern "C"
         return result;
     }
 
-    __declspec(dllexport) void *quantize_activations_int8_cpu_c(
+    RYZEN_EXPORT void *quantize_activations_int8_cpu_c(
         const float *activations, size_t size)
     {
         ryzanstein_llm::bitnet::QuantConfig config;
@@ -560,40 +567,40 @@ extern "C"
         return result;
     }
 
-    __declspec(dllexport) void dequantize_weights_cpu_c(
+    RYZEN_EXPORT void dequantize_weights_cpu_c(
         void *ternary_weight_ptr, float *output)
     {
         auto *ternary_weight = static_cast<ryzanstein_llm::bitnet::TernaryWeightCPU *>(ternary_weight_ptr);
         ryzanstein_llm::bitnet::dequantize_weights_cpu(*ternary_weight, output);
     }
 
-    __declspec(dllexport) void dequantize_activations_cpu_c(
+    RYZEN_EXPORT void dequantize_activations_cpu_c(
         void *quantized_ptr, float *output)
     {
         auto *quantized = static_cast<ryzanstein_llm::bitnet::QuantizedActivationCPU *>(quantized_ptr);
         ryzanstein_llm::bitnet::dequantize_activations_cpu(*quantized, output);
     }
 
-    __declspec(dllexport) float compute_quantization_error_cpu_c(
+    RYZEN_EXPORT float compute_quantization_error_cpu_c(
         const float *original, const float *quantized, size_t size)
     {
         return ryzanstein_llm::bitnet::compute_quantization_error_cpu(original, quantized, size);
     }
 
     // Memory management for CPU-compatible structs
-    __declspec(dllexport) void free_ternary_weight_cpu(void *ptr)
+    RYZEN_EXPORT void free_ternary_weight_cpu(void *ptr)
     {
         delete static_cast<ryzanstein_llm::bitnet::TernaryWeightCPU *>(ptr);
     }
 
-    __declspec(dllexport) void free_quantized_activation_cpu(void *ptr)
+    RYZEN_EXPORT void free_quantized_activation_cpu(void *ptr)
     {
         delete static_cast<ryzanstein_llm::bitnet::QuantizedActivationCPU *>(ptr);
     }
 
     // Test functions for CPU-compatible quantization
 
-    __declspec(dllexport) int test_ternary_weight_cpu_constructor()
+    RYZEN_EXPORT int test_ternary_weight_cpu_constructor()
     {
         try
         {
@@ -614,7 +621,7 @@ extern "C"
         }
     }
 
-    __declspec(dllexport) int test_quantize_weights_cpu_simple()
+    RYZEN_EXPORT int test_quantize_weights_cpu_simple()
     {
         try
         {
@@ -645,7 +652,7 @@ extern "C"
         }
     }
 
-    __declspec(dllexport) int test_quantize_activations_cpu()
+    RYZEN_EXPORT int test_quantize_activations_cpu()
     {
         try
         {
@@ -675,7 +682,7 @@ extern "C"
         }
     }
 
-    __declspec(dllexport) int test_full_quantization_cpu()
+    RYZEN_EXPORT int test_full_quantization_cpu()
     {
         try
         {
