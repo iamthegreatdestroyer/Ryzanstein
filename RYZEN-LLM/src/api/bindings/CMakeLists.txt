@@ -22,8 +22,12 @@ set_target_properties(ryzen_llm_bindings PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/../python/ryzanstein_llm
     LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/../python/ryzanstein_llm
     PREFIX ""
-    SUFFIX ".pyd"
 )
+
+# .pyd suffix is Windows-only; on Linux pybind11 sets the correct .so suffix
+if(WIN32)
+    set_target_properties(ryzen_llm_bindings PROPERTIES SUFFIX ".pyd")
+endif()
 
 # Static link standard libraries to avoid DLL dependencies
 if(MINGW)
