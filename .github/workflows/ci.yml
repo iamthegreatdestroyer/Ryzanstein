@@ -18,31 +18,31 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1.14
         with:
-          cmake-version: '3.28.x'
+          cmake-version: "3.28.x"
 
       - name: Configure (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          mkdir -p "Ryzanstein LLM/build"
-          cmake -S "Ryzanstein LLM" -B "Ryzanstein LLM/build" -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+          mkdir -p "RYZEN-LLM/build"
+          cmake -S "RYZEN-LLM" -B "RYZEN-LLM/build" -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
 
       - name: Configure (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Path "Ryzanstein LLM/build" -Force | Out-Null
-          cmake -S "Ryzanstein LLM" -B "Ryzanstein LLM/build" -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DENABLE_GTEST_DISCOVERY=OFF
+          New-Item -ItemType Directory -Path "RYZEN-LLM/build" -Force | Out-Null
+          cmake -S "RYZEN-LLM" -B "RYZEN-LLM/build" -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DENABLE_GTEST_DISCOVERY=OFF
 
       - name: Build (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: cmake --build "Ryzanstein LLM/build" --config Release -- -j
+        run: cmake --build "RYZEN-LLM/build" --config Release -- -j
 
       - name: Build (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
-        run: cmake --build "Ryzanstein LLM/build" --config Release -- /m
+        run: cmake --build "RYZEN-LLM/build" --config Release -- /m
 
       - name: Run tests
         run: |
-          cd "Ryzanstein LLM/build"
+          cd "RYZEN-LLM/build"
           ctest --output-on-failure --build-config Release
