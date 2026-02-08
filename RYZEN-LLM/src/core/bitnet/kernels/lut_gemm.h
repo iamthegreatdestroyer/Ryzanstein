@@ -24,6 +24,7 @@
 #include "../quantize.h"
 #include "../optimization_utils.h"
 #include <cstdint>
+#include <cmath>
 #include <vector>
 #include <algorithm>
 #include <cstring>
