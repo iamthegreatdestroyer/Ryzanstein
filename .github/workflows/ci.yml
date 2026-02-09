@@ -40,11 +40,19 @@ jobs:
         run: |
           python "RYZEN-LLM/scripts/inference_scaling.py" --query "Implement binary search tree" --output-type code --report
 
+      - name: Install GTest (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y googletest
+
       - name: Configure (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir -p "RYZEN-LLM/build"
           cmake -S "RYZEN-LLM" -B "RYZEN-LLM/build" -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release \
+            -DENABLE_TESTING=ON \
+            -DCMAKE_PREFIX_PATH=/usr/lib/cmake/GTest \
             -Dpybind11_DIR=$(python3 -m pybind11 --cmakedir)
 
       - name: Configure (Windows)
@@ -57,7 +65,11 @@ jobs:
 
       - name: Build (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: cmake --build "RYZEN-LLM/build" --config Release -- -j
+        run: |
+          # Build main targets first
+          cmake --build "RYZEN-LLM/build" --config Release -- -j
+          # Then build test targets
+          cmake --build "RYZEN-LLM/build" --target all_tests --config Release -- -j
 
       - name: Build (Windows)
         if: matrix.os == 'windows-latest'
