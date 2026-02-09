@@ -1,33 +1,29 @@
 {
-  "timestamp": "2025-01-17T16:30:45.123456",
-  "total_iterations": 300,
-  "activation_shape": [32, 1024],
-  "device": "cuda",
-  "results": [
-    {
-      "operation": "kernel_optimizer.detect_and_tune",
-      "overhead_ms": 8.42,
-      "overhead_percent": 2.1,
-      "iterations": 100,
-      "timestamp": "2025-01-17T16:30:15.456789"
+  "profiling_metadata": {
+    "timestamp": "2026-02-09T14:57:18.796853",
+    "device": "cpu",
+    "activation_shape": [
+      32,
+      1024
+    ],
+    "iterations": 100,
+    "script_version": "1.0"
+  },
+  "results": {
+    "kernel_optimizer": {
+      "op_name": "kernel_optimizer.detect_and_tune()",
+      "error": "'KernelOptimizer' object has no attribute 'detect_and_tune'",
+      "timestamp": "2026-02-09T14:57:18.617093"
     },
-    {
-      "operation": "semantic_compression.encode_decode",
-      "overhead_ms": 12.67,
-      "overhead_percent": 3.2,
-      "iterations": 100,
-      "timestamp": "2025-01-17T16:30:25.789012"
+    "semantic_compression": {
+      "op_name": "semantic_compression.encode/decode()",
+      "error": "'SemanticCompressor' object has no attribute 'encode'",
+      "timestamp": "2026-02-09T14:57:18.617557"
     },
-    {
-      "operation": "inference_scaling.optimize_kv_cache",
-      "overhead_ms": 5.91,
-      "overhead_percent": 1.5,
-      "iterations": 100,
-      "timestamp": "2025-01-17T16:30:35.012345"
+    "inference_scaling": {
+      "op_name": "inference_scaling.optimize_kv_cache()",
+      "error": "'InferenceScalingEngine' object has no attribute 'optimize_kv_cache'",
+      "timestamp": "2026-02-09T14:57:18.786643"
     }
-  ],
-  "total_overhead_ms": 27.0,
-  "total_overhead_percent": 6.8,
-  "safety_gate_passed": true,
-  "speedup_feasibility": "Confirmed - overhead well below 30% threshold (9.0ms for 3.0x target)"
+  }
 }
