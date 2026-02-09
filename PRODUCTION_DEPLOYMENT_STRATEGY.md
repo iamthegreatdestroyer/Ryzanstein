@@ -36,30 +36,32 @@ The RYZEN-LLM distributed training framework has been validated with:
 
 ```yaml
 Node Specification:
-  CPU Cores: 16-32 cores per node
+  CPU Cores: 16-32 cores per node (AMD EPYC or Intel Xeon)
   Memory: 256-512 GB per node
-  GPUs: 4x NVIDIA H100/A100 (80GB HBM3/HBM2)
-  Network: 400 Gbps InfiniBand or 100 Gbps Ethernet
+  NUMA Nodes: 2 or 4 (for optimal cache locality)
+  Network: 100 Gbps Ethernet or faster (for multi-node)
   Storage: NVMe SSD (1TB+ per node)
 
 4-Process Deployment:
-  Minimum Cluster: 1 node with 4 GPUs
-  Recommended: 2 nodes with 2 GPUs each (network training)
-  Optimal: Dedicated GPU cluster with fast interconnect
+  Minimum Cluster: 1 node with 16-32 cores (4 processes × 4-8 cores per process)
+  Recommended: 2 nodes with 8-16 cores each (network-based distributed training)
+  Optimal: Dedicated CPU cluster with fast interconnect (100+ Gbps)
+  Process Distribution: NUMA-aware pinning for optimal performance
 ```
 
 #### Network Configuration
 
 ```yaml
 Communication Protocol:
-  Primary: NCCL (NVIDIA Collective Communications Library)
-  Fallback: Gloo (CPU-GPU communication)
-  Fallback2: MPI (OpenMPI/MPICH for CPU clusters)
+  Primary: Gloo (PyTorch Gloo backend for CPU distributed training)
+  Alternative: OpenMPI 4.1+ (for lower-level process coordination)
+  Features: TCP/IP based, works on standard Ethernet networks
 
 Bandwidth Requirements:
-  4-process: 100+ Gbps interconnect (PCIe 5.0 or NVLink)
-  8-process: 200+ Gbps (InfiniBand or dual Ethernet)
-  16-process: 400+ Gbps (Dedicated data center interconnect)
+  4-process (1 node): Local inter-process (shared memory)
+  8-process (2 nodes): 100+ Gbps Ethernet interconnect
+  16-process (4 nodes): 200+ Gbps Ethernet interconnect
+  Notes: CPU-based training has lower bandwidth demands than GPU
 ```
 
 ### 1.2 Deployment Configuration
@@ -69,15 +71,16 @@ Bandwidth Requirements:
 ```bash
 # Python Environment
 Python Version: 3.11+
-PyTorch: 2.1.0+ (with CUDA 12.1 support)
-Distributed Backends: NCCL, Gloo, MPI
+PyTorch: 2.1.0+ (CPU-optimized build)
+Distributed Backends: Gloo, OpenMPI
 
 # Required Packages
-torch==2.1.0
-torch-distributed-rpc==2.1.0
-apex (for AMP optimization)
-nvidia-apex (for advanced mixed precision)
+torch==2.1.0  # CPU build
+torch-distributed==2.1.0 (Gloo backend)
+openmpi==4.1+ (for inter-node communication)
 horovod==0.28.1 (optional, for advanced distributed features)
+numpy>=1.24.0
+scipy>=1.10.0
 ```
 
 #### Configuration Files

@@ -3,7 +3,7 @@
 
 distributed:
   # Backend selection
-  backend: nccl # NVIDIA Collective Communications Library
+  backend: gloo # Gloo for CPU-based distributed training (Ryzanstein)
   init_method: "tcp://localhost:29500"
 
   # Rank and world size (set by launcher)
@@ -16,9 +16,9 @@ distributed:
   timeout: 1800 # 30 minutes
   debug: false
 
-  # NCCL-specific settings
-  nccl_debug: WARN
-  nccl_socket_ifname: eth0 # Interface name for network communication
+  # Gloo-specific settings for CPU distributed training
+  gloo_socket_ifname: eth0 # Interface name for network communication
+  gloo_timeout: 1800
 
 training:
   # Batch and gradient accumulation

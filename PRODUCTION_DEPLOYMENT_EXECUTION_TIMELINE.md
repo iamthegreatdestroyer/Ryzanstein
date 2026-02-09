@@ -14,13 +14,13 @@ This document provides a week-by-week execution plan for deploying the distribut
 ### Critical Path
 
 ```
-WEEK 1-2: Phase 1 (4 GPU, 1 Node)      [✅ PRIMARY PRODUCTION]
+WEEK 1-2: Phase 1 (4-Process, 1 Node)      [✅ PRIMARY PRODUCTION]
     │
-    └─→ WEEK 3-4: Phase 2a (8 GPU, 2 Nodes)    [📋 APPROVED]
+    └─→ WEEK 3-4: Phase 2a (8-Process, 2 Nodes)    [📋 APPROVED]
             │
-            └─→ WEEK 5-6: Phase 2b (12 GPU, 3 Nodes)  [📅 PLANNED]
+            └─→ WEEK 5-6: Phase 2b (12-Process, 3 Nodes)  [📅 PLANNED]
                     │
-                    └─→ WEEK 7+: Phase 2c (16 GPU, 4 Nodes) [📅 FUTURE]
+                    └─→ WEEK 7+: Phase 2c (16-Process, 4 Nodes) [📅 FUTURE]
 ```
 
 ---
@@ -31,36 +31,36 @@ WEEK 1-2: Phase 1 (4 GPU, 1 Node)      [✅ PRIMARY PRODUCTION]
 
 **Monday (Day 1)**
 
-- [ ] Cluster node 1 allocated and racked
+- [ ] CPU cluster node 1 allocated and provisioned (16-32 cores, 256GB+ RAM)
 - [ ] Power/cooling/networking verified
-- [ ] GPUs detected and tested with nvidia-smi
-- [ ] CUDA 12.1 installed and verified
-- [ ] NCCL 2.18.1 compiled and tested
-- **Deliverable:** Functional single-node GPU cluster
+- [ ] CPU cores verified with lscpu
+- [ ] NUMA topology verified and optimized
+- [ ] OpenMPI 4.1+ compiled and tested
+- **Deliverable:** Functional single-node CPU cluster with 4 processes
 
 **Tuesday (Day 2)**
 
-- [ ] PyTorch 2.1.0 installed with NCCL support
+- [ ] PyTorch 2.1.0 installed with Gloo/CPU support
 - [ ] Prometheus deployment (port 9090)
 - [ ] Grafana deployment (port 3000)
 - [ ] ELK stack setup (Elasticsearch, Logstash, Kibana)
-- [ ] NCCL diagnostic tools tested
+- [ ] OpenMPI diagnostic tools tested
 - **Deliverable:** Monitoring infrastructure ready
 
 **Wednesday (Day 3)**
 
 - [ ] real_ddp_trainer.py deployed to cluster
-- [ ] production_4process_config.yaml validated
+- [ ] production_4process_config.yaml validated (Gloo backend)
 - [ ] 4-process distributed training launch test
 - [ ] Initial 24-hour stability test started
 - [ ] Monitoring dashboards created
-- **Deliverable:** Training job running continuously
+- **Deliverable:** Training job running continuously on 4 CPU processes
 
 **Thursday (Day 4)**
 
 - [ ] 24-hour test completes - analyze results
-- [ ] Metrics collected: throughput, latency, memory
-- [ ] Gradient synchronization validated
+- [ ] Metrics collected: throughput (sp/s), CPU utilization, memory usage, latency
+- [ ] Gradient synchronization validated (99.99%+ accuracy)
 - [ ] Loss convergence verified
 - [ ] Performance report generated
 - **Deliverable:** Week 1 performance baseline established
@@ -96,7 +96,7 @@ Thermal Throttling Events       | 0         | < 2        | ⏳ TBD
 
 **Infrastructure:**
 
-- [ ] 4 H100/A100 GPUs online and dedicated
+- [ ] 1 CPU node online with 16-32 cores and 256GB+ RAM
 - [ ] Power/Cooling/Network verified
 - [ ] CUDA 12.1 verified with `nvcc --version`
 - [ ] NCCL diagnostic tool passes all tests

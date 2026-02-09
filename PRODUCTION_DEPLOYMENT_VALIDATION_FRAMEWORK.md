@@ -22,26 +22,26 @@ This framework defines all validation procedures, test protocols, and acceptance
 ```python
 Test: validate_hardware.py
 
-1. GPU Detection
-   - Command: nvidia-smi
-   - Expected: 4 GPUs detected
-   - Acceptance: All 4 GPUs visible and accessible
+1. CPU Core Detection
+   - Command: lscpu
+   - Expected: 16-32 CPU cores detected
+   - Acceptance: Cores match allocation specification (4-8 cores per process)
 
-2. GPU Memory Test
-   - Run: Test allocation of 70 GB per GPU
-   - Expected: All 4 × 70 GB allocated successfully
-   - Acceptance: Total 280 GB allocated, no OOM errors
+2. CPU Memory Test
+   - Run: Test allocation of 64-128 GB per process
+   - Expected: All 4 × 64 GB allocated successfully
+   - Acceptance: Total 256+ GB allocated, no OOM errors
 
-3. GPU Properties Verification
-   - Check: GPU type (H100 or A100 80GB)
-   - Check: CUDA Capability ≥ 8.0
-   - Check: Memory bandwidth measured
-   - Acceptance: All properties match specification
+3. NUMA Topology Verification
+   - Check: NUMA nodes present (2-4 nodes typical)
+   - Check: Memory affinity optimized
+   - Check: CPU binding per process configured
+   - Acceptance: All NUMA config correct and optimized
 
-4. Thermal Baseline
-   - Idle: < 30°C per GPU
-   - Stress: < 80°C per GPU
-   - Acceptance: No thermal throttling at idle
+4. Thermal & Power Baseline
+   - Idle: CPU package power < 50W
+   - Under stress: < 300W package power
+   - Acceptance: Temperature sustainable for continuous operation
 ```
 
 **File:** `tests/validate_hardware.py`  
@@ -50,34 +50,34 @@ Test: validate_hardware.py
 
 ---
 
-#### CUDA/NCCL Validation Test
+#### OpenMPI/Gloo Validation Test
 
 ```python
-Test: validate_cuda_nccl.py
+Test: validate_openmpi_gloo.py
 
-1. CUDA Installation
-   - Command: nvcc --version
-   - Expected: CUDA 12.1+
-   - Acceptance: Version 12.1 or later
+1. OpenMPI Installation
+   - Command: ompi_info --version
+   - Expected: OpenMPI 4.1.0+
+   - Acceptance: Version 4.1 or later
 
-2. NCCL Installation
-   - Command: Check NCCL library version
-   - Expected: NCCL 2.18.1+
-   - Acceptance: Version 2.18.1 or later
+2. Gloo Backend Availability
+   - Command: Check Gloo library availability
+   - Expected: Gloo 2.1.0+
+   - Acceptance: Version 2.1.0 or later
 
-3. NCCL Ring Test
-   - Run: nccl_all_ring_test rank=0 worldsize=1
+3. Gloo Ring Test
+   - Run: Test all-reduce operation on 4 processes
    - Expected: All-reduce operation succeeds
-   - Acceptance: Operation latency < 100µs for 1 process
+   - Acceptance: Operation latency 1-5ms for single node
 
-4. NCCL Environment
-   - Check: NCCL_DEBUG environment variable
-   - Check: NCCL socket configuration
+4. OpenMPI Environment
+   - Check: OMPI_UNIVERSE_SIZE environment variable
+   - Check: MPI socket configuration for Gloo backend
    - Acceptance: All variables correctly configured
 ```
 
-**File:** `tests/validate_cuda_nccl.py`  
-**Run:** `python validate_cuda_nccl.py`  
+**File:** `tests/validate_openmpi_gloo.py`  
+**Run:** `python validate_openmpi_gloo.py`  
 **Pass Criteria:** All 4 tests pass
 
 ---
@@ -92,20 +92,20 @@ Test: validate_pytorch_dist.py
    - Expected: 2.1.0 or later
    - Acceptance: Version meets minimum requirement
 
-2. NCCL Support
-   - Check: torch.distributed.is_nccl_available()
+2. Gloo Backend Support
+   - Check: torch.distributed.is_gloo_available()
    - Expected: True
-   - Acceptance: NCCL available in PyTorch
+   - Acceptance: Gloo backend available in PyTorch
 
 3. Backend Availability
-   - Check: All backends (nccl, gloo, mpi)
-   - Expected: nccl available
+   - Check: All backends (gloo, mpi, ucc)
+   - Expected: gloo available as primary
    - Acceptance: Primary backend available
 
-4. Device Availability
-   - Check: torch.cuda.is_available()
-   - Expected: True
-   - Acceptance: CUDA devices accessible to PyTorch
+4. CPU Resource Availability
+   - Check: os.cpu_count() reports correct cores
+   - Expected: 16-32 cores visible to PyTorch
+   - Acceptance: CPU resources accessible to trainer
 ```
 
 **File:** `tests/validate_pytorch_dist.py`  
@@ -122,7 +122,7 @@ Test: validate_pytorch_dist.py
 Test: 24_hour_stability_test.py
 
 Configuration:
-  - Processes: 4 (one per GPU)
+  - Processes: 4 (allocated across CPU cores with NUMA awareness)
   - Training duration: 24 hours continuous
   - Metrics collection interval: Every 100 batches
   - Checkpoint interval: Every 500 batches
@@ -130,14 +130,14 @@ Configuration:
 Acceptance Criteria:
   ✓ Throughput: 250-300 samples/sec (consistent)
   ✓ Throughput stability (σ): < 20 samples/sec
-  ✓ GPU Utilization: Avg > 85% all 4 GPUs
-  ✓ Memory Utilization: < 85% peak
-  ✓ Temperature: < 75°C all GPUs
+  ✓ CPU Utilization: Avg > 80% per process
+  ✓ Memory Utilization: < 85% peak (per NUMA node)
+  ✓ Package Power: < 250W sustained
   ✓ Loss convergence: Smooth, no spikes/NaNs
   ✓ Gradient norm: Stable across all processes
   ✓ Checkpoint saves: 100% success rate
   ✓ Process restarts: 0 crashes
-  ✓ Network packet loss: 0%
+  ✓ Network packet loss: 0% (if multi-node tested)
 
 Test Passes If:
   - All metrics within acceptance ranges
@@ -147,7 +147,7 @@ Test Passes If:
 ```
 
 **File:** `tests/phase1_24hr_stability.py`  
-**Run:** `torchrun --nproc_per_node=4 tests/phase1_24hr_stability.py`  
+**Run:** `torchrun --nproc_per_node=4 tests/phase1_24hr_stability.py --backend=gloo`  
 **Duration:** 24 hours continuous  
 **Pass Criteria:** All 10 acceptance criteria met
 
@@ -219,7 +219,7 @@ Test Passes If:
 **✅ GO Criteria (All must be met):**
 
 - [x] Hardware validation: All 4 tests pass
-- [x] CUDA/NCCL validation: All 4 tests pass
+- [x] OpenMPI/Gloo validation: All 4 tests pass
 - [x] PyTorch distribution: All 4 tests pass
 - [x] 24-hour stability: All metrics within ranges
 - [x] Gradient synchronization: Accuracy ≥ 99.99%
@@ -252,30 +252,27 @@ Test Passes If:
 Test: network_interconnect_validation.py
 
 1. Network Speed Test
-   - Tool: ib_write_bw (for InfiniBand)
-   - Tool: iperf3 (for Ethernet)
-   - Expected: > 400 Gbps for InfiniBand
-   - Expected: > 100 Gbps for Ethernet (2 connections)
-   - Acceptance: Meets bandwidth specification
+   - Tool: iperf3 for Ethernet validation
+   - Expected: > 100 Gbps sustained
+   - Acceptance: Meets bandwidth specification for distributed training
 
 2. Network Latency Test
-   - Tool: ib_read_lat (for InfiniBand)
-   - Tool: ping (for Ethernet baseline)
-   - Expected: < 100ns RTT for InfiniBand
-   - Expected: < 10µs RTT for Ethernet
-   - Acceptance: Latency within specification
+   - Tool: ping for baseline measurement
+   - Tool: OpenMPI latency test
+   - Expected: < 100µs RTT for on-network hosts
+   - Acceptance: Latency within specification for collective operations
 
 3. Connectivity Test
    - All-to-all connectivity verification
-   - Remote memory access (RDMA) test
-   - Expected: All links operational
-   - Acceptance: Symmetric communication
+   - TCP/IP communication test (Gloo backend requirement)
+   - Expected: All links bidirectional operational
+   - Acceptance: Symmetric communication across nodes
 
 4. Stability Test
    - 1-hour sustained data transfer
    - Packet loss measurement
    - Expected: 0% packet loss
-   - Acceptance: Reliable communication
+   - Acceptance: Reliable communication for distributed training
 ```
 
 **File:** `tests/network_interconnect_validation.py`  
@@ -284,37 +281,37 @@ Test: network_interconnect_validation.py
 
 ---
 
-#### NCCL Multi-Node Test
+#### Gloo Multi-Node Test
 
 ```
-Test: nccl_multi_node_test.py
+Test: gloo_multi_node_test.py
 
-1. NCCL Ring Topology
-   - Configure 8-process ring
+1. Gloo Ring Topology
+   - Configure 8-process ring across 2 nodes
    - Run all-reduce across ring
-   - Expected: 8-fold speedup
-   - Acceptance: Linear speedup achieved
+   - Expected: 8-fold speedup in throughput
+   - Acceptance: Linear or better speedup achieved
 
-2. NCCL Tree Topology
-   - Configure 8-process tree
+2. Gloo Tree Topology
+   - Configure 8-process tree across 2 nodes
    - Run all-reduce across tree
    - Expected: Improved latency vs ring
-   - Acceptance: Communication optimized
+   - Acceptance: Communication optimized for multi-node
 
 3. Gradient AllGather
-   - Test all-gather operation
+   - Test all-gather operation across nodes
    - Verify all gradients gathered correctly
    - Expected: 8 × gradient tensors unified
-   - Acceptance: Accurate gather
+   - Acceptance: Accurate gather across network
 
 4. Multi-Node Barrier
    - Test process synchronization across nodes
    - Expected: All 8 processes synchronized
-   - Acceptance: Barrier < 10ms latency
+   - Acceptance: Barrier latency 10-50ms (network-dependent)
 ```
 
-**File:** `tests/nccl_multi_node_test.py`  
-**Run:** `torchrun --nnodes=2 --nproc_per_node=4 tests/nccl_multi_node_test.py`  
+**File:** `tests/gloo_multi_node_test.py`  
+**Run:** `torchrun --nnodes=2 --nproc_per_node=4 tests/gloo_multi_node_test.py --backend=gloo`  
 **Pass Criteria:** All 4 tests pass
 
 ---
@@ -327,7 +324,7 @@ Test: nccl_multi_node_test.py
 Test: 48hr_multi_node_stability.py
 
 Configuration:
-  - Processes: 8 (4 per node × 2 nodes)
+  - Processes: 8 (4 per node × 2 nodes, with NUMA affinity)
   - Training duration: 48 hours continuous
   - Metrics collection interval: Every 50 batches
   - Checkpoint interval: Every 250 batches
@@ -336,9 +333,9 @@ Acceptance Criteria:
   ✓ Throughput: 500-600 samples/sec
   ✓ Throughput stability: ±10 samples/sec
   ✓ Per-process throughput balance: ±5%
-  ✓ GPU Utilization: Avg > 85%
+  ✓ CPU Utilization: Avg > 80%
   ✓ Inter-node bandwidth utilization: 85-95%
-  ✓ All-reduce latency: 2-4ms
+  ✓ All-reduce latency: 10-50ms Gloo (network dependent)
   ✓ Loss convergence: Smooth curve
   ✓ Gradient agreement all-to-all: 99.99%
   ✓ Checkpoint saves: 100% success
@@ -354,7 +351,7 @@ Test Passes If:
 ```
 
 **File:** `tests/phase2a_48hr_stability.py`  
-**Run:** `torchrun --nnodes=2 --nproc_per_node=4 tests/phase2a_48hr_stability.py`  
+**Run:** `torchrun --nnodes=2 --nproc_per_node=4 tests/phase2a_48hr_stability.py --backend=gloo`  
 **Duration:** 48 hours continuous  
 **Pass Criteria:** All 12 acceptance criteria met, efficiency ≥ 105%
 

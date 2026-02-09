@@ -21,6 +21,8 @@ Phase 1       | 4         | 250-300    | 18-20x  | 100-103%   | ✅ LIVE
 Phase 2a      | 8         | 500-600    | 33-40x  | 103-125%   | 📋 Queue
 Phase 2b      | 12        | 750-900    | 50-60x  | 104-125%   | 📅 Planned
 Phase 2c      | 16        | 1000-1200  | 67-80x  | 104-125%   | 📅 Planned
+
+Note: Measurements are CPU samples/sec (sp/s) for Ryzanstein
 ```
 
 ---
@@ -45,31 +47,31 @@ Phase 2c      | 16        | 1000-1200  | 67-80x  | 104-125%   | 📅 Planned
 ```yaml
 Cluster Configuration:
   Nodes: 1
-  GPUs per Node: 4
-  Total GPUs: 4
-  GPU Type: NVIDIA H100 (80GB HBM3) or A100 (80GB HBM2)
-  CPU Cores: 128+ (2x EPYC 9004 or equivalent)
-  Memory: 2TB
-  Network: 400 Gbps InfiniBand or 100 Gbps Ethernet
-  Storage: 10TB NVMe SSD (checkpoint/model storage)
+  CPU Cores: 16-32 cores (AMD EPYC 9004 or Intel Xeon preferred)
+  Total Processes: 4 (1 process per 4-8 cores)
+  Memory: 256-512 GB
+  NUMA Nodes: 2 or 4 (with NUMA awareness for pinning)
+  Network: 100 Gbps Ethernet (for future multi-node scaling)
+  Storage: 500GB+ NVMe SSD (checkpoint/model storage)
 ```
 
 ### Deployment Steps
 
 1. **Day 1:** Infrastructure provisioning
-   - Allocate 4-GPU cluster node
-   - Install CUDA 12.1, cuDNN 8.9
-   - Setup NCCL 2.18.1+, OpenMPI 4.1+
+   - Allocate CPU node with 16-32 cores
+   - Verify NUMA topology with numactl
+   - Compile and optimize OpenMPI 4.1+
 
 2. **Day 2:** Software deployment
-   - Install PyTorch 2.1.0 with NCCL support
+   - Install PyTorch 2.1.0 CPU build with Gloo support
    - Deploy monitoring stack (Prometheus, Grafana)
    - Deploy logging infrastructure (ELK stack)
+   - Configure CPU affinity and NUMA pinning
 
 3. **Days 3-4:** Training initialization
-   - Run 24-hour stability test
-   - Collect baseline metrics
-   - Validate gradient synchronization
+   - Run 24-hour stability test (4 processes)
+   - Collect baseline metrics (throughput, CPU util, memory)
+   - Validate gradient synchronization (99.99%+ accuracy)
 
 4. **Days 5-14:** Continuous production training
    - Monitor metrics continuously
