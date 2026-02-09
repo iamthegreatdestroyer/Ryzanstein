@@ -26,7 +26,19 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python dependencies
-        run: pip install pybind11
+        run: pip install pybind11 numpy psutil
+
+      - name: "🤖 Phase 1 Autonomous Optimization: Task 1 - BitNet Kernel Tuning"
+        run: |
+          python "RYZEN-LLM/scripts/kernel_optimizer.py" --repo-root "." --output "RYZEN-LLM/build/kernel_config.cmake" --report
+
+      - name: "🗜️ Phase 1 Autonomous Optimization: Task 2 - Semantic Compression"
+        run: |
+          python "RYZEN-LLM/scripts/semantic_compression.py" --embedding-dim 1024 --sparse-k 32 --report
+
+      - name: "🚀 Phase 1 Autonomous Optimization: Task 3 - Inference-Time Scaling (RLVR)"
+        run: |
+          python "RYZEN-LLM/scripts/inference_scaling.py" --query "Implement binary search tree" --output-type code --report
 
       - name: Configure (Linux)
         if: matrix.os == 'ubuntu-latest'

@@ -5,6 +5,14 @@
 cmake_minimum_required(VERSION 3.20)
 project("Ryzanstein LLM" VERSION 2.0.0 LANGUAGES CXX)
 
+# Phase 1 Autonomous Optimization: Include auto-generated kernel configuration
+if(EXISTS "${CMAKE_BINARY_DIR}/kernel_config.cmake")
+    include("${CMAKE_BINARY_DIR}/kernel_config.cmake")
+    message(STATUS "✅ AUTO-TUNED KERNEL CONFIG LOADED")
+else()
+    message(STATUS "⚠️ Auto-tuned kernel config not found - using defaults")
+endif()
+
 # C++17 Standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
