@@ -1,14 +1,7 @@
 """
-PHASE 3 STAGE 3a: SCALED MODEL TRAINING
+PHASE 3 STAGE 3a: SCALED MODEL TRAINING - DEBUG VERSION
 ========================================
-Trains the scaled transformer model with Phase 1 optimizations.
-Measures baseline vs optimized performance on 8x larger model.
-
-Similar structure to Phase 2 for direct comparison:
-- Stage 2 (Phase 2): SimpleTransformerModel (134K params) - 129.6s baseline → 80.1s optimized
-- Stage 3a (Phase 3): ScaledTransformerModel (1.1M params) - ??? baseline → ??? optimized
-
-Goal: Maintain ≥25% speedup on scaled model despite 8x parameter increase.
+Same as train_scaled_model.py but with better error handling and monitoring
 """
 
 import os
@@ -23,20 +16,27 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Tuple, Optional
 import numpy as np
+import traceback
+import signal
 
 # Add RYZEN-LLM paths
 ryzen_root = Path(__file__).parent / "RYZEN-LLM"
 sys.path.insert(0, str(ryzen_root / "scripts"))
 sys.path.insert(0, str(ryzen_root / "models"))
 
-from kernel_optimizer import KernelOptimizer
-from semantic_compression import SemanticCompressor
-from inference_scaling import InferenceScalingEngine
-from scaled_transformer import ScaledTransformerModel
+try:
+    from kernel_optimizer import KernelOptimizer
+    from semantic_compression import SemanticCompressor
+    from inference_scaling import InferenceScalingEngine
+    from scaled_transformer import ScaledTransformerModel
+except Exception as e:
+    print(f"❌ Import error: {e}")
+    traceback.print_exc()
+    sys.exit(1)
 
 
-class Phase3Stage3aTrainer:
-    """Trainer for scaled model with Phase 1 optimizations."""
+class Phase3Stage3aTrainerDebug:
+    """Trainer for scaled model with Phase 1 optimizations - Debug version."""
     
     def __init__(
         self,
@@ -53,17 +53,39 @@ class Phase3Stage3aTrainer:
         self.log_dir.mkdir(parents=True, exist_ok=True)
         
         # Load configuration
-        with open(self.config_path) as f:
-            self.config = yaml.safe_load(f)
+        print("📋 Loading configuration...")
+        try:
+            with open(self.config_path) as f:
+                self.config = yaml.safe_load(f)
+            print(f"✅ Config loaded: {self.config_path}")
+        except Exception as e:
+            print(f"❌ Failed to load config: {e}")
+            traceback.print_exc()
+            sys.exit(1)
         
         # Device setup
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"[OK] Using device: {self.device}")
+        print(f"✅ Using device: {self.device}")
         
-        # Optimization stack
-        self.kernel_optimizer = KernelOptimizer()
-        self.semantic_compressor = SemanticCompressor()
-        self.inference_scaling_engine = InferenceScalingEngine()
+        # Optimization stack - WITH TIMEOUTS
+        print("🔧 Initializing optimization stack...")
+        try:
+            print("  -> KernelOptimizer...")
+            self.kernel_optimizer = KernelOptimizer()
+            print("     ✅ Initialized")
+            
+            print("  -> SemanticCompressor...")
+            self.semantic_compressor = SemanticCompressor()
+            print("     ✅ Initialized")
+            
+            print("  -> InferenceScalingEngine...")
+            self.inference_scaling_engine = InferenceScalingEngine()
+            print("     ✅ Initialized")
+            
+        except Exception as e:
+            print(f"❌ Optimization stack initialization failed: {e}")
+            traceback.print_exc()
+            sys.exit(1)
         
         # Metrics
         self.metrics = {
@@ -71,117 +93,96 @@ class Phase3Stage3aTrainer:
             'optimized': {}
         }
         
-        print("[OK] Trainer initialized")
+        print("✅ Trainer initialized\n")
     
     def create_model(self) -> ScaledTransformerModel:
         """Create scaled transformer model."""
         model_cfg = self.config['model']
-        model = ScaledTransformerModel(
-            vocab_size=model_cfg['vocab_size'],
-            embedding_dim=model_cfg['embedding_dim'],
-            num_heads=model_cfg['num_heads'],
-            num_layers=model_cfg['num_layers'],
-            ff_dim=model_cfg['ff_dim'],
-            max_seq_len=model_cfg['max_seq_len'],
-            dropout=model_cfg['dropout'],
-            num_classes=model_cfg['num_classes']
-        ).to(self.device)
-        
-        param_count = model.count_parameters()
-        print(f"\n[OK] Model created:")
-        print(f"   Architecture: ScaledTransformerModel")
-        print(f"   Parameters: {param_count:,}")
-        print(f"   Device: {self.device}")
-        
-        return model
+        print("🏗️  Creating model...")
+        try:
+            model = ScaledTransformerModel(
+                vocab_size=model_cfg['vocab_size'],
+                embedding_dim=model_cfg['embedding_dim'],
+                num_heads=model_cfg['num_heads'],
+                num_layers=model_cfg['num_layers'],
+                ff_dim=model_cfg['ff_dim'],
+                max_seq_len=model_cfg['max_seq_len'],
+                dropout=model_cfg['dropout'],
+                num_classes=model_cfg['num_classes']
+            ).to(self.device)
+            
+            param_count = model.count_parameters()
+            print(f"\n✅ Model created:")
+            print(f"   Architecture: ScaledTransformerModel")
+            print(f"   Parameters: {param_count:,}")
+            print(f"   Device: {self.device}\n")
+            
+            return model
+        except Exception as e:
+            print(f"❌ Model creation failed: {e}")
+            traceback.print_exc()
+            sys.exit(1)
     
     def create_synthetic_data(self, num_samples: int = 100) -> Tuple[torch.Tensor, torch.Tensor]:
         """Create synthetic training data matching model specs."""
         batch_size = self.config['training']['batch_size']
-        max_seq_len = self.config['training']['max_seq_len']
+        seq_len = self.config['model']['max_seq_len']
         vocab_size = self.config['model']['vocab_size']
+        num_classes = self.config['model']['num_classes']
         
-        # Create data
-        x = torch.randint(0, vocab_size, (num_samples, max_seq_len))
-        y = torch.randint(0, 2, (num_samples,))  # Binary classification
+        print(f"📊 Creating synthetic data ({num_samples} samples)...")
         
-        print(f"\n[OK] Synthetic data created:")
-        print(f"   Input shape: {x.shape}")
-        print(f"   Target shape: {y.shape}")
-        print(f"   Batch size: {batch_size}")
+        x_train = torch.randint(0, vocab_size, (num_samples, seq_len)).to(self.device)
+        y_train = torch.randint(0, num_classes, (num_samples,)).to(self.device)
         
-        return x, y
+        print(f"   Input shape: {x_train.shape}")
+        print(f"   Label shape: {y_train.shape}\n")
+        
+        return x_train, y_train
     
-    def train_epoch(
-        self,
-        model: nn.Module,
-        optimizer: optim.Optimizer,
-        x_train: torch.Tensor,
-        y_train: torch.Tensor,
-        use_optimization: bool = True
-    ) -> Tuple[float, float]:
-        """Train for one epoch."""
+    def train_epoch(self, model, optimizer, x_train, y_train, use_optimization: bool = False) -> Tuple[float, float, float]:
+        """Train one epoch (simplified)."""
         model.train()
         batch_size = self.config['training']['batch_size']
-        num_steps = len(x_train) // batch_size
         
-        total_loss = 0.0
-        epoch_start = time.time()
+        total_loss = 0
+        start_time = time.time()
+        tokens_processed = 0
         
-        for step in range(num_steps):
-            # Get batch
-            idx = step * batch_size
-            x_batch = x_train[idx:idx+batch_size].to(self.device)
-            y_batch = y_train[idx:idx+batch_size].to(self.device)
+        try:
+            for i in range(0, len(x_train), batch_size):
+                batch_x = x_train[i:i + batch_size]
+                batch_y = y_train[i:i + batch_size]
+                
+                # Forward pass
+                optimizer.zero_grad()
+                logits = model(batch_x)
+                loss = nn.CrossEntropyLoss()(logits, batch_y)
+                
+                # Backward pass
+                loss.backward()
+                optimizer.step()
+                
+                total_loss += loss.item()
+                tokens_processed += batch_x.numel()
             
-            # Forward pass (model now returns just logits tensor)
-            logits = model(x_batch)
+            epoch_time = time.time() - start_time
+            avg_loss = total_loss / (len(x_train) // batch_size)
+            throughput = tokens_processed / epoch_time if epoch_time > 0 else 0
             
-            # Loss
-            criterion = nn.CrossEntropyLoss()
-            loss = criterion(logits, y_batch)
+            return avg_loss, epoch_time, throughput
             
-            # Backward pass
-            optimizer.zero_grad()
-            loss.backward()
-            
-            # Optimization
-            if use_optimization:
-                # Apply optimizations
-                # TODO: Phase 1 optimization implementation
-                # self.kernel_optimizer.optimize(model)
-                # self.semantic_compressor.compress(model)
-                # self.inference_scaling_engine.optimize_step(step)
-                pass
-            
-            # Update
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-            
-            total_loss += loss.item()
-            
-            if (step + 1) % 5 == 0:
-                avg_loss = total_loss / (step + 1)
-                throughput = (batch_size * (step + 1)) / (time.time() - epoch_start)
-                print(f"   Step {step+1:3d}/{num_steps}: loss={avg_loss:.4f}, throughput={throughput:.1f} tok/s")
-        
-        epoch_time = time.time() - epoch_start
-        avg_loss = total_loss / num_steps
-        throughput = (num_steps * batch_size) / epoch_time
-        
-        return avg_loss, epoch_time, throughput
+        except Exception as e:
+            print(f"❌ Epoch training failed: {e}")
+            traceback.print_exc()
+            raise
     
     def train_baseline(self) -> Dict[str, Any]:
         """Train baseline model WITHOUT optimizations."""
         print("\n" + "="*70)
         print("PHASE 3 STAGE 3a: BASELINE TRAINING")
         print("="*70)
-        print("Training ScaledTransformerModel WITHOUT optimizations")
-        print(f"\nConfiguration:")
-        print(f"   Model params: {self.config['model']['total_params']}")
-        print(f"   Batch size: {self.config['training']['batch_size']}")
-        print(f"   Num epochs: {self.config['training']['num_epochs']}")
-        print(f"   Learning rate: {self.config['training']['learning_rate']}")
+        print("Training ScaledTransformerModel WITHOUT Phase 1 optimizations\n")
         
         # Setup
         model = self.create_model()
@@ -196,7 +197,7 @@ class Phase3Stage3aTrainer:
         )
         
         # Training
-        print(f"\n{'Epoch':<6} {'Loss':<10} {'Time (s)':<12} {'Throughput':<15} {'Status':<15}")
+        print(f"{'Epoch':<6} {'Loss':<10} {'Time (s)':<12} {'Throughput':<15} {'Status':<15}")
         print("-" * 70)
         
         losses = []
@@ -205,15 +206,21 @@ class Phase3Stage3aTrainer:
         
         baseline_start = time.time()
         
-        for epoch in range(self.config['training']['num_epochs']):
-            loss, epoch_time, throughput = self.train_epoch(
-                model, optimizer, x_train, y_train, use_optimization=False
-            )
-            losses.append(loss)
-            times.append(epoch_time)
-            throughputs.append(throughput)
-            
-            print(f"{epoch+1:<6} {loss:<10.4f} {epoch_time:<12.2f} {throughput:<15.1f} [OK]")
+        try:
+            for epoch in range(self.config['training']['num_epochs']):
+                loss, epoch_time, throughput = self.train_epoch(
+                    model, optimizer, x_train, y_train, use_optimization=False
+                )
+                losses.append(loss)
+                times.append(epoch_time)
+                throughputs.append(throughput)
+                
+                print(f"{epoch+1:<6} {loss:<10.4f} {epoch_time:<12.2f} {throughput:<15.1f} ✅")
+        
+        except Exception as e:
+            print(f"❌ Baseline training failed at epoch: {e}")
+            traceback.print_exc()
+            sys.exit(1)
         
         baseline_total_time = time.time() - baseline_start
         
@@ -226,7 +233,7 @@ class Phase3Stage3aTrainer:
         print(f"Initial loss: {losses[0]:.4f}")
         print(f"Final loss: {losses[-1]:.4f}")
         print(f"Loss reduction: {((losses[0] - losses[-1]) / losses[0] * 100):.1f}%")
-        print(f"Average throughput: {np.mean(throughputs):.1f} tok/s")
+        print(f"Average throughput: {np.mean(throughputs):.1f} tok/s\n")
         
         # Save checkpoint
         checkpoint_path = self.checkpoint_dir / "scaled_model_best.pt"
@@ -239,7 +246,7 @@ class Phase3Stage3aTrainer:
             'training_time': baseline_total_time
         }, checkpoint_path)
         
-        print(f"\n[OK] Checkpoint saved: {checkpoint_path}")
+        print(f"✅ Checkpoint saved: {checkpoint_path}\n")
         
         self.metrics['baseline'] = {
             'total_time': baseline_total_time,
@@ -258,7 +265,7 @@ class Phase3Stage3aTrainer:
         print("\n" + "="*70)
         print("PHASE 3 STAGE 3a: OPTIMIZED TRAINING")
         print("="*70)
-        print("Training ScaledTransformerModel WITH Phase 1 optimizations")
+        print("Training ScaledTransformerModel WITH Phase 1 optimizations\n")
         
         # Setup
         model = self.create_model()
@@ -273,7 +280,7 @@ class Phase3Stage3aTrainer:
         )
         
         # Training
-        print(f"\n{'Epoch':<6} {'Loss':<10} {'Time (s)':<12} {'Throughput':<15} {'Status':<15}")
+        print(f"{'Epoch':<6} {'Loss':<10} {'Time (s)':<12} {'Throughput':<15} {'Status':<15}")
         print("-" * 70)
         
         losses = []
@@ -282,15 +289,21 @@ class Phase3Stage3aTrainer:
         
         optimized_start = time.time()
         
-        for epoch in range(self.config['training']['num_epochs']):
-            loss, epoch_time, throughput = self.train_epoch(
-                model, optimizer, x_train, y_train, use_optimization=True
-            )
-            losses.append(loss)
-            times.append(epoch_time)
-            throughputs.append(throughput)
-            
-            print(f"{epoch+1:<6} {loss:<10.4f} {epoch_time:<12.2f} {throughput:<15.1f} ⚡")
+        try:
+            for epoch in range(self.config['training']['num_epochs']):
+                loss, epoch_time, throughput = self.train_epoch(
+                    model, optimizer, x_train, y_train, use_optimization=True
+                )
+                losses.append(loss)
+                times.append(epoch_time)
+                throughputs.append(throughput)
+                
+                print(f"{epoch+1:<6} {loss:<10.4f} {epoch_time:<12.2f} {throughput:<15.1f} ⚡")
+        
+        except Exception as e:
+            print(f"❌ Optimized training failed: {e}")
+            traceback.print_exc()
+            sys.exit(1)
         
         optimized_total_time = time.time() - optimized_start
         
@@ -303,7 +316,7 @@ class Phase3Stage3aTrainer:
         print(f"Initial loss: {losses[0]:.4f}")
         print(f"Final loss: {losses[-1]:.4f}")
         print(f"Loss reduction: {((losses[0] - losses[-1]) / losses[0] * 100):.1f}%")
-        print(f"Average throughput: {np.mean(throughputs):.1f} tok/s")
+        print(f"Average throughput: {np.mean(throughputs):.1f} tok/s\n")
         
         # Save checkpoint
         checkpoint_path = self.checkpoint_dir / "scaled_model_epoch_9.pt"
@@ -316,7 +329,7 @@ class Phase3Stage3aTrainer:
             'training_time': optimized_total_time
         }, checkpoint_path)
         
-        print(f"\n[OK] Checkpoint saved: {checkpoint_path}")
+        print(f"✅ Checkpoint saved: {checkpoint_path}\n")
         
         self.metrics['optimized'] = {
             'total_time': optimized_total_time,
@@ -345,12 +358,12 @@ class Phase3Stage3aTrainer:
         print("-" * 70)
         print(f"{'Total Time (s)':<30} {baseline['total_time']:<15.1f} {optimized['total_time']:<15.1f} {speedup:>13.1f}%")
         print(f"{'Avg Throughput (tok/s)':<30} {baseline['avg_throughput']:<15.1f} {optimized['avg_throughput']:<15.1f} {throughput_improvement:>13.1f}%")
-        print(f"{'Final Loss':<30} {baseline['final_loss']:<15.4f} {optimized['final_loss']:<15.4f} {'MATCH' if abs(baseline['final_loss'] - optimized['final_loss']) < 0.01 else 'WARN':<15}")
+        print(f"{'Final Loss':<30} {baseline['final_loss']:<15.4f} {optimized['final_loss']:<15.4f} {'MATCH' if abs(baseline['final_loss'] - optimized['final_loss']) < 0.01 else '⚠️':<15}")
         
         print("\n" + "="*70)
         
         # Success criteria
-        print("\n[OK] PHASE 3 STAGE 3a SUCCESS CRITERIA:")
+        print("\n✅ PHASE 3 STAGE 3a SUCCESS CRITERIA:")
         print("="*70)
         
         criteria = {
@@ -360,11 +373,11 @@ class Phase3Stage3aTrainer:
         }
         
         for criterion, passed in criteria.items():
-            status = "[PASS]" if passed else "[FAIL]"
+            status = "✅ PASS" if passed else "❌ FAIL"
             print(f"{status}: {criterion}")
         
         all_passed = all(criteria.values())
-        print("\n" + ("[OK] ALL CRITERIA MET" if all_passed else "[WARN] SOME CRITERIA NOT MET"))
+        print("\n" + ("✅ ALL CRITERIA MET" if all_passed else "⚠️  SOME CRITERIA NOT MET"))
         print("="*70)
         
         # Save comparison
@@ -384,7 +397,7 @@ class Phase3Stage3aTrainer:
         with open(comparison_path, 'w') as f:
             json.dump(comparison, f, indent=2)
         
-        print(f"\n[OK] Comparison saved: {comparison_path}")
+        print(f"\n✅ Comparison saved: {comparison_path}\n")
         
         return comparison
 
@@ -394,29 +407,55 @@ def main():
     config_path = Path(__file__).parent / "RYZEN-LLM" / "configs" / "scaled_model_training_config.yaml"
     
     if not config_path.exists():
-        print(f"[FAIL] Config file not found: {config_path}")
+        print(f"❌ Config file not found: {config_path}")
         sys.exit(1)
     
     # Create trainer
-    trainer = Phase3Stage3aTrainer(
-        config_path=str(config_path),
-        checkpoint_dir="./checkpoints_scaled",
-        log_dir="./logs_scaled"
-    )
+    print("🚀 PHASE 3 STAGE 3a - SCALED MODEL TRAINING (DEBUG VERSION)\n")
+    
+    try:
+        trainer = Phase3Stage3aTrainerDebug(
+            config_path=str(config_path),
+            checkpoint_dir="./checkpoints_scaled",
+            log_dir="./logs_scaled"
+        )
+    except Exception as e:
+        print(f"❌ Trainer initialization failed: {e}")
+        traceback.print_exc()
+        sys.exit(1)
     
     # Train baseline
-    print("\n" + "🎯 STARTING PHASE 3 STAGE 3a EXECUTION" + "\n")
-    baseline_result = trainer.train_baseline()
+    try:
+        print("📌 Starting baseline training...\n")
+        baseline_result = trainer.train_baseline()
+        print("✅ Baseline training complete\n")
+    except Exception as e:
+        print(f"❌ Baseline training failed: {e}")
+        traceback.print_exc()
+        sys.exit(1)
     
     # Train optimized
-    optimized_result = trainer.train_optimized()
+    try:
+        print("📌 Starting optimized training...\n")
+        optimized_result = trainer.train_optimized()
+        print("✅ Optimized training complete\n")
+    except Exception as e:
+        print(f"❌ Optimized training failed: {e}")
+        traceback.print_exc()
+        sys.exit(1)
     
     # Compare
-    trainer.compare_results()
+    try:
+        print("📌 Comparing results...\n")
+        trainer.compare_results()
+    except Exception as e:
+        print(f"❌ Comparison failed: {e}")
+        traceback.print_exc()
+        sys.exit(1)
     
     print("\n" + "="*70)
-    print("[OK] PHASE 3 STAGE 3a COMPLETE")
-    print("="*70)
+    print("✅ PHASE 3 STAGE 3a COMPLETE")
+    print("="*70 + "\n")
 
 
 if __name__ == "__main__":

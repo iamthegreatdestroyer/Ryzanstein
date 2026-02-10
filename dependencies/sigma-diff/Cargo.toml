@@ -1,0 +1,46 @@
+[package]
+name = "sigma-diff"
+version = "0.1.0"
+edition = "2021"
+authors = ["Ryzanstein Team"]
+description = "Structural AST-aware diff engine for code"
+license = "AGPL-3.0"
+repository = "https://github.com/iamthegreatdestroyer/Ryzanstein"
+
+[lib]
+name = "sigma_diff"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sigma-diff-cli"
+path = "src/bin/cli.rs"
+
+[dependencies]
+tree-sitter = "0.22"
+tree-sitter-python = "0.20"
+tree-sitter-rust = "0.20"
+tree-sitter-javascript = "0.20"
+tree-sitter-go = "0.20"
+similar = "2.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+clap = { version = "4.4", features = ["derive"] }
+tokio = { version = "1.35", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"], default-features = false }
+
+[dev-dependencies]
+tempfile = "3.8"
+pretty_assertions = "1.4"
+criterion = { version = "0.5", features = ["html_reports"] }
+tokio-test = "0.4"
+
+[features]
+python-bindings = []
+simd = []
+
+[[bench]]
+name = "diff_benchmarks"
+harness = false

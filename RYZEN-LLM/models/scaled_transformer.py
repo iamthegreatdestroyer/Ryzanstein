@@ -270,7 +270,8 @@ class ScaledTransformerModel(nn.Module):
         # Classification
         logits = self.classifier(pooled_hidden)
         
-        return logits, pooled_hidden
+        # Return only logits for loss computation
+        return logits
     
     def get_config(self) -> dict:
         """Return model configuration for checkpoint saving."""

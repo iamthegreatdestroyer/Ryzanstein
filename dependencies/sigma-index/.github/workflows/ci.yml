@@ -1,0 +1,52 @@
+name: σ-index CI/CD
+
+on:
+  push:
+    paths: ['dependencies/sigma-index/**']
+  pull_request:
+    paths: ['dependencies/sigma-index/**']
+
+defaults:
+  run:
+    working-directory: dependencies/sigma-index
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust: [stable, nightly]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: dependencies/sigma-index
+      - name: Build
+        run: cargo build --all-features
+      - name: Test
+        run: cargo test --all-features -- --nocapture
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+      - name: Format check
+        run: cargo fmt -- --check
+
+  bench:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: dependencies/sigma-index
+      - name: Run benchmarks
+        run: cargo bench -- --output-format bencher | tee benchmark_results.txt
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: sigma-index-benchmarks
+          path: dependencies/sigma-index/benchmark_results.txt
