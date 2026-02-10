@@ -738,13 +738,13 @@ Monthly Checklist:
 ## Documentation & Sign-Off
 
 **Validation Framework Prepared By:**  
-ML Engineering Lead: ******\_\_\_****** Date: **\_\_\_**
+ML Engineering Lead: **\*\***\_\_\_**\*\*** Date: **\_\_\_**
 
 **Infrastructure Validation By:**  
-Infrastructure Director: ******\_\_\_****** Date: **\_\_\_**
+Infrastructure Director: **\*\***\_\_\_**\*\*** Date: **\_\_\_**
 
 **Operations Sign-Off:**  
-VP Engineering: ******\_\_\_****** Date: **\_\_\_**
+VP Engineering: **\*\***\_\_\_**\*\*** Date: **\_\_\_**
 
 ---
 

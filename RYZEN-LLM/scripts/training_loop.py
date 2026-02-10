@@ -34,9 +34,9 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 # Import Phase 1 optimization modules
 try:
-    from kernel_optimizer import CPUFeatureDetector, KernelOptimizer
-    from semantic_compression import SemanticCompressionEngine
-    from inference_scaling import InferenceScalingController
+    from kernel_optimizer import KernelOptimizer
+    from semantic_compression import SemanticCompressor
+    from inference_scaling import InferenceScalingEngine
     PHASE1_AVAILABLE = True
 except ImportError as e:
     logging.warning(f"Phase 1 modules not fully available: {e}")
@@ -330,22 +330,21 @@ class TrainingLoop:
         logger.info("Initializing Phase 1 optimizations...")
         
         try:
-            # CPU feature detection and kernel optimization
-            cpu_detector = CPUFeatureDetector()
-            cpu_features = cpu_detector.detect()
-            logger.info(f"CPU features detected: {cpu_features['supported_features']}")
-            
-            self.kernel_optimizer = KernelOptimizer(cpu_features)
+            # Kernel optimization (includes CPU feature detection)
+            repo_root = Path(__file__).parent.parent.name  # Get RYZEN-LLM directory name
+            self.kernel_optimizer = KernelOptimizer(repo_root="RYZEN-LLM")
+            cpu_features = self.kernel_optimizer.cpu_features
+            logger.info(f"CPU features detected: {cpu_features}")
             logger.info("Kernel optimizer initialized")
             
             # Semantic compression engine
-            self.compression_engine = SemanticCompressionEngine(
+            self.compression_engine = SemanticCompressor(
                 compression_ratio=self.config['optimization'].get('compression_ratio', 0.3)
             )
             logger.info("Semantic compression engine initialized")
             
             # Inference scaling controller
-            self.inference_controller = InferenceScalingController()
+            self.inference_controller = InferenceScalingEngine()
             logger.info("Inference scaling controller initialized")
             
             # Integrated optimization controller

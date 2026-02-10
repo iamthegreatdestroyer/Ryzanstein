@@ -543,19 +543,19 @@ On-Call:
 
 **Prepared By:**
 
-- ML Engineering Lead: ******\_\_\_****** Date: **\_\_\_\_**
+- ML Engineering Lead: **\*\***\_\_\_**\*\*** Date: **\_\_\_\_**
 
 **Reviewed By:**
 
-- Infrastructure Director: ******\_\_\_****** Date: **\_\_\_\_**
+- Infrastructure Director: **\*\***\_\_\_**\*\*** Date: **\_\_\_\_**
 
 **Approved By:**
 
-- VP Engineering: ******\_\_\_****** Date: **\_\_\_\_**
+- VP Engineering: **\*\***\_\_\_**\*\*** Date: **\_\_\_\_**
 
 **Final Authorization:**
 
-- CTO: ******\_\_\_****** Date: **\_\_\_\_**
+- CTO: **\*\***\_\_\_**\*\*** Date: **\_\_\_\_**
 
 ---
 
