@@ -10,6 +10,9 @@
 #include <numeric>
 #include <random>
 #include <fstream>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace ryzanstein_llm
 {
@@ -76,6 +79,22 @@ namespace ryzanstein_llm
                 spec_config.batch_size = 1;
 
                 speculative_decoder_ = std::make_unique<speculative::SpeculativeDecoder>(spec_config);
+            }
+
+            // Log SIMD capabilities at startup
+            {
+                avx512::CPUFeatures simd_caps;
+                std::cout << "[Engine] " << simd_caps.to_string() << "\n";
+                std::cout << "[Engine] AVX-512 VNNI matvec: "
+                          << (simd_caps.supports_optimized_kernel() ? "ACTIVE" : "DISABLED (scalar fallback)")
+                          << "\n";
+                std::cout << "[Engine] OpenMP threads: "
+#ifdef _OPENMP
+                          << omp_get_max_threads()
+#else
+                          << 1
+#endif
+                          << "\n";
             }
 
             // Initialize T-MAC engine if enabled

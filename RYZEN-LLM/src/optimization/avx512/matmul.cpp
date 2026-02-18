@@ -30,6 +30,9 @@
 #include <algorithm>
 #include <sstream>
 #include <chrono>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace ryzanstein_llm
 {
@@ -313,11 +316,51 @@ namespace ryzanstein_llm
             uint32_t M,
             uint32_t K)
         {
+            static CPUFeatures features;
+            static bool logged = false;
+
+            if (!logged)
+            {
+                std::cout << "[SIMD] dispatch_ternary_matvec: " << features.to_string() << std::endl;
+                std::cout << "[SIMD] Optimized matvec: "
+                          << (features.has_avx512f ? "YES (AVX-512)" : "NO (OpenMP scalar)")
+                          << std::endl;
+                logged = true;
+            }
+
             auto start = std::chrono::high_resolution_clock::now();
 
-            // For now, always use the scalar implementation
-            // TODO: Add AVX2/AVX-512 optimized matvec if needed
-            bitnet::ternary_matvec(weights, input, output, M, K);
+            if (features.has_avx512f)
+            {
+                // Route through the tiled AVX-512 VNNI kernel (N=1 column)
+                optimized_ternary_matmul(weights, input, output, M, 1, K);
+            }
+            else
+            {
+                // OpenMP-parallelized scalar fallback — one thread per output row
+                const float act_scale = input.scale;
+                const int8_t act_zp   = input.zero_point;
+
+#ifdef _OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+                for (int32_t m = 0; m < static_cast<int32_t>(M); ++m)
+                {
+                    float local_sum = 0.0f;
+                    for (uint32_t k = 0; k < K; ++k)
+                    {
+                        const int8_t ternary_w = weights.values[static_cast<uint32_t>(m) * K + k];
+                        if (ternary_w == 0) continue;
+                        const float weight_scale =
+                            weights.get_scale(static_cast<uint32_t>(m) * K + k);
+                        const int8_t quantized_x = input.values[k];
+                        const float dequantized_x =
+                            (static_cast<float>(quantized_x) - act_zp) * act_scale;
+                        local_sum += static_cast<float>(ternary_w) * weight_scale * dequantized_x;
+                    }
+                    output[m] = local_sum;
+                }
+            }
 
             auto end = std::chrono::high_resolution_clock::now();
             double time_ms = std::chrono::duration<double, std::milli>(end - start).count();

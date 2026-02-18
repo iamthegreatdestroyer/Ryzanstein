@@ -14,12 +14,13 @@ Key Features:
 """
 
 from typing import List, Optional, Dict, Any, AsyncIterator
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 import asyncio
 import sys
 import os
+import uuid as _uuid_mod
 from pathlib import Path
 
 # Add the build directory to Python path for bindings
@@ -160,6 +161,29 @@ def simple_detokenize(tokens: List[int]) -> str:
     return " ".join([f"token_{token}" for token in tokens])
 
 
+# Initialize tracing (Sprint 3.2) — non-blocking, graceful fallback
+try:
+    from .tracing_integration import (
+        setup_tracing, trace_inference_request, TracingMiddleware, get_global_tracer
+    )
+    _TRACING_AVAILABLE = True
+except ImportError:
+    try:
+        from tracing_integration import (
+            setup_tracing, trace_inference_request, TracingMiddleware, get_global_tracer
+        )
+        _TRACING_AVAILABLE = True
+    except ImportError:
+        _TRACING_AVAILABLE = False
+        from contextlib import contextmanager
+
+        @contextmanager
+        def trace_inference_request(model, prompt_tokens, max_tokens, request_id=None):
+            class _NoOpSpan:
+                tags = {}
+            yield _NoOpSpan()
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Ryzanstein LLM API",
@@ -167,10 +191,17 @@ app = FastAPI(
     version="0.1.0"
 )
 
-
-# TODO: Initialize dependencies
-# router = ModelRouter(...)
-# retriever = SelectiveRetriever(...)
+# Wire tracing middleware (Sprint 3.2)
+if _TRACING_AVAILABLE:
+    try:
+        _tracer = setup_tracing(
+            service_name="ryzanstein-llm",
+            use_in_memory=os.environ.get("TRACING_JAEGER_HOST") is None,
+        )
+        app.add_middleware(TracingMiddleware, service_name="ryzanstein-llm")
+        print("✓ Distributed tracing (Sprint 3.2) initialized")
+    except Exception as _te:
+        print(f"Warning: Tracing middleware setup failed ({_te}) — continuing without tracing")
 
 
 @app.get("/")
@@ -261,45 +292,56 @@ async def chat_completions(
         raise HTTPException(status_code=400, detail="No user message found")
 
     user_input = user_messages[-1].content
+    request_id = _uuid_mod.uuid4().hex[:8]
+
+    # Estimate prompt tokens for tracing
+    prompt_token_estimate = len(user_input.split())
 
     try:
-        # Check if using mock engine with generate_text method
-        if USING_MOCK and hasattr(engine, 'generate_text'):
-            # Use mock engine's text generation directly
-            gen_config = rlb.GenerationConfig()
-            gen_config.max_tokens = request.max_tokens or 100
-            gen_config.temperature = request.temperature
-            response_text = engine.generate_text(user_input, gen_config)
-            input_token_count = len(user_input.split())
-            output_token_count = len(response_text.split())
-        else:
-            # Use token-based generation for real engine
-            input_tokens = simple_tokenize(user_input)
-            if not input_tokens:
-                raise HTTPException(status_code=400, detail="Failed to tokenize input")
+        with trace_inference_request(
+            model=request.model,
+            prompt_tokens=prompt_token_estimate,
+            max_tokens=request.max_tokens or 100,
+            request_id=request_id,
+        ) as _span:
+            # Check if using mock engine with generate_text method
+            if USING_MOCK and hasattr(engine, 'generate_text'):
+                gen_config = rlb.GenerationConfig()
+                gen_config.max_tokens = request.max_tokens or 100
+                gen_config.temperature = request.temperature
+                response_text = engine.generate_text(user_input, gen_config)
+                input_token_count = len(user_input.split())
+                output_token_count = len(response_text.split())
+            else:
+                # Use token-based generation for real engine
+                input_tokens = simple_tokenize(user_input)
+                if not input_tokens:
+                    raise HTTPException(status_code=400, detail="Failed to tokenize input")
 
-            # Create generation config
-            gen_config = rlb.GenerationConfig()
-            gen_config.max_tokens = request.max_tokens or 100
-            gen_config.temperature = request.temperature
-            gen_config.top_p = request.top_p
-            gen_config.top_k = 50
-            gen_config.repetition_penalty = 1.1
+                # Create generation config
+                gen_config = rlb.GenerationConfig()
+                gen_config.max_tokens = request.max_tokens or 100
+                gen_config.temperature = request.temperature
+                gen_config.top_p = request.top_p
+                gen_config.top_k = 50
+                gen_config.repetition_penalty = 1.1
 
-            # Generate response
-            output_tokens = engine.generate(input_tokens, gen_config)
+                # Generate response
+                output_tokens = engine.generate(input_tokens, gen_config)
 
-            # Detokenize response
-            response_text = simple_detokenize(output_tokens)
-            input_token_count = len(input_tokens)
-            output_token_count = len(output_tokens)
+                # Detokenize response
+                response_text = simple_detokenize(output_tokens)
+                input_token_count = len(input_tokens)
+                output_token_count = len(output_tokens)
+
+            # Record output token count in span
+            _span.tags["output_tokens"] = output_token_count
 
         # Create response
         import time
-        import uuid
 
         response = {
-            "id": f"chatcmpl-{uuid.uuid4().hex[:16]}",
+            "id": f"chatcmpl-{request_id}",
             "object": "chat.completion",
             "created": int(time.time()),
             "model": request.model,
@@ -320,6 +362,8 @@ async def chat_completions(
 
         return response
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
 @app.post("/v1/embeddings")
