@@ -48,3 +48,26 @@ htmlcov/
 build/
 cmake-build-*/
 out/
+
+# Workspace & build artifacts to reduce Source Control noise
+# Rust/Cargo build output
+target/
+**/target/
+
+# Editor, environment & IDE
+.vscode/
+.claude/
+.venv/
+venv/
+.env
+.env.local
+.ipynb_checkpoints/
+
+# Node / JS
+node_modules/
+
+# Logs and temporary files
+*.log
+logs/
+.DS_Store
+Thumbs.db
