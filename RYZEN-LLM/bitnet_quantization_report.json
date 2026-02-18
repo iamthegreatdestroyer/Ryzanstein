@@ -6,14 +6,14 @@
   "compression_ratio": 29.629670734148657,
   "total_layers": 542,
   "quantized_layers": 542,
-  "mean_error": 1062.8551670973313,
-  "max_error": 4279.24072265625,
+  "mean_error": 1062.8551676835004,
+  "max_error": 4279.240234375,
   "min_error": 0.0,
-  "error_std": 1343.3676791351827,
+  "error_std": 1343.3676805897155,
   "quantization_time_ms": 0,
   "load_time_ms": 0,
   "total_time_ms": 0,
-  "timestamp": "2026-01-02T10:39:36.703977",
+  "timestamp": "2026-02-18T06:22:23.686826",
   "model_url": "https://huggingface.co/microsoft/bitnet-b1.58-2B-4T",
   "quantization_config": "aggressive"
 }

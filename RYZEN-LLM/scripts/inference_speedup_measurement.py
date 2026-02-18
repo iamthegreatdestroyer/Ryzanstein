@@ -127,7 +127,7 @@ class SimulatedReasoningPath:
 
 # ============================================================================
 # Speculative Decoding + Verification
-// ============================================================================
+# ============================================================================
 
 class SpeculativeDecoder:
     """Simulates speculative decoding with multi-path verification"""
@@ -171,8 +171,8 @@ class SpeculativeDecoder:
 
 
 # ============================================================================
-// Inference Engine (Simulation)
-// ============================================================================
+# Inference Engine (Simulation)
+# ============================================================================
 
 class BaselineInferenceSimulator:
     """Simulates baseline inference (without RLVR reasoning)"""
@@ -275,8 +275,8 @@ class RLVRInferenceSimulator:
 
 
 # ============================================================================
-// Benchmark Suite
-// ============================================================================
+# Benchmark Suite
+# ============================================================================
 
 class InferenceSpeedupBenchmark:
     """Comprehensive inference speedup benchmarking suite"""
@@ -298,7 +298,7 @@ class InferenceSpeedupBenchmark:
         for complexity, query in tasks:
             print(f"\n🔍 Benchmarking {complexity.upper()} tasks...", end="", flush=True)
             
-            Reports = []
+            reports = []
             for _ in range(self.num_queries):
                 baseline = BaselineInferenceSimulator.infer(complexity, len(query))
                 rlvr = RLVRInferenceSimulator.infer(complexity, len(query))
@@ -437,8 +437,8 @@ class InferenceSpeedupBenchmark:
 
 
 # ============================================================================
-// CLI Interface
-// ============================================================================
+# CLI Interface
+# ============================================================================
 
 def main():
     parser = argparse.ArgumentParser(

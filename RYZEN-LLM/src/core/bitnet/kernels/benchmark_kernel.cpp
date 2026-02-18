@@ -339,6 +339,18 @@ public:
 
     BenchmarkResult benchmark_avx512()
     {
+        // Runtime check: AVX-512 causes illegal instruction on CPUs without support
+        // (e.g., Ryzen 7 7730U is Zen 3 — no AVX-512)
+        CPUCapabilities::Features features = CPUCapabilities::detect();
+        if (!features.avx512f)
+        {
+            std::cout << "\n⚠️  AVX-512 not supported on this CPU — falling back to AVX2..." << std::flush;
+            // Return AVX2 result labeled as avx512 fallback so report logic still works
+            auto result = benchmark_avx2();
+            result.name = "avx512_fallback_avx2";
+            return result;
+        }
+
         std::cout << "\n🔍 Benchmarking AVX-512 Optimized..." << std::flush;
 
         float *A = allocate_matrix(matrix_size_);
