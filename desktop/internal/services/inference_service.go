@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 )
@@ -104,18 +105,39 @@ func (is *InferenceService) Execute(ctx context.Context, req *InferenceRequest) 
 
 	duration := time.Since(startTime)
 
-	// Parse response (in real implementation)
+	// Parse response from client manager
+	var responseText string
+	if resultMap, ok := result.(map[string]interface{}); ok {
+		if data, exists := resultMap["data"]; exists {
+			if reqData, ok := data.(*InferenceRequest); ok {
+				// Generate a more intelligent response based on the agent
+				agent := "unknown"
+				if reqData.Metadata != nil {
+					if agentVal, ok := reqData.Metadata["agent"].(string); ok {
+						agent = agentVal
+					}
+				}
+
+				responseText = fmt.Sprintf("🤖 %s here! I've analyzed your request: '%s'. This is currently a simulated response - real LLM inference would be connected here.",
+					agent, reqData.Prompt)
+			}
+		}
+	}
+
+	if responseText == "" {
+		responseText = fmt.Sprintf("Generated response for: %s", req.Prompt)
+	}
+
 	response := &InferenceResponse{
-		Text:     fmt.Sprintf("Generated text for: %s", req.Prompt),
-		Tokens:   req.MaxTokens,
+		Text:     responseText,
+		Tokens:   len(strings.Split(responseText, " ")), // Rough token count
 		Duration: duration,
 		Model:    req.ModelID,
 		Metadata: map[string]interface{}{
 			"timestamp": startTime,
+			"agent":     req.Metadata["agent"],
 		},
 	}
-
-	_ = result // Use result in real implementation
 
 	// Update metrics
 	is.mu.Lock()

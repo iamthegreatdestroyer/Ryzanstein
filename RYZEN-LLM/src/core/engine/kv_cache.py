@@ -9,7 +9,7 @@ import numpy as np
 from typing import Dict, List, Optional, Tuple
 import time
 
-from ...api.types import KVCacheState
+from ...api.api_types import KVCacheState
 from ...api.interfaces import CacheManagerProtocol
 from ...api.exceptions import CacheError
 
@@ -217,3 +217,4 @@ class KVCache(CacheManagerProtocol):
                 p for p in self._anchor_positions if p < length
             ]
             self._anchor_hashes = self._anchor_hashes[:len(self._anchor_positions)]
+

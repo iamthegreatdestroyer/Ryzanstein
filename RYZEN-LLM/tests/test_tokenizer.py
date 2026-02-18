@@ -2,7 +2,7 @@
 
 import pytest
 from src.core.tokenizer import BPETokenizer
-from src.api.types import TokenSequence
+from src.api.api_types import TokenSequence
 
 
 class TestBPETokenizer:
@@ -53,3 +53,4 @@ def tokenizer():
     tok._reverse_vocab = {10: "hello", 11: "world", 12: "test", 3: "<unk>"}
     tok._vocab_size = 4
     return tok
+

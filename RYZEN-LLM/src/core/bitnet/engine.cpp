@@ -10,6 +10,9 @@
 #include <numeric>
 #include <random>
 #include <fstream>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace ryzanstein_llm
 {
@@ -21,7 +24,28 @@ namespace ryzanstein_llm
         // ============================================================================
 
         bitnet::BitNetEngine::BitNetEngine(const ModelConfig &config)
-            : config_(config), q_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.hidden_size)), k_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.hidden_size)), v_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.hidden_size)), o_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.hidden_size)), gate_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.intermediate_size)), up_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.intermediate_size)), down_weights_(config.num_layers, TernaryWeight(config.intermediate_size, config.hidden_size)), attn_norm_weights_(config.num_layers, std::vector<float>(config.hidden_size, 1.0f)), mlp_norm_weights_(config.num_layers, std::vector<float>(config.hidden_size, 1.0f)), final_norm_weights_(config.hidden_size, 1.0f), lm_head_weights_(config.hidden_size * config.vocab_size, 0.0f), hidden_states_(config.hidden_size, 0.0f), residual_(config.hidden_size, 0.0f), attn_output_(config.hidden_size, 0.0f), mlp_output_(config.hidden_size, 0.0f)
+            : config_(config),
+              // Attention weights: Q, K, V, O projections [hidden_size × hidden_size]
+              q_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.hidden_size)),
+              k_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.hidden_size)),
+              v_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.hidden_size)),
+              o_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.hidden_size)),
+              // MLP weights: gate/up [intermediate × hidden], down [hidden × intermediate]
+              // These must match the matmul dimensions: Y[M×N] = W[M×K] × X[K×N]
+              gate_weights_(config.num_layers, TernaryWeight(config.intermediate_size, config.hidden_size)),
+              up_weights_(config.num_layers, TernaryWeight(config.intermediate_size, config.hidden_size)),
+              down_weights_(config.num_layers, TernaryWeight(config.hidden_size, config.intermediate_size)),
+              // Normalization weights
+              attn_norm_weights_(config.num_layers, std::vector<float>(config.hidden_size, 1.0f)),
+              mlp_norm_weights_(config.num_layers, std::vector<float>(config.hidden_size, 1.0f)),
+              final_norm_weights_(config.hidden_size, 1.0f),
+              // Output projection
+              lm_head_weights_(config.hidden_size * config.vocab_size, 0.0f),
+              // Working buffers
+              hidden_states_(config.hidden_size, 0.0f),
+              residual_(config.hidden_size, 0.0f),
+              attn_output_(config.hidden_size, 0.0f),
+              mlp_output_(config.hidden_size, 0.0f)
         {
             // Initialize advanced KV cache manager
             memory::KVCacheConfig kv_config;
@@ -55,6 +79,22 @@ namespace ryzanstein_llm
                 spec_config.batch_size = 1;
 
                 speculative_decoder_ = std::make_unique<speculative::SpeculativeDecoder>(spec_config);
+            }
+
+            // Log SIMD capabilities at startup
+            {
+                avx512::CPUFeatures simd_caps;
+                std::cout << "[Engine] " << simd_caps.to_string() << "\n";
+                std::cout << "[Engine] AVX-512 VNNI matvec: "
+                          << (simd_caps.supports_optimized_kernel() ? "ACTIVE" : "DISABLED (scalar fallback)")
+                          << "\n";
+                std::cout << "[Engine] OpenMP threads: "
+#ifdef _OPENMP
+                          << omp_get_max_threads()
+#else
+                          << 1
+#endif
+                          << "\n";
             }
 
             // Initialize T-MAC engine if enabled
@@ -424,9 +464,11 @@ namespace ryzanstein_llm
                 o_weights_[layer] = quantize_weights_ternary(temp_o.data(), config_.hidden_size, config_.hidden_size, config_.quant_config);
 
                 // MLP weights
-                std::vector<float> temp_gate(config_.hidden_size * config_.intermediate_size);
-                std::vector<float> temp_up(config_.hidden_size * config_.intermediate_size);
-                std::vector<float> temp_down(config_.intermediate_size * config_.hidden_size);
+                // gate/up: [intermediate_size × hidden_size] for W × x where x is [hidden × 1]
+                // down: [hidden_size × intermediate_size] for W × x where x is [intermediate × 1]
+                std::vector<float> temp_gate(config_.intermediate_size * config_.hidden_size);
+                std::vector<float> temp_up(config_.intermediate_size * config_.hidden_size);
+                std::vector<float> temp_down(config_.hidden_size * config_.intermediate_size);
 
                 for (auto &w : temp_gate)
                     w = dist(gen);
@@ -435,9 +477,9 @@ namespace ryzanstein_llm
                 for (auto &w : temp_down)
                     w = dist(gen);
 
-                gate_weights_[layer] = quantize_weights_ternary(temp_gate.data(), config_.hidden_size, config_.intermediate_size, config_.quant_config);
-                up_weights_[layer] = quantize_weights_ternary(temp_up.data(), config_.hidden_size, config_.intermediate_size, config_.quant_config);
-                down_weights_[layer] = quantize_weights_ternary(temp_down.data(), config_.intermediate_size, config_.hidden_size, config_.quant_config);
+                gate_weights_[layer] = quantize_weights_ternary(temp_gate.data(), config_.intermediate_size, config_.hidden_size, config_.quant_config);
+                up_weights_[layer] = quantize_weights_ternary(temp_up.data(), config_.intermediate_size, config_.hidden_size, config_.quant_config);
+                down_weights_[layer] = quantize_weights_ternary(temp_down.data(), config_.hidden_size, config_.intermediate_size, config_.quant_config);
 
                 // Layer norms (keep as float32 for precision)
                 std::normal_distribution<float> norm_dist(1.0f, 0.02f);
@@ -658,30 +700,38 @@ namespace ryzanstein_llm
                 h,
                 config_.quant_config);
 
-            // Compute Q, K, V projections using optimized matmul (T-MAC or AVX-512)
-            dispatch_ternary_matmul(
+            // Compute Q, K, V projections using matrix-vector multiplication
+            // Each projection: output = weights @ input where weights is [h×h], input is [h]
+            avx512::dispatch_ternary_matvec(
                 q_weights_[layer_idx],
                 q_input,
                 q.data(),
-                h, 1, h);
+                h, h); // M=hidden, K=hidden
 
-            dispatch_ternary_matmul(
+            avx512::dispatch_ternary_matvec(
                 k_weights_[layer_idx],
                 q_input,
                 k.data(),
-                h, 1, h);
+                h, h); // M=hidden, K=hidden
 
-            dispatch_ternary_matmul(
+            avx512::dispatch_ternary_matvec(
                 v_weights_[layer_idx],
                 q_input,
                 v.data(),
-                h, 1, h);
+                h, h); // M=hidden, K=hidden
 
             // Apply rotary positional embeddings
             apply_rotary_embeddings(q.data(), k.data(), position, head_dim);
 
             // Store K, V in advanced cache manager
             const uint64_t sequence_id = 0; // Single sequence for now
+
+            // IMPORTANT: Append token FIRST to make room in cache
+            // Only append on first layer to avoid multi-counting
+            if (layer_idx == 0)
+            {
+                kv_cache_manager_->AppendTokens(sequence_id, 1);
+            }
 
             // Get cache pointers for current position
             float *k_cache_ptr = kv_cache_manager_->GetKeyCache(sequence_id, layer_idx, position);
@@ -692,9 +742,6 @@ namespace ryzanstein_llm
                 // Copy K and V to cache
                 std::copy(k.begin(), k.end(), k_cache_ptr);
                 std::copy(v.begin(), v.end(), v_cache_ptr);
-
-                // Update cache length
-                kv_cache_manager_->AppendTokens(sequence_id, 1);
             }
 
             // Get current sequence length
@@ -750,18 +797,19 @@ namespace ryzanstein_llm
                 }
             }
 
-            // Output projection
+            // Output projection: final = o_weights @ attn_output
+            // o_weights is [h×h], attn_output is [h], final is [h]
             QuantizedActivation q_attn_out = quantize_activations_int8(
                 output,
                 h,
                 config_.quant_config);
 
             std::vector<float> final_output(h, 0.0f);
-            dispatch_ternary_matmul(
+            avx512::dispatch_ternary_matvec(
                 o_weights_[layer_idx],
                 q_attn_out,
                 final_output.data(),
-                h, 1, h);
+                h, h); // M=hidden, K=hidden
 
             std::copy(final_output.begin(), final_output.end(), output);
         }
@@ -780,21 +828,22 @@ namespace ryzanstein_llm
                 h,
                 config_.quant_config);
 
-            // Gate and Up projections
+            // Gate and Up projections using proper matrix-vector multiplication
+            // gate = gate_weights @ input, where gate_weights is [i×h], input is [h], gate is [i]
             std::vector<float> gate(i, 0.0f);
             std::vector<float> up(i, 0.0f);
 
-            dispatch_ternary_matmul(
+            avx512::dispatch_ternary_matvec(
                 gate_weights_[layer_idx],
                 q_input,
                 gate.data(),
-                static_cast<uint32_t>(i), 1, h);
+                i, h); // M=intermediate, K=hidden
 
-            dispatch_ternary_matmul(
+            avx512::dispatch_ternary_matvec(
                 up_weights_[layer_idx],
                 q_input,
                 up.data(),
-                i, 1, h);
+                i, h); // M=intermediate, K=hidden
 
             // SwiGLU activation: gate * SiLU(up)
             std::vector<float> swiglu(i, 0.0f);
@@ -805,17 +854,18 @@ namespace ryzanstein_llm
                 swiglu[j] = gate[j] * (up[j] * sigmoid);
             }
 
-            // Down projection
+            // Down projection: output = down_weights @ swiglu
+            // down_weights is [h×i], swiglu is [i], output is [h]
             QuantizedActivation q_swiglu = quantize_activations_int8(
                 swiglu.data(),
                 i,
                 config_.quant_config);
 
-            dispatch_ternary_matmul(
+            avx512::dispatch_ternary_matvec(
                 down_weights_[layer_idx],
                 q_swiglu,
                 output,
-                h, 1, static_cast<uint32_t>(i));
+                h, i); // M=hidden, K=intermediate
         }
 
         // ============================================================================

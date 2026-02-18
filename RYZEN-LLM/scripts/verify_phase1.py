@@ -60,7 +60,7 @@ def verify_imports():
         from src.core.engine import RyotEngine, KVCache
         
         from src.api.interfaces import InferenceEngine, CacheManagerProtocol
-        from src.api.types import GenerationConfig, GenerationResult
+        from src.api.api_types import GenerationConfig, GenerationResult
         
         print("✓ All imports successful")
         return True
@@ -93,7 +93,7 @@ def verify_generation():
     """Verify generation works."""
     try:
         from src.core.engine import RyotEngine
-        from src.api.types import GenerationConfig
+        from src.api.api_types import GenerationConfig
         
         engine = RyotEngine()
         result = engine.generate(
@@ -142,3 +142,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

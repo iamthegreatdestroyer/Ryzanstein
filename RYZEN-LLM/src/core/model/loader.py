@@ -12,7 +12,7 @@ import numpy as np
 
 from .config import BitNetConfig
 from .quantization import QuantizedTensor, quantize_ternary
-from ...api.types import ModelInfo, ModelType, QuantizationType
+from ...api.api_types import ModelInfo, ModelType, QuantizationType
 from ...api.exceptions import ModelNotLoadedError
 
 
@@ -183,3 +183,4 @@ class ModelLoader:
     def is_loaded(self) -> bool:
         """Check if model is loaded."""
         return self._loaded
+

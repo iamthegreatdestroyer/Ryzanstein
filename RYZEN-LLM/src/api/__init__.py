@@ -14,7 +14,7 @@ from .interfaces import (
     EngineFactoryProtocol,
 )
 
-from .types import (
+from .api_types import (
     ModelType, InferenceMode, QuantizationType, CacheStrategy, StopReason,
     TokenSequence, GenerationConfig, GenerationResult, StreamChunk,
     ModelInfo, KVCacheState, SigmaEncodedContext, RSUReference,
@@ -39,3 +39,4 @@ __all__ = [
 ]
 
 __version__ = "0.1.0"
+

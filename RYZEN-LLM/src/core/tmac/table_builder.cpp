@@ -48,7 +48,7 @@ namespace ryzanstein_llm
 
             // Step 3: Build tier 1 and tier 2 tables
             std::cout << "[3/5] Building tier 1 (hot cache)..." << std::flush;
-            auto tier1 = build_tier1(tier1_patterns, -32, 31);
+            auto tier1 = build_tier1(tier1_patterns, -128, 127);
             std::cout << " Done. Size: " << (tier1.size_bytes() / 1024.0 / 1024.0) << " MB\n";
 
             std::cout << "[4/5] Building tier 2 (warm cache)..." << std::flush;

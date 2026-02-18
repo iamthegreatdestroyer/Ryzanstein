@@ -13,7 +13,7 @@ import (
 
 // ClientManager handles REST and gRPC client initialization and lifecycle
 type ClientManager struct {
-	config *config.Config
+	config *config.AppConfig
 
 	// REST client
 	restClient interface{} // Would be *http.Client in real implementation
@@ -34,7 +34,7 @@ type ClientManager struct {
 }
 
 // NewClientManager creates a new client manager with given config
-func NewClientManager(cfg *config.Config) *ClientManager {
+func NewClientManager(cfg *config.AppConfig) *ClientManager {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &ClientManager{

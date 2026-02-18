@@ -5,10 +5,22 @@
 cmake_minimum_required(VERSION 3.20)
 project("Ryzanstein LLM" VERSION 2.0.0 LANGUAGES CXX)
 
+# Phase 1 Autonomous Optimization: Include auto-generated kernel configuration
+if(EXISTS "${CMAKE_BINARY_DIR}/kernel_config.cmake")
+    include("${CMAKE_BINARY_DIR}/kernel_config.cmake")
+    message(STATUS "✅ AUTO-TUNED KERNEL CONFIG LOADED")
+else()
+    message(STATUS "⚠️ Auto-tuned kernel config not found - using defaults")
+endif()
+
 # C++17 Standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Enable position-independent code for all targets (required for linking
+# static libraries into shared objects like pybind11 modules on Linux)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Build type
 if(NOT CMAKE_BUILD_TYPE)

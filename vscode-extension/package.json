@@ -24,7 +24,6 @@
     "code-generation",
     "refactoring"
   ],
-  "icon": "resources/icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/iamthegreatdestroyer/Ryzanstein.git"
@@ -196,6 +195,38 @@
         }
       ]
     },
+    "chatModels": [
+      {
+        "id": "ryzanstein",
+        "label": "Ryzanstein",
+        "kind": "remote",
+        "vendor": "ryzanstein"
+      },
+      {
+        "id": "ryzanstein-apex",
+        "label": "Ryzanstein (@APEX)",
+        "kind": "remote",
+        "vendor": "ryzanstein"
+      },
+      {
+        "id": "ryzanstein-architect",
+        "label": "Ryzanstein (@ARCHITECT)",
+        "kind": "remote",
+        "vendor": "ryzanstein"
+      },
+      {
+        "id": "ryzanstein-tensor",
+        "label": "Ryzanstein (@TENSOR)",
+        "kind": "remote",
+        "vendor": "ryzanstein"
+      },
+      {
+        "id": "ryzanstein-cipher",
+        "label": "Ryzanstein (@CIPHER)",
+        "kind": "remote",
+        "vendor": "ryzanstein"
+      }
+    ],
     "configuration": {
       "title": "Ryzanstein",
       "properties": {
@@ -254,6 +285,7 @@
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.10.0",
+    "axios": "^1.13.2",
     "vscode-languageclient": "^9.0.0"
   }
 }

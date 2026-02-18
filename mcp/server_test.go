@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 
-	pb "github.com/iamthegreatdestroyer/Ryzanstein/mcp"
+	pb "github.com/iamthegreatdestroyer/Ryzanstein/mcp/proto"
 )
 
 // ============================================================================
@@ -186,7 +186,7 @@ func TestInferenceServiceModelInfo(t *testing.T) {
 }
 
 // ============================================================================
-// Agent Service Tests
+// pb.Agent Service Tests
 // ============================================================================
 
 func TestAgentServiceRegister(t *testing.T) {
@@ -439,7 +439,7 @@ func TestOptimizationServiceSuggestions(t *testing.T) {
 			ClientId:  "test",
 		},
 		Component: "inference",
-		CurrentMetrics: map[string]double{
+		CurrentMetrics: map[string]float64{
 			"throughput": 1000.0,
 			"latency":    200.0,
 		},

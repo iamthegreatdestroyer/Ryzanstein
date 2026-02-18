@@ -1,0 +1,74 @@
+{
+  "benchmark": "inference_speedup_validation",
+  "phase": "Phase 1 Day 2",
+  "task": "Task C - Inference Speedup Measurement",
+  "targets": {
+    "ttft_ms": {
+      "baseline": 400,
+      "rlvr": "150-200"
+    },
+    "throughput_tps": {
+      "baseline": 25,
+      "rlvr": 60
+    },
+    "total_speedup": 2.8
+  },
+  "complexities": {
+    "simple": {
+      "ttft": {
+        "baseline_ms": "23.83",
+        "rlvr_ms": "19.63",
+        "speedup": "1.22x"
+      },
+      "throughput": {
+        "baseline_tps": "118.76",
+        "rlvr_tps": "101.11",
+        "improvement": "0.85x"
+      },
+      "total_speedup": "0.83x",
+      "num_queries": 50
+    },
+    "medium": {
+      "ttft": {
+        "baseline_ms": "60.06",
+        "rlvr_ms": "30.54",
+        "speedup": "1.98x"
+      },
+      "throughput": {
+        "baseline_tps": "97.08",
+        "rlvr_tps": "138.13",
+        "improvement": "1.42x"
+      },
+      "total_speedup": "1.29x",
+      "num_queries": 50
+    },
+    "complex": {
+      "ttft": {
+        "baseline_ms": "104.40",
+        "rlvr_ms": "37.29",
+        "speedup": "2.82x"
+      },
+      "throughput": {
+        "baseline_tps": "98.61",
+        "rlvr_tps": "228.05",
+        "improvement": "2.31x"
+      },
+      "total_speedup": "1.80x",
+      "num_queries": 50
+    },
+    "reasoning": {
+      "ttft": {
+        "baseline_ms": "121.26",
+        "rlvr_ms": "33.82",
+        "speedup": "3.62x"
+      },
+      "throughput": {
+        "baseline_tps": "61.45",
+        "rlvr_tps": "190.13",
+        "improvement": "3.09x"
+      },
+      "total_speedup": "2.33x",
+      "num_queries": 50
+    }
+  }
+}

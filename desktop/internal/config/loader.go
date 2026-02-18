@@ -123,11 +123,11 @@ func LoadFromEnvironment(config *AppConfig) error {
 	}
 
 	if topP := os.Getenv("RYZANSTEIN_TOP_P"); topP != "" {
-		var topP float32
-		if _, err := fmt.Sscanf(topP, "%f", &topP); err != nil {
+		var topPValue float32
+		if _, err := fmt.Sscanf(topP, "%f", &topPValue); err != nil {
 			return fmt.Errorf("config: invalid RYZANSTEIN_TOP_P: %w", err)
 		}
-		config.Inference.TopP = topP
+		config.Inference.TopP = topPValue
 	}
 
 	if maxTokens := os.Getenv("RYZANSTEIN_MAX_TOKENS"); maxTokens != "" {

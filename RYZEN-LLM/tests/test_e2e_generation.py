@@ -9,7 +9,7 @@ import time
 from pathlib import Path
 
 from src.core.engine import RyotEngine
-from src.api.types import GenerationConfig, StopReason
+from src.api.api_types import GenerationConfig, StopReason
 from src.api.interfaces import InferenceEngine
 
 
@@ -154,3 +154,4 @@ if __name__ == "__main__":
         raise
     except Exception as e:
         print(f"\n⚠️ Test error: {e}")
+

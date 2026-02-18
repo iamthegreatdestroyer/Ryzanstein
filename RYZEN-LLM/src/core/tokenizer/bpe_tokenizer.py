@@ -11,7 +11,7 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 import json
 
 from .base import BaseTokenizer
-from ...api.types import TokenSequence
+from ...api.api_types import TokenSequence
 
 
 class BPETokenizer(BaseTokenizer):
@@ -199,3 +199,4 @@ class BPETokenizer(BaseTokenizer):
             merges_path=merges_path,
             special_tokens=special_tokens,
         )
+

@@ -8,7 +8,9 @@ package mcp.ryzanstein;
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
 
-option go_package = "github.com/iamthegreatdestroyer/Ryzanstein/mcp";
+option go_package = "github.com/iamthegreatdestroyer/Ryzanstein/mcp/proto";
+
+option go_package = "github.com/iamthegreatdestroyer/Ryzanstein/mcp;main";
 
 // ============================================================================
 // Common Message Types

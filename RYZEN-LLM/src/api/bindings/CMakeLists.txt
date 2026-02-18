@@ -13,7 +13,7 @@ pybind11_add_module(ryzen_llm_bindings
 target_link_libraries(ryzen_llm_bindings PRIVATE
     ryzen_llm_core
     ryzen_llm_bitnet
-    # ryzen_llm_optimization  # Temporarily disabled for AVX-512 compatibility testing
+    ryzen_llm_optimization  # Re-enabled for BitNetEngine speculative decoding
 )
 
 # Set output directory for Python module
@@ -22,8 +22,12 @@ set_target_properties(ryzen_llm_bindings PROPERTIES
     LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/../python/ryzanstein_llm
     LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/../python/ryzanstein_llm
     PREFIX ""
-    SUFFIX ".pyd"
 )
+
+# .pyd suffix is Windows-only; on Linux pybind11 sets the correct .so suffix
+if(WIN32)
+    set_target_properties(ryzen_llm_bindings PROPERTIES SUFFIX ".pyd")
+endif()
 
 # Static link standard libraries to avoid DLL dependencies
 if(MINGW)

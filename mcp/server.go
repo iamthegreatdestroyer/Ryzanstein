@@ -11,10 +11,11 @@ import (
 	"syscall"
 	"time"
 
+	pb "github.com/iamthegreatdestroyer/Ryzanstein/mcp/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-
-	pb "github.com/iamthegreatdestroyer/Ryzanstein/mcp"
+	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // MCPServer represents the main MCP server orchestrator
@@ -63,68 +64,38 @@ func (m *MCPServer) Start(ctx context.Context) error {
 	// Register reflection for debugging
 	reflection.Register(m.grpcServer)
 
-	// Start servers on different ports
-	servers := map[string]struct {
-		port uint16
-		name string
-	}{
-		"inference":    {8001, "Inference Server"},
-		"agent":        {8002, "Agent Server"},
-		"memory":       {8003, "Memory Server"},
-		"optimization": {8004, "Optimization Server"},
-		"debug":        {8005, "Debug Server"},
+	// Start server on single port
+	addr := ":50051"
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to listen on %s: %w", addr, err)
 	}
 
-	// Start each server in a goroutine
-	var wg sync.WaitGroup
-	errChan := make(chan error, len(servers))
+	m.mu.Lock()
+	m.listeners["main"] = listener
+	m.mu.Unlock()
 
-	for name, cfg := range servers {
-		wg.Add(1)
-		go func(name string, port uint16) {
-			defer wg.Done()
-			addr := fmt.Sprintf(":%d", port)
-			listener, err := net.Listen("tcp", addr)
-			if err != nil {
-				errChan <- fmt.Errorf("failed to listen on %s: %w", addr, err)
-				return
-			}
+	log.Printf("[MCP] MCP Server listening on %s\n", addr)
 
-			m.mu.Lock()
-			m.listeners[name] = listener
-			m.mu.Unlock()
-
-			log.Printf("[MCP] %s listening on %s\n", servers[name].name, addr)
-
-			if err := m.grpcServer.Serve(listener); err != nil && err != grpc.ErrServerStopped {
-				errChan <- fmt.Errorf("%s error: %w", name, err)
-			}
-		}(name, cfg.port)
-	}
-
-	// Wait for startup errors
+	// Start serving in a goroutine
 	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
-
-	for err := range errChan {
-		if err != nil {
-			return err
+		if err := m.grpcServer.Serve(listener); err != nil && err != grpc.ErrServerStopped {
+			log.Printf("[MCP] Server error: %v", err)
 		}
-	}
+	}()
 
 	// Wait for shutdown signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	go func() {
-		<-sigChan
-		log.Println("[MCP] Shutting down MCP server suite...")
-		m.Stop()
-	}()
+	select {
+	case <-sigChan:
+		log.Println("[MCP] Received shutdown signal")
+	case <-ctx.Done():
+		log.Println("[MCP] Context cancelled")
+	}
 
-	log.Println("[MCP] Ryzanstein MCP Server Suite started successfully!")
+	m.Stop()
 	return nil
 }
 
@@ -162,32 +133,134 @@ func NewInferenceServer() *InferenceServer {
 
 func (s *InferenceServer) Infer(ctx context.Context, req *pb.InferenceRequest) (*pb.InferenceResponse, error) {
 	log.Printf("[Inference] Processing inference request: %s\n", req.Metadata.RequestId)
+	startTime := time.Now()
 
-	// Build response
+	// Get the inference client
+	client := GetInferenceClient()
+
+	// Extract parameters from request
+	maxTokens := int(req.MaxTokens)
+	if maxTokens <= 0 {
+		maxTokens = 256
+	}
+	temperature := float64(req.Temperature)
+	if temperature <= 0 {
+		temperature = 0.7
+	}
+
+	// Extract system prompt and user prompt from Messages
+	systemPrompt := ""
+	userPrompt := ""
+	for _, msg := range req.Messages {
+		switch msg.Role {
+		case pb.Message_SYSTEM:
+			systemPrompt = msg.Content
+		case pb.Message_USER:
+			userPrompt = msg.Content
+		}
+	}
+
+	// Fall back to empty if no user message found
+	if userPrompt == "" && len(req.Messages) > 0 {
+		userPrompt = req.Messages[len(req.Messages)-1].Content
+	}
+
+	// Call the Python API for real inference
+	content, tokensUsed, err := client.ChatCompletion(userPrompt, systemPrompt, maxTokens, temperature)
+
+	processingTimeMs := time.Since(startTime).Milliseconds()
+
+	if err != nil {
+		log.Printf("[Inference] Error from Python API: %v", err)
+		// Return error response
+		return &pb.InferenceResponse{
+			Metadata: &pb.ResponseMetadata{
+				RequestId:        req.Metadata.RequestId,
+				Timestamp:        timeToProto(time.Now()),
+				StatusCode:       500,
+				StatusMessage:    fmt.Sprintf("Inference error: %v", err),
+				ProcessingTimeMs: processingTimeMs,
+			},
+			Content:    "",
+			TokensUsed: 0,
+			Metrics: map[string]string{
+				"error": err.Error(),
+			},
+		}, nil
+	}
+
+	// Build successful response
+	tokensPerSec := float64(0)
+	if processingTimeMs > 0 {
+		tokensPerSec = float64(tokensUsed) * 1000 / float64(processingTimeMs)
+	}
+
 	resp := &pb.InferenceResponse{
 		Metadata: &pb.ResponseMetadata{
 			RequestId:        req.Metadata.RequestId,
 			Timestamp:        timeToProto(time.Now()),
 			StatusCode:       200,
 			StatusMessage:    "OK",
-			ProcessingTimeMs: 250,
+			ProcessingTimeMs: processingTimeMs,
 		},
-		Content:    "Inference response from Ryzanstein LLM",
-		TokensUsed: 150,
+		Content:    content,
+		TokensUsed: int32(tokensUsed),
 		Metrics: map[string]string{
-			"latency_ms":     "250",
-			"tokens_per_sec": "600",
+			"latency_ms":     fmt.Sprintf("%d", processingTimeMs),
+			"tokens_per_sec": fmt.Sprintf("%.2f", tokensPerSec),
 		},
 	}
 
+	log.Printf("[Inference] Completed: %d tokens in %dms", tokensUsed, processingTimeMs)
 	return resp, nil
 }
 
 func (s *InferenceServer) InferStream(req *pb.InferenceRequest, stream pb.InferenceService_InferStreamServer) error {
 	log.Printf("[Inference] Processing streaming inference: %s\n", req.Metadata.RequestId)
+	startTime := time.Now()
 
-	// Send chunks
-	for i := 1; i <= 5; i++ {
+	// Get the inference client
+	client := GetInferenceClient()
+
+	// Extract parameters from request
+	maxTokens := int(req.MaxTokens)
+	if maxTokens <= 0 {
+		maxTokens = 256
+	}
+	temperature := float64(req.Temperature)
+	if temperature <= 0 {
+		temperature = 0.7
+	}
+
+	// Extract system prompt and user prompt from Messages
+	systemPrompt := ""
+	userPrompt := ""
+	for _, msg := range req.Messages {
+		switch msg.Role {
+		case pb.Message_SYSTEM:
+			systemPrompt = msg.Content
+		case pb.Message_USER:
+			userPrompt = msg.Content
+		}
+	}
+
+	// Fall back to last message if no user message found
+	if userPrompt == "" && len(req.Messages) > 0 {
+		userPrompt = req.Messages[len(req.Messages)-1].Content
+	}
+
+	// For now, get the full response and simulate streaming
+	// TODO: Implement true streaming when Python API supports it
+	content, tokensUsed, err := client.ChatCompletion(userPrompt, systemPrompt, maxTokens, temperature)
+
+	if err != nil {
+		log.Printf("[Inference] Stream error: %v", err)
+		return fmt.Errorf("inference failed: %w", err)
+	}
+
+	// Split content into chunks and stream them
+	words := splitIntoChunks(content, 10) // 10 characters per chunk
+	for i, word := range words {
 		chunk := &pb.InferenceChunk{
 			Metadata: &pb.ResponseMetadata{
 				RequestId:     req.Metadata.RequestId,
@@ -195,16 +268,40 @@ func (s *InferenceServer) InferStream(req *pb.InferenceRequest, stream pb.Infere
 				StatusCode:    200,
 				StatusMessage: "OK",
 			},
-			Content: fmt.Sprintf("Token %d ", i),
-			IsFinal: i == 5,
+			Content: word,
+			IsFinal: i == len(words)-1,
 		}
 		if err := stream.Send(chunk); err != nil {
 			return err
 		}
-		time.Sleep(50 * time.Millisecond)
+		// Small delay to simulate streaming
+		time.Sleep(20 * time.Millisecond)
 	}
 
+	processingTimeMs := time.Since(startTime).Milliseconds()
+	log.Printf("[Inference] Stream completed: %d tokens in %dms", tokensUsed, processingTimeMs)
+
 	return nil
+}
+
+// splitIntoChunks splits a string into chunks of approximately n characters
+func splitIntoChunks(s string, n int) []string {
+	var chunks []string
+	runes := []rune(s)
+
+	for i := 0; i < len(runes); i += n {
+		end := i + n
+		if end > len(runes) {
+			end = len(runes)
+		}
+		chunks = append(chunks, string(runes[i:end]))
+	}
+
+	if len(chunks) == 0 {
+		chunks = []string{""}
+	}
+
+	return chunks
 }
 
 func (s *InferenceServer) Health(ctx context.Context, req *pb.HealthRequest) (*pb.HealthResponse, error) {
@@ -485,7 +582,7 @@ func (s *MemoryServer) GetMemoryStats(ctx context.Context, req *pb.MemoryStatsRe
 		TotalExperiences: int32(len(s.experiences)),
 		AgentCount:       int32(len(stats)),
 		AgentsStats:      stats,
-		AverageFitness:   float64(avgFitness),
+		AverageFitness:   float32(avgFitness),
 	}, nil
 }
 
@@ -509,7 +606,7 @@ func (s *OptimizationServer) CollectMetrics(ctx context.Context, req *pb.Metrics
 			StatusCode:    200,
 			StatusMessage: "OK",
 		},
-		Metrics: map[string]double{
+		Metrics: map[string]float64{
 			"cpu_usage":    45.2,
 			"memory_usage": 62.8,
 			"throughput":   1500.0,
@@ -532,7 +629,7 @@ func (s *OptimizationServer) GetOptimizationSuggestions(ctx context.Context, req
 			"Optimize batch size for better GPU utilization",
 			"Consider distributed inference for load balancing",
 		},
-		PredictedImprovements: map[string]double{
+		PredictedImprovements: map[string]float64{
 			"throughput_improvement": 0.25,
 			"latency_reduction":      0.15,
 			"memory_efficiency":      0.10,
@@ -550,7 +647,7 @@ func (s *OptimizationServer) ProfilePerformance(req *pb.ProfileRequest, stream p
 				StatusMessage: "OK",
 			},
 			Component: "inference",
-			Values: map[string]double{
+			Values: map[string]float64{
 				"cpu":     45.0 + float64(i)*2,
 				"memory":  62.0 + float64(i)*1,
 				"latency": 125.0 - float64(i)*5,

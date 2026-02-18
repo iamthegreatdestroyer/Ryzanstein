@@ -122,48 +122,33 @@ namespace ryzanstein_llm
             const uint32_t num_groups = tables_.num_groups;
             const uint32_t lw = config_.lookup_width;
 
-            // Generate table for each group of lookup_width elements
+            // Iterate over each group of lookup_width K-elements
             for (uint32_t g = 0; g < num_groups; ++g)
             {
                 const uint32_t k_start = g * lw;
                 const uint32_t k_end = std::min(k_start + lw, K);
-                const uint32_t actual_width = k_end - k_start;
 
-                // Enumerate all possible activation patterns (2^actual_width combinations)
-                // For each pattern, compute the partial sum of weights × activations
-                const uint32_t num_patterns = 1 << actual_width; // 2^actual_width
-
-                for (uint32_t pattern = 0; pattern < num_patterns; ++pattern)
+                // Enumerate all 256 possible INT8 activation values.
+                // We use the uint8 bit-pattern as the table index so that the
+                // compute path can look up any int8_t activation via a simple cast.
+                for (uint32_t act_uint8 = 0; act_uint8 < 256; ++act_uint8)
                 {
+                    const int8_t act_signed = static_cast<int8_t>(act_uint8);
                     float sum = 0.0f;
 
-                    // For each bit position in the pattern
-                    for (uint32_t i = 0; i < actual_width; ++i)
+                    for (uint32_t i = k_start; i < k_end; ++i)
                     {
-                        // Extract bit i from pattern (0 or 1)
-                        uint8_t bit = (pattern >> i) & 0x1;
-
-                        // Convert to activation approximation (±1 for ternary weights)
-                        float act_approx = bit ? 1.0f : -1.0f;
-
-                        // Get ternary weight
-                        int8_t w = weights[k_start + i];
-
-                        // Compute contribution: w * act_approx
+                        const int8_t w = weights[i];
                         if (w == 1)
-                        {
-                            sum += act_approx;
-                        }
+                            sum += static_cast<float>(act_signed);
                         else if (w == -1)
-                        {
-                            sum -= act_approx;
-                        }
+                            sum -= static_cast<float>(act_signed);
                         // w == 0: no contribution
                     }
 
-                    // Apply weight scale and store in table
-                    float weight_scale = weight_scales ? weight_scales[0] : 1.0f;
-                    tables_.set(row, g, static_cast<uint8_t>(pattern), sum * weight_scale);
+                    // Apply per-group weight scale and store
+                    const float weight_scale = weight_scales ? weight_scales[g] : 1.0f;
+                    tables_.set(row, g, static_cast<uint8_t>(act_uint8), sum * weight_scale);
                 }
             }
         }
@@ -342,32 +327,22 @@ namespace ryzanstein_llm
                     // Process each group of lookup_width elements
                     for (uint32_t g = 0; g < num_groups; ++g)
                     {
-                        // Build lookup indices for 16 outputs
-                        uint8_t indices[16];
+                        // Use the first activation in the group as the lookup index
+                        // (exact for lookup_width=1; representative for larger widths).
+                        const uint32_t k_start = g * lookup_width;
+                        const float *group_table = row_tables + g * 256;
+
+                        // Build 16 uint32 indices (one per output in the batch)
+                        uint32_t indices[16];
                         for (int i = 0; i < 16; ++i)
                         {
-                            // Extract activation pattern for this group
-                            uint8_t pattern = 0;
-                            const uint32_t k_start = g * lookup_width;
-                            const uint32_t k_end = std::min(k_start + lookup_width, K);
-
-                            for (uint32_t j = k_start; j < k_end; ++j)
-                            {
-                                int8_t act_quantized = activations[(n + i) * K + j];
-                                float act = (static_cast<float>(act_quantized) - act_zero_point) * act_scale;
-                                uint8_t bit = (act >= 0.0f) ? 1 : 0;
-                                pattern |= (bit << (j - k_start));
-                            }
-                            indices[i] = pattern;
+                            int8_t act_raw = activations[(n + i) * K + k_start];
+                            indices[i] = static_cast<uint8_t>(act_raw);
                         }
 
-                        // Gather table values using AVX-512 gather
-                        __m512i indices_vec = _mm512_loadu_si512(indices);
-                        __m512i scale_vec = _mm512_set1_epi32(4); // float = 4 bytes
-                        __m512i base_addr = _mm512_set1_epi32((uintptr_t)(row_tables + g * 256));
-                        __m512 table_values = _mm512_i32gather_ps(
-                            _mm512_add_epi32(base_addr, _mm512_mullo_epi32(indices_vec, scale_vec)),
-                            nullptr, 1);
+                        // Gather 16 floats from the group table using the indices
+                        __m512i idx_vec = _mm512_loadu_si512(indices);
+                        __m512 table_values = _mm512_i32gather_ps(idx_vec, group_table, 4);
 
                         // Accumulate: sum += table_values
                         sum_vec = _mm512_add_ps(sum_vec, table_values);
@@ -385,21 +360,9 @@ namespace ryzanstein_llm
                     float sum = 0.0f;
                     for (uint32_t g = 0; g < num_groups; ++g)
                     {
-                        // Build lookup index for this output and group
-                        uint8_t pattern = 0;
                         const uint32_t k_start = g * lookup_width;
-                        const uint32_t k_end = std::min(k_start + lookup_width, K);
-
-                        for (uint32_t j = k_start; j < k_end; ++j)
-                        {
-                            int8_t act_quantized = activations[n * K + j];
-                            float act = (static_cast<float>(act_quantized) - act_zero_point) * act_scale;
-                            uint8_t bit = (act >= 0.0f) ? 1 : 0;
-                            pattern |= (bit << (j - k_start));
-                        }
-
-                        // Lookup table value
-                        float table_val = tables_.get(m, g, pattern);
+                        int8_t act_raw = activations[n * K + k_start];
+                        float table_val = tables_.get(m, g, static_cast<uint8_t>(act_raw));
                         sum += table_val;
                     }
                     output[m * N + n] = sum * tables_.output_scales[m];
@@ -455,22 +418,16 @@ namespace ryzanstein_llm
                         __m256 scale_vec = _mm256_set1_ps(act_scale);
                         acts_f = _mm256_mul_ps(_mm256_sub_ps(acts_f, zp_vec), scale_vec);
 
-                        // Convert to binary pattern for lookup
-                        uint8_t indices[8];
-                        for (int i = 0; i < 8; ++i)
-                        {
-                            float act_val = ((float)activations[(n + i) * K + g * lookup_width] - act_zero_point) * act_scale;
-                            indices[i] = (act_val >= 0.0f) ? 1 : 0;
-                        }
-
-                        // Gather table values (AVX2 gather is limited, so use scalar gather)
-                        __m256 table_values = _mm256_setzero_ps();
+                        // Use the raw INT8 activation as the lookup index
+                        // (exact for lookup_width=1; representative for larger widths)
+                        const uint32_t k_start = g * lookup_width;
                         float temp_vals[8];
                         for (int i = 0; i < 8; ++i)
                         {
-                            temp_vals[i] = row_tables[g * 256 + indices[i]];
+                            int8_t act_raw = activations[(n + i) * K + k_start];
+                            temp_vals[i] = row_tables[g * 256 + static_cast<uint8_t>(act_raw)];
                         }
-                        table_values = _mm256_loadu_ps(temp_vals);
+                        __m256 table_values = _mm256_loadu_ps(temp_vals);
 
                         // Accumulate: sum += table_values
                         sum_vec = _mm256_add_ps(sum_vec, table_values);
@@ -488,15 +445,9 @@ namespace ryzanstein_llm
                     float sum = 0.0f;
                     for (uint32_t g = 0; g < num_groups; ++g)
                     {
-                        // Get activation and dequantize
-                        int8_t act_quantized = activations[n * K + g * lookup_width];
-                        float act = (static_cast<float>(act_quantized) - act_zero_point) * act_scale;
-
-                        // Threshold to binary (simplified)
-                        uint8_t index = (act >= 0.0f) ? 1 : 0;
-
-                        // Lookup table value
-                        float table_val = tables_.get(m, g, index);
+                        const uint32_t k_start = g * lookup_width;
+                        int8_t act_raw = activations[n * K + k_start];
+                        float table_val = tables_.get(m, g, static_cast<uint8_t>(act_raw));
                         sum += table_val;
                     }
                     output[m * N + n] = sum * tables_.output_scales[m];
