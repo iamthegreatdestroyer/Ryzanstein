@@ -224,7 +224,7 @@ func (is *InferenceService) ExecuteStream(ctx context.Context, req *InferenceReq
 		return
 	}
 
-	// Simulate streaming (in real implementation, would use actual streaming)
+	// DEAD-CODE-STUB [Sprint 1.2]: Simulated streaming — replace with real SSE streaming per docs/STREAMING_API_CONTRACT.md
 	go func() {
 		defer close(resultChan)
 
@@ -241,7 +241,7 @@ func (is *InferenceService) ExecuteStream(ctx context.Context, req *InferenceReq
 		}
 
 		// Simulate token streaming
-		tokens := []string{"Hello", " world", " from", " the", " model"}
+		tokens := []string{"Hello", " world", " from", " the", " model"} // DEAD-CODE: Hardcoded simulated tokens — must be replaced with real SSE token stream
 		totalTokens := int64(0)
 
 		for _, token := range tokens {
@@ -334,7 +334,7 @@ func (is *InferenceService) GetLastRequestInfo() map[string]interface{} {
 		"failed":            is.metrics.FailedRequests,
 		"total_tokens":      is.metrics.TotalTokens,
 		"average_duration":  is.metrics.AverageDuration,
-		"success_rate":      float64(is.metrics.SuccessfulRequests) / float64(is.metrics.TotalRequests) * 100,
+		"success_rate":      func() float64 { if is.metrics.TotalRequests > 0 { return float64(is.metrics.SuccessfulRequests) / float64(is.metrics.TotalRequests) * 100 }; return 0 }(),
 		"last_request_time": is.metrics.LastRequestTime,
 	}
 }
