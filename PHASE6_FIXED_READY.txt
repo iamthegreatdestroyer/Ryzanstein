@@ -1,0 +1,234 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║       PHASE 6: FIXED & READY ✅                                   ║
+║       Integrated Monitoring Setup with 5 Terminals                ║
+║       February 19, 2026                                           ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════
+
+✅ PHASE 6 LAUNCH READY
+
+Status:      Fixed and operational
+Script:      start_phase6_monitoring.ps1 (cleaned and tested)
+Launcher:    START_PHASE6_NOW.bat (ready to use)
+
+═══════════════════════════════════════════════════════════════════════
+
+🚀 HOW TO RUN PHASE 6 (3 WAYS)
+
+METHOD 1: Double-Click Launcher (Easiest)
+──────────────────────────────────────────
+  Double-click: s:\Ryot\START_PHASE6_NOW.bat
+
+  This will:
+  ✅ Run the PowerShell script
+  ✅ Display all 5 kubectl commands
+  ✅ Show setup instructions
+  ✅ Guide you through Phase 6
+
+METHOD 2: Direct PowerShell Script
+──────────────────────────────────
+  powershell -ExecutionPolicy Bypass -File s:\Ryot\start_phase6_monitoring.ps1
+
+  This will:
+  ✅ Display terminal setup instructions
+  ✅ Show 5 kubectl commands to copy-paste
+  ✅ Provide verification steps
+
+METHOD 3: Manual - Copy Commands from Script Output
+──────────────────────────────────────────────────
+  Run either method above, then:
+  ✅ Open 5 terminal windows
+  ✅ Copy each kubectl command
+  ✅ Paste into separate terminals
+  ✅ Keep all 5 running
+
+═══════════════════════════════════════════════════════════════════════
+
+📋 WHAT THE SCRIPT SHOWS YOU
+
+When you run START_PHASE6_NOW.bat or the PowerShell script, you'll see:
+
+PHASE 6: INTEGRATED MONITORING SETUP
+  Opening 5 VSCode Terminals with Port-Forwards
+
+MANUAL SETUP - Copy and paste into separate terminal tabs/windows
+  Terminal 1 - API Port-Forward (8000:8000)
+  kubectl port-forward -n ryzanstein-staging svc/ryzanstein-api 8000:8000
+
+  Terminal 2 - Prometheus Port-Forward (9090:9090)
+  kubectl port-forward -n ryzanstein-staging svc/prometheus 9090:9090
+
+  Terminal 3 - Grafana Port-Forward (3000:3000)
+  kubectl port-forward -n ryzanstein-staging svc/grafana 3000:3000
+
+  Terminal 4 - Jaeger Port-Forward (16686:16686)
+  kubectl port-forward -n ryzanstein-staging svc/jaeger 16686:16686
+
+  Terminal 5 - AlertManager Port-Forward (9093:9093)
+  kubectl port-forward -n ryzanstein-staging svc/alertmanager 9093:9093
+
+NEXT STEPS
+  1. Open VSCode integrated terminal or Windows Terminal
+  2. Copy each kubectl command into separate tabs/panes
+  3. Keep all 5 running during Phase 6
+  4. Run verification: s:\Ryot\verify_phase6_monitoring.bat
+  5. Open dashboards: http://localhost:9090, 3000, 16686, 9093
+  6. Follow: s:\Ryot\PHASE6_EXECUTION_CHECKLIST.md
+
+═══════════════════════════════════════════════════════════════════════
+
+✨ THREE OPTIONS FOR RUNNING 5 TERMINALS
+
+Option A: VSCode Integrated Terminals (Built-in)
+─────────────────────────────────────────────────
+  1. In VSCode, press Ctrl+`
+  2. Create 5 tabs: Ctrl+Shift+` (repeat 4 times)
+  3. Paste one kubectl command in each tab
+  4. Press Enter in each
+  5. All 5 run side-by-side in tabs
+
+Option B: Windows Terminal (Recommended - Best Visual)
+──────────────────────────────────────────────────────
+  1. Open Windows Terminal
+  2. Create panes: Alt+Shift+D (repeat 4 times for 5 panes)
+  3. Paste one kubectl command in each pane
+  4. Press Enter in each
+  5. All 5 run visible at once in split view
+
+Option C: Separate PowerShell Windows
+──────────────────────────────────────
+  1. Open 5 PowerShell windows
+  2. Paste one kubectl command in each
+  3. Press Enter in each
+  4. All 5 run in separate windows
+
+═══════════════════════════════════════════════════════════════════════
+
+🎯 QUICK START
+
+Step 1: Run the setup script
+  Double-click: s:\Ryot\START_PHASE6_NOW.bat
+
+Step 2: Copy the 5 kubectl commands
+  (Script will display them)
+
+Step 3: Paste into 5 terminal tabs/panes/windows
+  Option: VSCode tabs, Windows Terminal panes, or separate windows
+
+Step 4: Press Enter in each
+  Watch for "Forwarding from 127.0.0.1:XXXX"
+
+Step 5: Verify all 5 are running
+  Run: s:\Ryot\verify_phase6_monitoring.bat
+
+Step 6: Open dashboards
+  - http://localhost:9090 (Prometheus)
+  - http://localhost:3000 (Grafana - admin/admin)
+  - http://localhost:16686 (Jaeger)
+  - http://localhost:9093 (AlertManager)
+
+Step 7: Follow checklist
+  s:\Ryot\PHASE6_EXECUTION_CHECKLIST.md
+
+Step 8: Document and complete Phase 6
+  Create completion report
+
+═══════════════════════════════════════════════════════════════════════
+
+✅ SUCCESS INDICATORS
+
+When ports are properly forwarded, you'll see:
+
+Terminal Output Examples:
+
+API:
+  Forwarding from 127.0.0.1:8000 -> 8000
+  Forwarding from [::1]:8000 -> 8000
+
+Prometheus:
+  Forwarding from 127.0.0.1:9090 -> 9090
+  Forwarding from [::1]:9090 -> 9090
+
+Grafana:
+  Forwarding from 127.0.0.1:3000 -> 3000
+  Forwarding from [::1]:3000 -> 3000
+
+Jaeger:
+  Forwarding from 127.0.0.1:16686 -> 16686
+  Forwarding from [::1]:16686 -> 16686
+
+AlertManager:
+  Forwarding from 127.0.0.1:9093 -> 9093
+  Forwarding from [::1]:9093 -> 9093
+
+Once you see these messages, all 5 are ready!
+
+═══════════════════════════════════════════════════════════════════════
+
+🔍 VERIFY PORTS ARE OPEN
+
+In PowerShell, test each port:
+
+curl http://localhost:8000/health           # Should respond
+curl http://localhost:9090/-/healthy        # Should respond
+curl http://localhost:3000/api/health       # Should respond
+curl -I http://localhost:16686/             # Should respond (HTTP 200)
+curl http://localhost:9093/-/healthy        # Should respond
+
+If all respond, you're ready for Phase 6! ✅
+
+═══════════════════════════════════════════════════════════════════════
+
+📚 PHASE 6 DOCUMENTATION
+
+After running the setup script, use these guides:
+
+1. PHASE6_EXECUTION_CHECKLIST.md
+   → Step-by-step verification (most important!)
+
+2. verify_phase6_monitoring.bat
+   → Automated service verification
+
+3. PHASE6_BEGIN.txt
+   → Quick start guide
+
+4. PHASE6_START_HERE.txt
+   → Visual overview
+
+5. PHASE6_READY.txt
+   → Status summary
+
+═══════════════════════════════════════════════════════════════════════
+
+⏱️  TIMELINE
+
+Running setup script:    2 minutes
+Setting up 5 terminals:  5 minutes
+Verifying services:      2 minutes
+Opening dashboards:      1 minute
+Phase 6 checklist:       45-90 minutes
+
+Total Phase 6:          1-2 hours
+
+═══════════════════════════════════════════════════════════════════════
+
+🚀 BEGIN NOW
+
+All setup complete.
+Script fixed and tested.
+Ready for Phase 6 execution.
+
+DO THIS:
+  1. Double-click: s:\Ryot\START_PHASE6_NOW.bat
+  2. Follow the script output
+  3. Set up 5 port-forwards using your preferred method
+  4. Proceed with Phase 6 verification
+
+═══════════════════════════════════════════════════════════════════════
+
+Phase 6 Status: READY ✅
+All systems operational
+Proceed with confidence!
+
+═══════════════════════════════════════════════════════════════════════

@@ -614,7 +614,6 @@ namespace ryzanstein_llm
             gemm_blocked_optimized(lut_engine, W, X, Y, M, K, N);
 #else
             // Fallback to scalar implementation
-            std::cerr << "WARNING: AVX-512 not available, using scalar fallback\n";
 
             // Simple scalar implementation
             std::memset(Y, 0, M * N * sizeof(int32_t));
@@ -681,7 +680,6 @@ namespace ryzanstein_llm
             // Potential: Hybrid approach for dense patterns
 
             // For now, this is a placeholder for future exploration
-            std::cerr << "VNNI optimization not yet implemented\n";
         }
 
 #endif

@@ -15,6 +15,7 @@ import (
 
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/agents"
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/chat"
+	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/client"
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/config"
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/ipc"
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/models"
@@ -26,25 +27,6 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-// InferenceRequest represents a request for inference
-type InferenceRequest struct {
-	ModelID     string                 `json:"model_id"`
-	Prompt      string                 `json:"prompt"`
-	MaxTokens   int                    `json:"max_tokens,omitempty"`
-	Temperature float32                `json:"temperature,omitempty"`
-	TopP        float32                `json:"top_p,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-}
-
-// InferenceResponse represents a response from inference
-type InferenceResponse struct {
-	Text     string                 `json:"text"`
-	Tokens   int                    `json:"tokens"`
-	Duration time.Duration          `json:"duration"`
-	Model    string                 `json:"model"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
-}
-
 // App struct is where we bind all application methods
 type App struct {
 	ctx       context.Context
@@ -53,6 +35,7 @@ type App struct {
 	agents    *agents.Service
 	config    *config.Manager
 	ipc       *ipc.Server
+	apiClient *client.RyzansteinClient
 	mu        sync.RWMutex
 	isRunning bool
 }
@@ -86,6 +69,14 @@ func (a *App) Startup(ctx context.Context) {
 	a.models = models.NewService(a.config)
 	a.agents = agents.NewService()
 	a.ipc = ipc.NewServer()
+
+	// Initialize the Ryzanstein API client
+	apiURL := a.config.GetConfig().RyzansteinAPIURL
+	if apiURL == "" {
+		apiURL = "http://localhost:8000"
+	}
+	a.apiClient = client.NewRyzansteinClient(apiURL)
+	a.apiClient.SetTimeout(60 * time.Second)
 
 	go a.startIPCServer()
 	go a.models.LoadInstalledModels()
@@ -128,40 +119,8 @@ func (a *App) SendMessage(userMessage string, modelID string, agentCodename stri
 	ctx, cancel := context.WithTimeout(a.ctx, 30*time.Second)
 	defer cancel()
 
-	// Create inference request (for future use)
-	_ = &InferenceRequest{
-		ModelID:     modelID,
-		Prompt:      userMessage,
-		MaxTokens:   2048,
-		Temperature: 0.7,
-		TopP:        0.9,
-		Metadata: map[string]interface{}{
-			"agent": agentCodename,
-		},
-	}
-
-	// Execute inference (currently mock, but structured for real inference)
-	var response *InferenceResponse
-
-	// For now, provide a mock response that acknowledges the agent
-	// TODO: Connect to real inference service
-	responseText := fmt.Sprintf("🤖 %s here! I've analyzed your request: '%s'. This is currently a simulated response - real LLM inference will be connected soon.",
-		agentCodename, userMessage)
-
-	response = &InferenceResponse{
-		Text:     responseText,
-		Tokens:   len(strings.Split(responseText, " ")), // Rough token count
-		Duration: 150 * time.Millisecond,                // Mock duration
-		Model:    modelID,
-		Metadata: map[string]interface{}{
-			"timestamp": time.Now(),
-			"agent":     agentCodename,
-		},
-	}
-
-	// Add to chat history
+	// Add user message to chat history
 	a.chat.AddMessage(ctx, "user", userMessage, modelID, agentCodename)
-	a.chat.AddMessage(ctx, "assistant", response.Text, modelID, agentCodename)
 
 	runtime.EventsEmit(a.ctx, "chat:message", Message{
 		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
@@ -170,14 +129,121 @@ func (a *App) SendMessage(userMessage string, modelID string, agentCodename stri
 		Timestamp: time.Now().Unix(),
 	})
 
+	// Build system prompt with agent context
+	systemPrompt := fmt.Sprintf("You are %s, an elite AI agent. Respond helpfully and concisely.", agentCodename)
+
+	// Try real API first
+	var responseText string
+	chatReq := &client.ChatCompletionRequest{
+		Model: modelID,
+		Messages: []client.ChatMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userMessage},
+		},
+		MaxTokens:   2048,
+		Temperature: 0.7,
+		TopP:        0.9,
+	}
+
+	chatResp, err := a.apiClient.ChatCompletion(ctx, chatReq)
+	if err != nil {
+		log.Printf("[Chat] API call failed, using fallback: %v\n", err)
+		// Fallback to mock response when API is not available
+		responseText = fmt.Sprintf("[Offline Mode] %s received your message. The inference API at %s is not reachable. Please start the backend with: docker-compose up -d",
+			agentCodename, a.config.GetConfig().RyzansteinAPIURL)
+	} else if len(chatResp.Choices) > 0 {
+		responseText = chatResp.Choices[0].Message.Content
+	} else {
+		responseText = "[Error] Empty response from inference API."
+	}
+
+	// Add assistant response to history
+	a.chat.AddMessage(ctx, "assistant", responseText, modelID, agentCodename)
+
 	runtime.EventsEmit(a.ctx, "chat:response", Message{
 		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
 		Role:      "assistant",
-		Content:   response.Text,
+		Content:   responseText,
 		Timestamp: time.Now().Unix(),
 	})
 
-	return response.Text, nil
+	return responseText, nil
+}
+
+// SendMessageStream sends a message and streams the response token-by-token
+func (a *App) SendMessageStream(userMessage string, modelID string, agentCodename string) error {
+	log.Printf("[Chat] Streaming message: %s (model: %s, agent: %s)\n",
+		userMessage, modelID, agentCodename)
+
+	ctx, cancel := context.WithTimeout(a.ctx, 120*time.Second)
+
+	// Add user message to history
+	a.chat.AddMessage(ctx, "user", userMessage, modelID, agentCodename)
+
+	runtime.EventsEmit(a.ctx, "chat:message", Message{
+		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
+		Role:      "user",
+		Content:   userMessage,
+		Timestamp: time.Now().Unix(),
+	})
+
+	runtime.EventsEmit(a.ctx, "chat:streamStart", nil)
+
+	systemPrompt := fmt.Sprintf("You are %s, an elite AI agent. Respond helpfully and concisely.", agentCodename)
+
+	chatReq := &client.ChatCompletionRequest{
+		Model: modelID,
+		Messages: []client.ChatMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userMessage},
+		},
+		MaxTokens:   2048,
+		Temperature: 0.7,
+		TopP:        0.9,
+	}
+
+	go func() {
+		defer cancel()
+		tokenChan := make(chan string, 64)
+		var fullResponse strings.Builder
+
+		go func() {
+			defer close(tokenChan)
+			err := a.apiClient.ChatCompletionStream(ctx, chatReq, tokenChan)
+			if err != nil {
+				log.Printf("[Chat] Stream error: %v\n", err)
+				runtime.EventsEmit(a.ctx, "chat:streamError", err.Error())
+			}
+		}()
+
+		for token := range tokenChan {
+			fullResponse.WriteString(token)
+			runtime.EventsEmit(a.ctx, "chat:streamToken", token)
+		}
+
+		responseText := fullResponse.String()
+		if responseText == "" {
+			responseText = "[Offline Mode] Streaming not available. Start backend with: docker-compose up -d"
+		}
+
+		a.chat.AddMessage(a.ctx, "assistant", responseText, modelID, agentCodename)
+
+		runtime.EventsEmit(a.ctx, "chat:streamEnd", Message{
+			ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
+			Role:      "assistant",
+			Content:   responseText,
+			Timestamp: time.Now().Unix(),
+		})
+	}()
+
+	return nil
+}
+
+// CheckAPIHealth checks if the Ryzanstein API is reachable
+func (a *App) CheckAPIHealth() (bool, error) {
+	ctx, cancel := context.WithTimeout(a.ctx, 5*time.Second)
+	defer cancel()
+	return a.apiClient.Health(ctx)
 }
 
 func (a *App) GetHistory(limit int) ([]Message, error) {

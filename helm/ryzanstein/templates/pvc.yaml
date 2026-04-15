@@ -1,0 +1,123 @@
+{{- if .Values.modelStorage.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.modelStorage.pvc.name }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.modelStorage.pvc.accessModes | nindent 4 }}
+  {{- if .Values.modelStorage.pvc.storageClass }}
+  storageClassName: {{ .Values.modelStorage.pvc.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.modelStorage.pvc.size }}
+{{- end }}
+
+---
+{{- if .Values.api.persistence.cache.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-cache
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: api
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.api.persistence.cache.storageClass }}
+  storageClassName: {{ .Values.api.persistence.cache.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.api.persistence.cache.size }}
+{{- end }}
+
+---
+{{- if .Values.api.persistence.logs.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-logs
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: api
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.api.persistence.logs.storageClass }}
+  storageClassName: {{ .Values.api.persistence.logs.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.api.persistence.logs.size }}
+{{- end }}
+
+---
+{{- if .Values.qdrant.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-qdrant
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: qdrant
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.qdrant.persistence.storageClass }}
+  storageClassName: {{ .Values.qdrant.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.qdrant.persistence.size }}
+{{- end }}
+
+---
+{{- if .Values.prometheus.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-prometheus
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: prometheus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.prometheus.persistence.storageClass }}
+  storageClassName: {{ .Values.prometheus.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.prometheus.persistence.size }}
+{{- end }}
+
+---
+{{- if .Values.grafana.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-grafana
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: grafana
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.grafana.persistence.storageClass }}
+  storageClassName: {{ .Values.grafana.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.grafana.persistence.size }}
+{{- end }}

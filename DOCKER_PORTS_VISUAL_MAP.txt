@@ -1,0 +1,310 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║       DOCKER PORT MAPPING - VISUAL ARCHITECTURE                   ║
+║       Your Complete System Overview                               ║
+║       February 19, 2026                                           ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════
+
+CURRENT STATE (What you have right now)
+═══════════════════════════════════════════════════════════════════════
+
+    LOCALHOST:3000 ← FACELESS YOUTUBE DASHBOARD (WRONG!)
+                      ↑
+                      └─ Should be: Ryzanstein Grafana
+                      └─ Status: BLOCKING Phase 6 ⚠️
+
+    LOCALHOST:9090 ← HYPERBOX PROMETHEUS
+                      ↑
+                      └─ Should be: Ryzanstein Prometheus
+                      └─ Status: BLOCKED ⚠️
+
+    LOCALHOST:16686 ← NEURECTOMY JAEGER
+                       ↑
+                       └─ Should be: Ryzanstein Jaeger
+                       └─ Status: BLOCKED ⚠️
+
+    LOCALHOST:8000  (Available)
+    LOCALHOST:9093  (Available)
+
+═══════════════════════════════════════════════════════════════════════
+
+AFTER REMEDIATION (What you will have)
+═══════════════════════════════════════════════════════════════════════
+
+    LOCALHOST:3000   → Ryzanstein Grafana ✅
+    LOCALHOST:9090   → Ryzanstein Prometheus ✅
+    LOCALHOST:16686  → Ryzanstein Jaeger ✅
+    LOCALHOST:8000   → Ryzanstein API ✅
+    LOCALHOST:9093   → Ryzanstein AlertManager ✅
+
+    LOCALHOST:40001  → Hyperbox Prometheus (moved)
+    LOCALHOST:40005  → Faceless YouTube Dashboard (moved)
+    LOCALHOST:40010  → Neurectomy Jaeger (moved)
+
+═══════════════════════════════════════════════════════════════════════
+
+PORT ALLOCATION CHART
+═══════════════════════════════════════════════════════════════════════
+
+PORT    SERVICE                    PROJECT             EXTERNAL  STATUS
+───────────────────────────────────────────────────────────────────────
+3000    Dashboard                  Faceless YouTube    YES ❌    Conflict
+3000    Grafana                    Ryzanstein          NO        Blocked
+────────────────────────────────────────────────────────────────────────
+5000    MLFlow                     Neurectomy          YES ✅    Isolated
+5432    Postgres                   Hyperbox            YES ✅    Isolated
+5433    TimescaleDB                Neurectomy          YES ✅    Isolated
+5434    Postgres (pgvector)        Neurectomy          YES ✅    Isolated
+────────────────────────────────────────────────────────────────────────
+6379    Redis                      Neurectomy          YES ✅    Isolated
+────────────────────────────────────────────────────────────────────────
+7474    Neo4j Web                  Neurectomy          YES ✅    Isolated
+7687    Neo4j Bolt                 Neurectomy          YES ✅    Isolated
+────────────────────────────────────────────────────────────────────────
+8000    API                        Ryzanstein          NO        Available
+8000    API                        Portainer           NO        No binding
+8001    API                        Faceless YouTube    YES ✅    Isolated
+8002    ML Service                 Neurectomy          YES ✅    Isolated
+8080    Web                        Article Audio       YES ✅    Isolated
+────────────────────────────────────────────────────────────────────────
+9000    MinIO                      Neurectomy          YES ✅    Isolated
+9001    MinIO Console              Neurectomy          YES ✅    Isolated
+9090    Prometheus                 Hyperbox            YES ❌    Conflict
+9090    Prometheus                 Ryzanstein          NO        Blocked
+9093    AlertManager               Ryzanstein          NO        Available
+9093    AlertManager               Neurectomy          (restart) -
+9099    -                          (unused)            -         -
+9100    Node Exporter              Phantom VPN         YES ✅    Isolated
+9443    Portainer SSL              Portainer           NO        -
+────────────────────────────────────────────────────────────────────────
+9999    Hyperbox                   Hyperbox            YES ✅    Isolated
+────────────────────────────────────────────────────────────────────────
+16686   Jaeger UI                  Neurectomy          YES ❌    Conflict
+16686   Jaeger UI                  Ryzanstein          NO        Blocked
+────────────────────────────────────────────────────────────────────────
+18510   Postgres                   AutoAG              YES ✅    Isolated
+18520   Redis                      AutoAG              YES ✅    Isolated
+18530   Nginx                      AutoAG              YES ✅    Isolated
+────────────────────────────────────────────────────────────────────────
+24510   Phantom Node (WireGuard)   Phantom VPN         YES ✅    Isolated
+24511   Phantom Node Web           Phantom VPN         YES ✅    Isolated
+24520   Phantom Agents             Phantom VPN         YES ✅    Isolated
+24530   Discovery                  Phantom VPN         YES ✅    Isolated
+24550   Loki Logs                  Phantom VPN         YES ✅    Isolated
+24560   Node Exporter              Phantom VPN         YES ✅    Isolated
+24561   Agent Exporter             Phantom VPN         YES ✅    Isolated
+────────────────────────────────────────────────────────────────────────
+27017   MongoDB                    Faceless YouTube    YES ✅    Isolated
+────────────────────────────────────────────────────────────────────────
+40001   Prometheus                 Hyperbox (MIGRATED) YES ✅    NEW
+40005   Dashboard                  Faceless (MIGRATED) YES ✅    NEW
+40010   Jaeger                     Neurectomy (MIGRATED) YES ✅    NEW
+────────────────────────────────────────────────────────────────────────
+
+═══════════════════════════════════════════════════════════════════════
+
+PROJECT ISOLATION MATRIX
+═══════════════════════════════════════════════════════════════════════
+
+PROJECT             CONTAINERS  PORT RANGE           STATUS      ACTION
+─────────────────────────────────────────────────────────────────────────
+Ryzanstein K8s      11          Internal + 31139     Isolated    None
+Hyperbox            3           9090, 5432, 9999     ❌ CONFLICT Move
+AutoAG              4           18510-18530          ✅ Isolated None
+Phantom VPN         8           24510-24561          ✅ Isolated None
+Neurectomy ML       12          5000, 8002, etc.     ❌ CONFLICT Move
+Faceless YouTube    3           3000, 8001, 27017    ❌ CONFLICT Move
+Article Audio       2           8080, (internal)     ✅ Isolated None
+Portainer           1           8000, 9443           ✅ Monitor   None
+Kubernetes Core     15          (Internal)           ✅ System    None
+─────────────────────────────────────────────────────────────────────────
+TOTAL               62          Multiple ranges      Conflicting 3
+
+═══════════════════════════════════════════════════════════════════════
+
+REMEDIATION FLOW CHART
+═══════════════════════════════════════════════════════════════════════
+
+STEP 1: IDENTIFY DOCKER COMPOSE FILES
+  ├─ Find Hyperbox docker-compose.yml
+  ├─ Find Faceless YouTube docker-compose.yml
+  └─ Find Neurectomy docker-compose.yml
+
+           ↓
+
+STEP 2: EDIT PORT MAPPINGS
+  ├─ Hyperbox:       9090:9090 → 40001:9090
+  ├─ Faceless:       3000:3000 → 40005:3000
+  └─ Neurectomy:     16686:16686 → 40010:16686
+
+           ↓
+
+STEP 3: RESTART CONTAINERS
+  ├─ docker-compose restart prometheus (Hyperbox)
+  ├─ docker-compose restart dashboard-staging (Faceless)
+  └─ docker-compose restart neurectomy-jaeger (Neurectomy)
+
+           ↓
+
+STEP 4: VERIFY PORTS FREED
+  └─ Run: s:\Ryot\VERIFY_PORT_REMEDIATION.bat
+
+           ↓ ✅ ALL GREEN?
+
+STEP 5: PROCEED WITH PHASE 6
+  ├─ Run: s:\Ryot\START_PHASE6_NOW.bat
+  └─ Follow: s:\Ryot\PHASE6_EXECUTION_CHECKLIST.md
+
+═══════════════════════════════════════════════════════════════════════
+
+KUBERNETES INTERNAL SERVICES (No External Binding)
+═══════════════════════════════════════════════════════════════════════
+
+SERVICE NAME    CLUSTER IP      INTERNAL PORT   EXTERNAL    STATUS
+─────────────────────────────────────────────────────────────────────
+ryzanstein-api  10.103.11.128   8000            NodePort    ✅
+prometheus      10.111.84.110   9090            ClusterIP   ✅
+grafana         10.104.112.237  3000            ClusterIP   ✅
+jaeger          10.111.11.4     16686           ClusterIP   ✅
+alertmanager    10.111.8.224    9093            ClusterIP   ✅
+
+All use kubectl port-forward for external access (no docker binding).
+
+═══════════════════════════════════════════════════════════════════════
+
+DOCKER NETWORK STACK (Currently)
+═══════════════════════════════════════════════════════════════════════
+
+DOCKER CONTAINER:  BINDING         DESTINATION SERVICE
+────────────────────────────────────────────────────────────
+Dashboard Staging   0.0.0.0:3000    Faceless YouTube ❌
+Prometheus          0.0.0.0:9090    Hyperbox ❌
+Postgres            0.0.0.0:5432    Hyperbox ✅
+Neurectomy Jaeger   0.0.0.0:16686   Neurectomy ❌
+... (others isolated)
+
+KUBERNETES PORT-FORWARD:
+  (Will use these once docker conflicts freed)
+  kubectl port-forward svc/ryzanstein-api 8000:8000
+  kubectl port-forward svc/prometheus 9090:9090
+  kubectl port-forward svc/grafana 3000:3000
+  kubectl port-forward svc/jaeger 16686:16686
+  kubectl port-forward svc/alertmanager 9093:9093
+
+═══════════════════════════════════════════════════════════════════════
+
+PORT USAGE DENSITY CHART
+═══════════════════════════════════════════════════════════════════════
+
+Port 3000        ████████████████ SATURATED (1 binding, 1 blocked)
+Port 5000        ████░░░░░░░░░░░░ OK (1 isolated)
+Port 8000        ████░░░░░░░░░░░░ OK (2 internal, no external conflict)
+Port 9090        ████████████████ SATURATED (1 binding, 1 blocked)
+Port 16686       ████████████████ SATURATED (1 binding, 1 blocked)
+Port 40000+      ░░░░░░░░░░░░░░░░ FREE (ready for migration)
+
+Legend: ████ = Used | ░░░░ = Available
+
+═══════════════════════════════════════════════════════════════════════
+
+THE THREE CONFLICTS IN DETAIL
+═══════════════════════════════════════════════════════════════════════
+
+CONFLICT #1: PORT 3000 - Grafana/Dashboard
+  ┌──────────────────────────────────────────────────┐
+  │ Faceless YouTube (docker-compose)                │
+  │   dashboard-staging: ports: ["3000:3000"]        │
+  │                                                  │
+  │ vs.                                              │
+  │                                                  │
+  │ Ryzanstein (Kubernetes)                          │
+  │   grafana svc: 3000/TCP (kubectl port-forward)   │
+  │                                                  │
+  │ RESULT: localhost:3000 → Faceless YouTube ❌    │
+  │         Ryzanstein cannot use 3000              │
+  └──────────────────────────────────────────────────┘
+
+  SOLUTION: Move Faceless YouTube to 40005
+
+CONFLICT #2: PORT 9090 - Prometheus
+  ┌──────────────────────────────────────────────────┐
+  │ Hyperbox (docker-compose)                        │
+  │   prometheus: ports: ["9090:9090"]               │
+  │                                                  │
+  │ vs.                                              │
+  │                                                  │
+  │ Ryzanstein (Kubernetes)                          │
+  │   prometheus svc: 9090/TCP (kubectl port-fwd)    │
+  │                                                  │
+  │ RESULT: localhost:9090 → Hyperbox ❌            │
+  │         Ryzanstein cannot use 9090              │
+  └──────────────────────────────────────────────────┘
+
+  SOLUTION: Move Hyperbox to 40001
+
+CONFLICT #3: PORT 16686 - Jaeger
+  ┌──────────────────────────────────────────────────┐
+  │ Neurectomy (docker-compose)                      │
+  │   neurectomy-jaeger: ports: ["16686:16686"]      │
+  │                                                  │
+  │ vs.                                              │
+  │                                                  │
+  │ Ryzanstein (Kubernetes)                          │
+  │   jaeger svc: 16686/TCP (kubectl port-forward)   │
+  │                                                  │
+  │ RESULT: localhost:16686 → Neurectomy ❌         │
+  │         Ryzanstein cannot use 16686             │
+  └──────────────────────────────────────────────────┘
+
+  SOLUTION: Move Neurectomy to 40010
+
+═══════════════════════════════════════════════════════════════════════
+
+RECOMMENDED ARCHITECTURE (After Remediation)
+═══════════════════════════════════════════════════════════════════════
+
+                    ┌─────────────────────────────┐
+                    │   LOCALHOST:3000            │
+                    │   Ryzanstein Grafana ✅     │
+                    └─────────────────────────────┘
+
+                    ┌─────────────────────────────┐
+                    │   LOCALHOST:9090            │
+                    │   Ryzanstein Prometheus ✅  │
+                    └─────────────────────────────┘
+
+                    ┌─────────────────────────────┐
+                    │   LOCALHOST:16686           │
+                    │   Ryzanstein Jaeger ✅      │
+                    └─────────────────────────────┘
+
+                    ┌─────────────────────────────┐
+                    │   LOCALHOST:8000            │
+                    │   Ryzanstein API ✅         │
+                    └─────────────────────────────┘
+
+                    ┌─────────────────────────────┐
+                    │   LOCALHOST:9093            │
+                    │   Ryzanstein AlertMgr ✅    │
+                    └─────────────────────────────┘
+
+        ┌──────────────────────────────────────────────────┐
+        │           OTHER PROJECTS (Isolated)             │
+        ├──────────────────────────────────────────────────┤
+        │  40001 → Hyperbox Prometheus                     │
+        │  40005 → Faceless YouTube Dashboard              │
+        │  40010 → Neurectomy Jaeger                       │
+        │  40020+ → Reserved for future use                │
+        └──────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════
+
+Key Takeaways:
+  ✅ Clear port organization (Ryzanstein gets standard ports)
+  ✅ Other projects isolated to 40000+ range
+  ✅ No cross-contamination
+  ✅ Room for future growth
+  ✅ Production-ready architecture
+
+═══════════════════════════════════════════════════════════════════════

@@ -1,0 +1,155 @@
+# Ryzanstein LLM — Linux Production Docker Image
+# Multi-stage build: C++ builder → Python runtime (AMD64)
+# [REF:TASK4.1] - Production Docker Images
+
+# =============================================================================
+# STAGE 1: C++ Build Environment
+# =============================================================================
+FROM ubuntu:22.04 AS cpp-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/opt/cmake/bin:$PATH"
+
+# Install build tools and dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    curl \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python 3.11
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-dev \
+    python3.11-distutils \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pip
+RUN curl -s https://bootstrap.pypa.io/get-pip.py | python3.11
+
+# Copy Ryzanstein source
+WORKDIR /build
+COPY RYZEN-LLM /build/RYZEN-LLM
+COPY mcp /build/mcp
+
+# Build C++ core with AVX-512 optimization
+WORKDIR /build/RYZEN-LLM
+RUN mkdir -p build && cd build && \
+    cmake .. \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DENABLE_AVX512=ON \
+      -DENABLE_PYBIND11=ON \
+      -DENABLE_OPENMP=ON \
+      -DCMAKE_CXX_FLAGS="-march=native -O3 -flto" && \
+    cmake --build . --config Release -j $(nproc) --verbose
+
+# Install Python build dependencies
+RUN python3.11 -m pip install --no-cache-dir -q \
+    torch==2.1.0 \
+    safetensors==0.4.0 \
+    numpy==1.24.3 \
+    pydantic==2.4.2 \
+    fastapi==0.104.1 \
+    uvicorn[standard]==0.24.0 \
+    pybind11==2.6.2 \
+    setuptools==68.0.0
+
+# =============================================================================
+# STAGE 2: Go MCP Server Build
+# =============================================================================
+FROM golang:1.22-alpine AS go-builder
+
+WORKDIR /build
+COPY mcp /build/mcp
+
+# Build MCP gRPC server
+WORKDIR /build/mcp
+RUN go mod download && \
+    go build -v -ldflags="-w -s" -o /build/mcp_server ./cmd/server
+
+# =============================================================================
+# STAGE 3: Runtime (lightweight Python base)
+# =============================================================================
+FROM python:3.11-slim-jammy
+
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONPATH=/app:/app/RYZEN-LLM/src
+
+# Install runtime dependencies (minimal)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libopenblas0 \
+    libomp-14 \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory structure
+WORKDIR /app
+RUN mkdir -p \
+    /app/models \
+    /app/logs \
+    /app/cache \
+    /app/data \
+    /app/config
+
+# Copy compiled C++ bindings from builder
+COPY --from=cpp-builder /build/RYZEN-LLM/build/python/* /app/
+
+# Copy Python source code
+COPY --from=cpp-builder /build/RYZEN-LLM /app/RYZEN-LLM
+
+# Copy MCP server binary
+COPY --from=go-builder /build/mcp_server /app/mcp_server
+RUN chmod +x /app/mcp_server
+
+# Install Python runtime dependencies
+RUN python3.11 -m pip install --no-cache-dir -q \
+    torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu \
+    safetensors==0.4.0 \
+    numpy==1.24.3 \
+    pydantic==2.4.2 \
+    fastapi==0.104.1 \
+    uvicorn[standard]==0.24.0 \
+    aiofiles==23.2.1 \
+    python-multipart==0.0.6 \
+    prometheus-client==0.18.0 \
+    opentelemetry-api==1.21.0 \
+    opentelemetry-sdk==1.21.0 \
+    opentelemetry-exporter-jaeger-thrift==1.21.0 \
+    opentelemetry-instrumentation-fastapi==0.42b0 \
+    opentelemetry-instrumentation-httpx==0.42b0 \
+    grpcio==1.59.3 \
+    protobuf==4.24.4
+
+# Configuration
+ENV API_HOST=0.0.0.0
+ENV API_PORT=8000
+ENV MCP_SERVER_HOST=0.0.0.0
+ENV MCP_SERVER_PORT=8001
+ENV LOG_DIR=/app/logs
+ENV CACHE_DIR=/app/cache
+ENV MODEL_PATH=/app/models/bitnet-1.58b/model.safetensors
+ENV JAEGER_AGENT_HOST=jaeger
+ENV JAEGER_AGENT_PORT=6831
+ENV PROMETHEUS_PUSHGATEWAY=prometheus:9091
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Expose ports
+# 8000: FastAPI server
+# 8001: MCP gRPC server (inference client)
+# 8002: MCP gRPC server (agent registry)
+# 8003: MCP gRPC server (training)
+EXPOSE 8000 8001 8002 8003
+
+# Default entry point: start API server
+# To start MCP server instead: docker run ryzanstein:latest ./mcp_server --host 0.0.0.0 --port 8001
+ENTRYPOINT ["python3.11", "-m", "uvicorn"]
+CMD ["RYZEN-LLM.src.api.server:app", "--host", "0.0.0.0", "--port", "8000"]

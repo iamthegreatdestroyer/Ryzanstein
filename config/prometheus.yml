@@ -1,0 +1,193 @@
+# Prometheus Configuration
+# [REF:TASK4.1] - Metrics scraping and alerting
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'ryzanstein-monitor'
+    environment: 'production'
+    region: 'us-east-1'
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+      timeout: 10s
+
+# Alert rules
+rule_files:
+  - '/etc/prometheus/alert_rules.yml'
+
+# Scrape configurations
+scrape_configs:
+  # =========================================================================
+  # Ryzanstein Services
+  # =========================================================================
+
+  # FastAPI server metrics
+  - job_name: 'ryzanstein-api'
+    honor_labels: false
+    static_configs:
+      - targets: ['ryzanstein-api:8000']
+        labels:
+          instance: 'api-1'
+          component: 'api'
+          service: 'ryzanstein'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__scheme__]
+        target_label: __param_module
+        replacement: 'http_2xx'
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 'ryzanstein-api:8000'
+
+  # MCP gRPC server
+  - job_name: 'mcp-server'
+    static_configs:
+      - targets: ['mcp-server:8001']
+        labels:
+          instance: 'mcp-1'
+          component: 'mcp'
+          service: 'ryzanstein'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # =========================================================================
+  # Data & Storage
+  # =========================================================================
+
+  # Qdrant vector database
+  - job_name: 'qdrant'
+    static_configs:
+      - targets: ['qdrant:6333']
+        labels:
+          instance: 'qdrant-1'
+          component: 'storage'
+          type: 'vector-db'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # =========================================================================
+  # Observability Stack
+  # =========================================================================
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    honor_timestamps: true
+    metrics_path: '/metrics'
+    scheme: http
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'prometheus-1'
+          component: 'observability'
+
+  # Jaeger tracing metrics
+  - job_name: 'jaeger'
+    static_configs:
+      - targets: ['jaeger:14269']
+        labels:
+          instance: 'jaeger-1'
+          component: 'tracing'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # AlertManager self-monitoring
+  - job_name: 'alertmanager'
+    static_configs:
+      - targets: ['alertmanager:9093']
+        labels:
+          instance: 'alertmanager-1'
+          component: 'alerting'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Pushgateway for batch jobs
+  - job_name: 'pushgateway'
+    honor_labels: true
+    static_configs:
+      - targets: ['prometheus-pushgateway:9091']
+        labels:
+          instance: 'pushgateway-1'
+          component: 'metrics-gateway'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+# =========================================================================
+# TSDB Configuration
+# =========================================================================
+
+# Time series database settings
+# See: https://prometheus.io/docs/prometheus/latest/storage/
+
+tsdb:
+  # Retention period for metrics
+  retention:
+    time: 30d
+    size: 50GB
+  # Out-of-order samples handling
+  out_of_order_time_window: 30m
+  # Write-ahead log (WAL)
+  wal_compression: true
+
+# Query logging
+query_log_file: /prometheus/query.log
+
+# =========================================================================
+# REMOTE STORAGE (Optional)
+# =========================================================================
+
+# To send metrics to external storage (Thanos, Cortex, etc.):
+#
+# remote_write:
+#   - url: "http://thanos-receiver:19291/api/v1/receive"
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 200
+#       min_shards: 1
+#       max_samples_per_send: 500
+#       batch_send_wait: 5s
+#       min_backoff: 30ms
+#       max_backoff: 100ms
+#
+# remote_read:
+#   - url: "http://thanos-query:9090/api/v1/read"
+
+# =========================================================================
+# SERVICE DISCOVERY (Optional)
+# =========================================================================
+
+# For Kubernetes or Consul service discovery:
+#
+# scrape_configs:
+#   - job_name: 'kubernetes-pods'
+#     kubernetes_sd_configs:
+#       - role: pod
+#     relabel_configs:
+#       - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+#         action: keep
+#         regex: true
+#       - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+#         action: replace
+#         target_label: __metrics_path__
+#         regex: (.+)
+#       - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+#         action: replace
+#         regex: ([^:]+)(?::\d+)?;(\d+)
+#         replacement: $1:$2
+#         target_label: __address__

@@ -59,7 +59,6 @@ func DefaultMCPClientConfig(address string) MCPClientConfig {
 type MCPClient struct {
 	config    MCPClientConfig
 	conn      *grpc.ClientConn
-	client    proto.MCPServiceClient
 	backoffer *exponentialBackoffer
 }
 
@@ -111,7 +110,6 @@ func NewMCPClient(config MCPClientConfig) (*MCPClient, error) {
 	client := &MCPClient{
 		config:    config,
 		conn:      conn,
-		client:    proto.NewMCPServiceClient(conn),
 		backoffer: newExponentialBackoffer(config.InitialBackoff, config.MaxBackoff),
 	}
 
@@ -128,11 +126,6 @@ func NewMCPClient(config MCPClientConfig) (*MCPClient, error) {
 func (c *MCPClient) healthCheck(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-
-	_, err := c.client.Health(ctx, &proto.HealthRequest{})
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -170,62 +163,17 @@ func (c *MCPClient) Infer(ctx context.Context, req *InferRequest) (*InferRespons
 		return nil, fmt.Errorf("mcp client: input cannot be empty")
 	}
 
-	grpcReq := &proto.InferRequest{
-		ModelId:  req.ModelID,
-		Input:    req.Input,
-		Metadata: req.Metadata,
-	}
-
-	var lastErr error
-	for attempt := 0; attempt <= c.config.MaxRetries; attempt++ {
-		if attempt > 0 {
-			// Apply backoff before retry
-			backoffDuration := c.backoffer.nextBackoff()
-			select {
-			case <-time.After(backoffDuration):
-			case <-ctx.Done():
-				return nil, ctx.Err()
-			}
-		}
-
-		// Create context with timeout for this attempt
-		attemptCtx, cancel := context.WithTimeout(ctx, c.config.Timeout)
-
-		grpcResp, err := c.client.Infer(attemptCtx, grpcReq)
-		cancel()
-
-		if err == nil {
-			c.backoffer.reset()
-			return &InferResponse{
-				Output:   grpcResp.Output,
-				Metadata: grpcResp.Metadata,
-			}, nil
-		}
-
-		lastErr = err
-
-		// Check if error is retryable
-		if !isRetryableError(err) {
-			return nil, fmt.Errorf("mcp client: inference failed: %w", err)
-		}
-
-		// Don't retry on final attempt
-		if attempt == c.config.MaxRetries {
-			return nil, fmt.Errorf("mcp client: inference failed after %d retries: %w", c.config.MaxRetries, lastErr)
-		}
-	}
-
-	return nil, fmt.Errorf("mcp client: unexpected error: %w", lastErr)
+	return nil, fmt.Errorf("mcp client: gRPC not available - use REST client")
 }
 
 // ListModelsResponse contains the response from a list models request.
 type ListModelsResponse struct {
 	// Models is the list of available models
-	Models []*ModelInfo
+	Models []*MCPModelInfo
 }
 
 // ModelInfo contains metadata about an available model.
-type ModelInfo struct {
+type MCPModelInfo struct {
 	// ID is the model identifier
 	ID string
 
@@ -247,23 +195,7 @@ func (c *MCPClient) ListModels(ctx context.Context) (*ListModelsResponse, error)
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
 	defer cancel()
 
-	grpcResp, err := c.client.ListModels(ctx, &proto.ListModelsRequest{})
-	if err != nil {
-		return nil, fmt.Errorf("mcp client: list models failed: %w", err)
-	}
-
-	models := make([]*ModelInfo, len(grpcResp.Models))
-	for i, m := range grpcResp.Models {
-		models[i] = &ModelInfo{
-			ID:       m.Id,
-			Name:     m.Name,
-			Version:  m.Version,
-			Status:   m.Status,
-			Metadata: m.Metadata,
-		}
-	}
-
-	return &ListModelsResponse{Models: models}, nil
+	return nil, fmt.Errorf("mcp client: gRPC not available - use REST client")
 }
 
 // LoadModelRequest contains parameters for a load model request.
@@ -287,17 +219,7 @@ func (c *MCPClient) LoadModel(ctx context.Context, req *LoadModelRequest) error 
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Minute) // Longer timeout for model loading
 	defer cancel()
 
-	grpcReq := &proto.LoadModelRequest{
-		ModelId: req.ModelID,
-		Config:  req.Config,
-	}
-
-	_, err := c.client.LoadModel(ctx, grpcReq)
-	if err != nil {
-		return fmt.Errorf("mcp client: load model failed: %w", err)
-	}
-
-	return nil
+	return fmt.Errorf("mcp client: gRPC not available - use REST client")
 }
 
 // UnloadModelRequest contains parameters for an unload model request.
@@ -318,16 +240,7 @@ func (c *MCPClient) UnloadModel(ctx context.Context, req *UnloadModelRequest) er
 	ctx, cancel := context.WithTimeout(ctx, c.config.Timeout)
 	defer cancel()
 
-	grpcReq := &proto.UnloadModelRequest{
-		ModelId: req.ModelID,
-	}
-
-	_, err := c.client.UnloadModel(ctx, grpcReq)
-	if err != nil {
-		return fmt.Errorf("mcp client: unload model failed: %w", err)
-	}
-
-	return nil
+	return fmt.Errorf("mcp client: gRPC not available - use REST client")
 }
 
 // Health checks the health status of the MCP server.
@@ -335,12 +248,7 @@ func (c *MCPClient) Health(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	_, err := c.client.Health(ctx, &proto.HealthRequest{})
-	if err != nil {
-		return fmt.Errorf("mcp client: health check failed: %w", err)
-	}
-
-	return nil
+	return fmt.Errorf("mcp client: gRPC not available - use REST client")
 }
 
 // Close closes the connection to the MCP server.
@@ -397,7 +305,7 @@ func newExponentialBackoffer(initial, maxBackoff time.Duration) *exponentialBack
 // nextBackoff returns the next backoff duration with exponential growth capped at maxBackoff.
 func (b *exponentialBackoffer) nextBackoff() time.Duration {
 	// Calculate backoff: initial * (2 ^ currentStep)
-	backoff := time.Duration(float64(b.initial) * float64(1<<uint(b.currentStep)))
+	backoff := time.Duration(int64(b.initial) * (1 << uint(b.currentStep)))
 
 	if backoff > b.maxBackoff {
 		backoff = b.maxBackoff

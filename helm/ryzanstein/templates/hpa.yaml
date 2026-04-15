@@ -1,0 +1,118 @@
+{{- if .Values.api.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-api-hpa
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "ryzanstein.fullname" . }}-api
+
+  minReplicas: {{ .Values.api.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.api.autoscaling.maxReplicas }}
+
+  metrics:
+    # CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.autoscaling.targetCPUUtilizationPercentage }}
+
+    # Memory utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.api.autoscaling.targetMemoryUtilizationPercentage }}
+
+    # Custom metric: HTTP requests per second
+    {{- if .Values.api.autoscaling.metrics }}
+    {{- range .Values.api.autoscaling.metrics }}
+    - type: {{ .type }}
+      {{- if eq .type "Pods" }}
+      pods:
+        metric:
+          name: {{ .pods.metric.name }}
+        target:
+          type: {{ .pods.target.type }}
+          averageValue: {{ .pods.target.averageValue }}
+      {{- end }}
+    {{- end }}
+    {{- end }}
+
+  # Scaling behavior (K8s 1.18+)
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 min before scaling down
+      policies:
+        - type: Percent
+          value: 50  # Scale down max 50% of replicas
+          periodSeconds: 60
+        - type: Pods
+          value: 2  # Remove max 2 pods per minute
+          periodSeconds: 60
+      selectPolicy: Min  # Select most conservative policy
+
+    scaleUp:
+      stabilizationWindowSeconds: 60  # Wait 1 min before scaling up again
+      policies:
+        - type: Percent
+          value: 100  # Double replicas
+          periodSeconds: 30
+        - type: Pods
+          value: 4  # Add max 4 pods per 30 seconds
+          periodSeconds: 30
+      selectPolicy: Max  # Select most aggressive policy
+
+---
+{{- if .Values.mcp.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-mcp-hpa
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: mcp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "ryzanstein.fullname" . }}-mcp
+
+  minReplicas: {{ .Values.mcp.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.mcp.autoscaling.maxReplicas }}
+
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.mcp.autoscaling.targetCPUUtilizationPercentage }}
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+
+{{- end }}
+
+{{- end }}

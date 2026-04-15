@@ -2,11 +2,40 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 )
+
+// openAICompletionRequest is the JSON body sent to /v1/completions.
+type openAICompletionRequest struct {
+	Model       string  `json:"model"`
+	Prompt      string  `json:"prompt"`
+	MaxTokens   int     `json:"max_tokens,omitempty"`
+	Temperature float32 `json:"temperature,omitempty"`
+	TopP        float32 `json:"top_p,omitempty"`
+	Stream      bool    `json:"stream,omitempty"`
+}
+
+// openAICompletionResponse mirrors the OpenAI /v1/completions JSON shape.
+type openAICompletionResponse struct {
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	Model   string `json:"model"`
+	Created int64  `json:"created"`
+	Choices []struct {
+		Text         string `json:"text"`
+		Index        int    `json:"index"`
+		FinishReason string `json:"finish_reason"`
+	} `json:"choices"`
+	Usage struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
+	} `json:"usage"`
+}
 
 // InferenceRequest represents a request for inference
 type InferenceRequest struct {
@@ -94,8 +123,18 @@ func (is *InferenceService) Execute(ctx context.Context, req *InferenceRequest) 
 
 	startTime := time.Now()
 
-	// Execute inference via client manager
-	result, err := is.cm.ExecuteWithRouting(ctx, "infer", req)
+	// Build OpenAI-compatible request body
+	apiReq := &openAICompletionRequest{
+		Model:       req.ModelID,
+		Prompt:      req.Prompt,
+		MaxTokens:   req.MaxTokens,
+		Temperature: req.Temperature,
+		TopP:        req.TopP,
+		Stream:      false,
+	}
+
+	// Execute inference via client manager (routes to /v1/completions)
+	result, err := is.cm.ExecuteWithRouting(ctx, "infer", apiReq)
 	if err != nil {
 		is.mu.Lock()
 		is.metrics.FailedRequests++
@@ -105,37 +144,42 @@ func (is *InferenceService) Execute(ctx context.Context, req *InferenceRequest) 
 
 	duration := time.Since(startTime)
 
-	// Parse response from client manager
-	var responseText string
-	if resultMap, ok := result.(map[string]interface{}); ok {
-		if data, exists := resultMap["data"]; exists {
-			if reqData, ok := data.(*InferenceRequest); ok {
-				// Generate a more intelligent response based on the agent
-				agent := "unknown"
-				if reqData.Metadata != nil {
-					if agentVal, ok := reqData.Metadata["agent"].(string); ok {
-						agent = agentVal
-					}
-				}
-
-				responseText = fmt.Sprintf("🤖 %s here! I've analyzed your request: '%s'. This is currently a simulated response - real LLM inference would be connected here.",
-					agent, reqData.Prompt)
-			}
-		}
+	// Unmarshal real API response into OpenAI-compatible shape
+	resultBytes, marshalErr := json.Marshal(result)
+	if marshalErr != nil {
+		return nil, fmt.Errorf("marshal inference result: %w", marshalErr)
+	}
+	var apiResp openAICompletionResponse
+	if err := json.Unmarshal(resultBytes, &apiResp); err != nil {
+		return nil, fmt.Errorf("unmarshal completion response: %w", err)
 	}
 
-	if responseText == "" {
-		responseText = fmt.Sprintf("Generated response for: %s", req.Prompt)
+	responseText := ""
+	if len(apiResp.Choices) > 0 {
+		responseText = apiResp.Choices[0].Text
+	}
+	tokenCount := apiResp.Usage.CompletionTokens
+	if tokenCount == 0 {
+		tokenCount = len(strings.Fields(responseText))
 	}
 
 	response := &InferenceResponse{
 		Text:     responseText,
-		Tokens:   len(strings.Split(responseText, " ")), // Rough token count
+		Tokens:   tokenCount,
 		Duration: duration,
-		Model:    req.ModelID,
+		Model:    apiResp.Model,
 		Metadata: map[string]interface{}{
-			"timestamp": startTime,
-			"agent":     req.Metadata["agent"],
+			"timestamp":     startTime,
+			"agent":         req.Metadata["agent"],
+			"id":            apiResp.ID,
+			"finish_reason": func() string {
+				if len(apiResp.Choices) > 0 {
+					return apiResp.Choices[0].FinishReason
+				}
+				return ""
+			}(),
+			"prompt_tokens": apiResp.Usage.PromptTokens,
+			"total_tokens":  apiResp.Usage.TotalTokens,
 		},
 	}
 

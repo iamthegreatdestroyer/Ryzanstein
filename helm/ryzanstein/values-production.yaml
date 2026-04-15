@@ -1,0 +1,217 @@
+# Production Kubernetes Deployment Values
+# [REF:TASK4.2] - High availability, security, monitoring
+#
+# Usage:
+#   helm install ryzanstein ./helm/ryzanstein -f values-production.yaml
+#   helm upgrade ryzanstein ./helm/ryzanstein -f values-production.yaml
+
+global:
+  environment: production
+  namespace: ryzanstein-prod
+  imagePullPolicy: Always
+
+# ============================================================================
+# API Server (Production)
+# ============================================================================
+api:
+  enabled: true
+  replicaCount: 3  # High availability
+
+  image:
+    repository: registry.example.com/ryzanstein
+    tag: "2.0.0"
+    pullPolicy: Always
+
+  port: 8000
+
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: nlb
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
+  ingress:
+    enabled: true
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/rate-limit: "1000"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+    hosts:
+      - host: api.ryzanstein.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: ryzanstein-api-tls
+        hosts:
+          - api.ryzanstein.example.com
+
+  resources:
+    requests:
+      cpu: 4
+      memory: 8Gi
+    limits:
+      cpu: 8
+      memory: 16Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 20
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+  persistence:
+    cache:
+      enabled: true
+      size: 50Gi
+    logs:
+      enabled: true
+      size: 100Gi
+
+# ============================================================================
+# MCP Server (Production)
+# ============================================================================
+mcp:
+  enabled: true
+  replicaCount: 3
+
+  resources:
+    requests:
+      cpu: 2
+      memory: 4Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+
+# ============================================================================
+# Model Storage (Production)
+# ============================================================================
+modelStorage:
+  enabled: true
+  pvc:
+    name: ryzanstein-models-prod
+    size: 100Gi
+    storageClass: fast-ssd
+    accessModes:
+      - ReadOnlyMany
+
+# ============================================================================
+# Prometheus (Production)
+# ============================================================================
+prometheus:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 200Gi  # 6+ months of data
+    storageClass: fast-ssd
+  retention: 180d
+
+# ============================================================================
+# Grafana (Production)
+# ============================================================================
+grafana:
+  enabled: true
+  adminPassword: CHANGE_ME_IMMEDIATELY
+  service:
+    type: LoadBalancer
+  persistence:
+    enabled: true
+    size: 20Gi
+
+# ============================================================================
+# Jaeger (Production)
+# ============================================================================
+jaeger:
+  enabled: true
+  memory:
+    maxTraces: 100000
+
+# ============================================================================
+# AlertManager (Production)
+# ============================================================================
+alertmanager:
+  enabled: true
+  slack:
+    webhook: https://hooks.slack.com/services/YOUR/PROD/WEBHOOK
+    channel: "#production-alerts"
+  pagerduty:
+    serviceKey: YOUR_PRODUCTION_PAGERDUTY_KEY
+
+# ============================================================================
+# Secrets (Production)
+# ============================================================================
+secrets:
+  apiKeys:
+    enabled: true
+    create: true
+    name: ryzanstein-api-keys-prod
+
+  database:
+    enabled: true
+    username: ryzanstein-prod
+    password: GENERATE_STRONG_PASSWORD
+
+# ============================================================================
+# RBAC (Production)
+# ============================================================================
+rbac:
+  enabled: true
+  create: true
+
+# ============================================================================
+# Network Policy (Production)
+# ============================================================================
+networkPolicy:
+  enabled: true
+
+# ============================================================================
+# Pod Security Standards (Production)
+# ============================================================================
+podSecurityStandards:
+  enforce: restricted
+  audit: restricted
+  warn: restricted
+
+# ============================================================================
+# Feature Flags (Production)
+# ============================================================================
+features:
+  enableMetrics: true
+  enableTracing: true
+  enableAlerts: true
+  enableMonitoring: true
+  enableAutoscaling: true
+  enablePersistence: true
+  enableNetworkPolicy: true
+  enableSecurityPolicy: true
+
+labels:
+  environment: production
+  team: ml-platform
+  criticality: high
+
+annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+  datadog.ad.checks: '{"prometheus": {"init_configs": [{}], "instances": [{"prometheus_url": "http://%%host%%:8000"}]}}'
+
+# ============================================================================
+# Debug (Disabled in Production)
+# ============================================================================
+debug:
+  enabled: false
+  logLevel: WARNING
+  traceEnabled: false

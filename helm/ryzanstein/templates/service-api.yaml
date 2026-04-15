@@ -1,0 +1,58 @@
+{{- if .Values.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-api
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: api
+  {{- with .Values.api.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.api.service.type }}
+  selector:
+    {{- include "ryzanstein.selectorLabels" . | nindent 4 }}
+    component: api
+  ports:
+    - port: {{ .Values.api.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  {{- if eq .Values.api.service.type "LoadBalancer" }}
+  loadBalancerSourceRanges: []  # Restrict source IPs if needed
+  {{- end }}
+{{- end }}
+
+---
+{{- if .Values.mcp.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-mcp
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: mcp
+  {{- with .Values.mcp.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.mcp.service.type }}
+  {{- if eq .Values.mcp.service.type "ClusterIP" }}
+  clusterIP: {{ .Values.mcp.service.clusterIP }}
+  {{- end }}
+  selector:
+    {{- include "ryzanstein.selectorLabels" . | nindent 4 }}
+    component: mcp
+  ports:
+    {{- range $name, $port := .Values.mcp.service.ports }}
+    - port: {{ $port }}
+      targetPort: {{ $port }}
+      protocol: TCP
+      name: {{ $name }}
+    {{- end }}
+{{- end }}

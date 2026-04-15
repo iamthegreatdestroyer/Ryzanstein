@@ -1,0 +1,250 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║       PHASE 5: LOAD TESTING - READY TO EXECUTE ✅                ║
+║       All Setup Complete - Run Tests Now!                        ║
+║       February 19, 2026                                          ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════
+
+🎯 THREE WAYS TO RUN THE TESTS:
+
+1️⃣  EASIEST - Double-click Batch File
+────────────────────────────────────
+   File: s:\Ryot\run_k6_tests.bat
+
+   Steps:
+   1. Open File Explorer
+   2. Navigate to: s:\Ryot
+   3. Double-click: run_k6_tests.bat
+   4. Choose option from menu
+   5. Watch tests run!
+
+   ✅ RECOMMENDED - Most user-friendly
+
+
+2️⃣  POWERSHELL SCRIPT
+──────────────────────
+   File: s:\Ryot\run_k6_tests.ps1
+
+   Command:
+   > Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+   > s:\Ryot\run_k6_tests.ps1
+
+   Benefits: Color-coded output, formatted results
+
+
+3️⃣  MANUAL CMD.EXE
+────────────────────
+   Command:
+   > cd s:\Ryot
+   > "C:\Users\sgbil\Downloads\k6-v0.50.0-windows-amd64\k6-v0.50.0-windows-amd64\k6.exe" run load_test_smoke.js
+
+   Then run other tests individually
+
+═══════════════════════════════════════════════════════════════════════
+
+✨ WHAT EACH SCRIPT DOES
+
+Automatically:
+  ✅ Finds k6.exe location
+  ✅ Adds k6 to PATH
+  ✅ Verifies API is running
+  ✅ Runs selected tests
+  ✅ Shows real-time results
+  ✅ Handles errors gracefully
+
+Menu Options:
+  1 = Smoke test only (30 seconds)
+  2 = Quick validation: Smoke + Load (~6 minutes)
+  3 = Full suite: All 5 tests (~2 hours)
+
+═══════════════════════════════════════════════════════════════════════
+
+🚀 START HERE
+
+1. Make sure port-forward is running:
+
+   kubectl port-forward -n ryzanstein-staging svc/ryzanstein-api 8000:8000
+
+2. Double-click this file:
+
+   s:\Ryot\run_k6_tests.bat
+
+3. Choose option 3 (Full suite) or 2 (Quick validation)
+
+4. Let tests run and watch the results!
+
+═══════════════════════════════════════════════════════════════════════
+
+📊 TEST TIMELINE
+
+Option 1: Smoke Test Only
+  Time: ~1 minute
+  Tests: Health, models, chat, embeddings, root endpoint
+  Purpose: Quick sanity check
+
+Option 2: Quick Validation (Recommended for first time)
+  Time: ~6 minutes
+  Tests: Smoke + Load
+  Purpose: Verify baseline functionality
+
+Option 3: Full Suite (Best for complete validation)
+  Time: ~2 hours total
+  Tests:
+    • Smoke (1 min)
+    • Load (6 min)
+    • Spike (6 min)
+    • Stress (31 min)
+    • Endurance (61 min)
+  Purpose: Complete performance validation
+
+═══════════════════════════════════════════════════════════════════════
+
+✅ WHAT YOU'LL GET
+
+Smoke Test Results:
+  ✅ All endpoints respond with 200 OK
+  ✅ Response times < 500ms
+  ✅ Zero errors
+
+Load Test Results:
+  ✅ P95 latency < 1000ms
+  ✅ P99 latency < 2000ms
+  ✅ Error rate < 5%
+  ✅ Throughput > 10 req/sec
+
+Spike Test Results:
+  ✅ System handles 10x load increase
+  ✅ Error rate < 10% during spike
+  ✅ Recovery time < 2 minutes
+
+Stress Test Results:
+  ✅ Breaking point identified (> 1000 VU)
+  ✅ Graceful degradation observed
+  ✅ No cascading failures
+
+Endurance Test Results:
+  ✅ Stable latency over 60 minutes
+  ✅ Error rate < 2%
+  ✅ No memory leaks detected
+
+═══════════════════════════════════════════════════════════════════════
+
+📋 PRE-TEST CHECKLIST
+
+Before running tests:
+
+  [ ] k6 downloaded to:
+      C:\Users\sgbil\Downloads\k6-v0.50.0-windows-amd64\k6-v0.50.0-windows-amd64\k6.exe
+
+  [ ] Port-forward is active:
+      kubectl port-forward -n ryzanstein-staging svc/ryzanstein-api 8000:8000
+
+  [ ] API is responding:
+      curl http://localhost:8000/health
+      (should show: {"status":"healthy"...})
+
+  [ ] Load test scripts exist:
+      ls s:\Ryot\load_test_*.js
+      (should show 5 .js files)
+
+  [ ] Batch script exists:
+      s:\Ryot\run_k6_tests.bat
+
+═══════════════════════════════════════════════════════════════════════
+
+🎯 NEXT STEPS
+
+1. ✅ Verify port-forward is active
+2. 📍 Double-click: s:\Ryot\run_k6_tests.bat
+3. ✅ Choose option 2 or 3
+4. 📊 Watch tests run and review results
+5. 📝 Document findings
+6. ➡️  Proceed to Phase 6 (Integration Testing)
+
+═══════════════════════════════════════════════════════════════════════
+
+⏱️  TIMING
+
+- Smoke test: ~30 seconds
+- Load test: ~5 minutes
+- Spike test: ~5 minutes
+- Stress test: ~30 minutes
+- Endurance test: ~60 minutes
+
+Total (full suite): ~1 hour 45 minutes to 2 hours
+
+═══════════════════════════════════════════════════════════════════════
+
+🖥️  EXAMPLE OUTPUT
+
+When you run the smoke test, you'll see something like:
+
+  checks...................: 100% ✓
+  data_received.............: 1.2 kB
+  data_sent.................: 850 B
+  http_req_duration.........: avg=350ms p(95)=420ms p(99)=480ms ✓
+  http_reqs.................: 5 ✓ (5/sec)
+  http_req_failed..........: 0% ✓
+  iterations................: 1
+
+  ✓ All tests passed!
+
+═══════════════════════════════════════════════════════════════════════
+
+❓ FAQ
+
+Q: Can I stop the tests early?
+A: Yes, press Ctrl+C to stop at any time.
+
+Q: Will tests damage my API?
+A: No, they're non-destructive. Safe to run on staging.
+
+Q: Can I monitor while tests run?
+A: Yes! Open in parallel:
+   - Grafana: http://localhost:3000
+   - Prometheus: http://localhost:9090
+   - Jaeger: http://localhost:16686
+
+Q: What if a test fails?
+A: The script will stop and show an error message.
+   Check API logs: kubectl logs -n ryzanstein-staging deployment/ryzanstein-api -f
+
+Q: Can I save the results?
+A: Yes, modify the batch file to add: --out json=results.json
+
+═══════════════════════════════════════════════════════════════════════
+
+📞 SUPPORT
+
+For detailed information, see:
+  - PHASE5_QUICK_START.txt
+  - PHASE5_EXECUTION_MANUAL.md
+  - RUN_TESTS_NOW.txt
+
+═══════════════════════════════════════════════════════════════════════
+
+🎯 THE EASY WAY
+
+Just do this:
+
+  1. Keep kubectl port-forward running
+  2. Double-click: s:\Ryot\run_k6_tests.bat
+  3. Choose: 2 or 3
+  4. Wait for results
+
+That's it!
+
+═══════════════════════════════════════════════════════════════════════
+
+✅ STATUS: READY TO EXECUTE
+
+Infrastructure:   ✅ Healthy
+Scripts:          ✅ Created
+Documentation:    ✅ Complete
+k6:               ✅ Located
+Batch files:      ✅ Ready
+
+👉 Next: Double-click run_k6_tests.bat
+
+═══════════════════════════════════════════════════════════════════════

@@ -1,0 +1,256 @@
+================================================================================
+RYZANSTEIN LLM v2.0.0 - CRASH DEBUG SESSION CONTINUATION
+================================================================================
+Date: April 7, 2026
+Project: CPU-first LLM inference engine for AMD Ryzen (Zen 4+)
+Build Root: s:\Ryot\RYZEN-LLM
+Target: Fix forward() crash in attention_layer() during inference
+
+================================================================================
+CRITICAL STATE SUMMARY
+================================================================================
+
+PHASE A STATUS: Build ✅ COMPLETE | Runtime ❌ CRASH IN PROGRESS
+
+BUILD RESULT:
+  ✅ ryzen_llm_bindings.pyd exists (404.5 KB)
+  ✅ All 4 build blockers resolved
+  ✅ Incremental rebuild working consistently
+  ✅ Python import works: from ryzanstein_llm.ryzen_llm_bindings import BitNetEngine, ModelConfig
+
+CRASH INVESTIGATION RESULT:
+  ✅ 7 hypotheses DISPROVEN via systematic instrumentation
+  ✅ Crash DEFINITIVELY NARROWED to INSIDE attention_layer()
+  ✅ First matvec call (Q-projection) CONFIRMED WORKING (all 32 rows complete)
+  ✅ Crash occurs AFTER Q-projection matvec returns but BEFORE attention_layer() returns
+
+CRITICAL DIAGNOSTIC OUTPUT (Most Recent Test):
+  [Engine] CPU Features: AVX512F=NO VNNI=NO BW=NO VBMI=NO
+  [Engine] AVX-512 VNNI matvec: DISABLED (scalar fallback)
+  [Engine] OpenMP threads: 1
+  [FWD] embedding done ✅
+  [FWD] layer 0 attn_norm done ✅
+  [DIAG] matvec M=32 K=32 weights.values.size()=1024 input.values.size()=32
+  [DIAG] act_scale=0.0472441 act_zp=0
+  [DIAG] row 0 done, sum=0.215752
+  [DIAG] matmul complete, all 32 rows done ✅
+  [FWD] layer 0 attention done ❌ NEVER PRINTS - CRASH HERE
+
+CRASH LOCATION: 
+  File: s:\Ryot\RYZEN-LLM\src\core\bitnet\engine.cpp
+  Function: attention_layer()
+  Lines: ~687-820
+  Status: Partially instrumented (forward() step-level diagnostics added)
+  Exact Failure Point: UNKNOWN - need granular diagnostics INSIDE attention_layer()
+
+OPERATION SEQUENCE INSIDE attention_layer():
+  1. Allocate Q/K/V vectors
+  2. Quantize input → produces Q/K/V quantized activations
+  3. Q-projection: dispatch_ternary_matvec() call #1 ✅ COMPLETES (verified)
+  4. K-projection: dispatch_ternary_matvec() call #2 ❓ SUSPECT #1
+  5. V-projection: dispatch_ternary_matvec() call #3 ❓ SUSPECT #2
+  6. Attention score computation
+  7. Softmax
+  8. O-projection: dispatch_ternary_matvec() call #4 ❓ SUSPECT #3
+  9. Return from function (NEVER REACHED)
+
+================================================================================
+WORKING BUILD COMMANDS
+================================================================================
+
+FULL BUILD (from scratch):
+  cmd /c '"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" amd64 && pwsh -NoProfile -ExecutionPolicy Bypass -File "s:\Ryot\scripts\compile_bindings.ps1"'
+
+INCREMENTAL REBUILD (after code changes):
+  cmd /c '"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" amd64 && cmake --build s:\Ryot\RYZEN-LLM\build --config Release -j 16 2>&1' | Select-Object -Last 3
+
+================================================================================
+WORKING TEST COMMAND
+================================================================================
+
+$env:OMP_NUM_THREADS = "1"; python -c "import sys; sys.path.insert(0, r's:\Ryot\RYZEN-LLM\python'); from ryzanstein_llm.ryzen_llm_bindings import BitNetEngine, ModelConfig; cfg = ModelConfig(); cfg.vocab_size = 64; cfg.hidden_size = 32; cfg.intermediate_size = 86; cfg.num_layers = 1; cfg.num_heads = 2; cfg.head_dim = 16; cfg.max_seq_length = 32; engine = BitNetEngine(cfg); engine.load_weights('_'); output = engine.forward(0, 0); print(f'Done: {len(output)} logits')" 2>&1
+
+================================================================================
+NEXT IMMEDIATE STEPS (DO NOT SKIP)
+================================================================================
+
+STEP 1: READ attention_layer() FUNCTION
+  File: s:\Ryot\RYZEN-LLM\src\core\bitnet\engine.cpp
+  Lines: ~687-820
+  Goal: Understand exact sequence of operations, identify where Q/K/V/O projections are called
+  Key Questions:
+    - Which line is Q-projection matvec? (expected ~705)
+    - Which line is K-projection matvec? (expected ~711)
+    - Which line is V-projection matvec? (expected ~717)
+    - Which line is O-projection matvec? (expected ~808)
+    - What happens between these calls?
+
+STEP 2: ADD GRANULAR DIAGNOSTICS INSIDE attention_layer()
+  Add cerr diagnostic lines at EXACT locations:
+    - After input quantization (before Q-projection)
+    - IMMEDIATELY AFTER Q-projection matvec line (~705)
+    - IMMEDIATELY AFTER K-projection matvec line (~711)
+    - IMMEDIATELY AFTER V-projection matvec line (~717)
+    - IMMEDIATELY AFTER O-projection matvec line (~808)
+    - Before function return
+  
+  Example diagnostic line:
+    std::cerr << "[ATTN] after K-projection matvec" << std::endl;
+
+STEP 3: INCREMENTAL REBUILD
+  Use command from WORKING BUILD COMMANDS section above
+
+STEP 4: RUN TEST COMMAND
+  Use command from WORKING TEST COMMAND section above
+  Observe which diagnostic lines print and which don't
+
+STEP 5: ANALYZE OUTPUT
+  - If crash after Q-proj diagnostic but before K-proj diagnostic → K-proj is the culprit
+  - If crash after K-proj diagnostic but before V-proj diagnostic → V-proj or attention computation is the culprit
+  - And so on...
+
+STEP 6: ROOT CAUSE FIX
+  Once exact operation is identified:
+    - Examine the operation code
+    - Check for: array bounds, null pointers, invalid iterations, memory allocation
+    - Apply fix
+    - Rebuild
+    - Test
+
+STEP 7: CLEANUP
+  - Remove ALL diagnostic cerr lines from engine.cpp and matmul.cpp
+  - Clean rebuild
+  - Verify forward() works cleanly
+  - Test generate() function
+
+STEP 8: PHASE A COMPLETION REPORT
+  Document:
+    - Root cause
+    - Fix applied
+    - Test results
+    - Performance metrics
+    - Phase A sign-off
+
+================================================================================
+KEY FILES & LOCATIONS
+================================================================================
+
+Source Files Being Modified:
+  - s:\Ryot\RYZEN-LLM\src\core\bitnet\engine.cpp (forward(), attention_layer(), constructor)
+  - s:\Ryot\RYZEN-LLM\src\core\bitnet\quantize.cpp (quantization implementations)
+  - s:\Ryot\RYZEN-LLM\src\optimization\avx512\matmul.cpp (dispatch_ternary_matvec)
+
+Build Artifacts:
+  - s:\Ryot\RYZEN-LLM\build (CMake build directory)
+  - s:\Ryot\RYZEN-LLM\python\ryzanstein_llm\ryzen_llm_bindings.pyd (compiled module, 404.5 KB)
+
+Build Scripts:
+  - s:\Ryot\scripts\compile_bindings.ps1 (PowerShell build orchestrator)
+
+Configuration:
+  - s:\Ryot\RYZEN-LLM\CMakeLists.txt (CMake configuration)
+  - s:\Ryot\RYZEN-LLM\build\CMakeCache.txt (CMake cache)
+
+================================================================================
+ENVIRONMENT SETUP
+================================================================================
+
+Python Version: 3.14.3
+CMake Version: 4.2.1
+MSVC Version: 19.44.35222.0 (VS 2022 Build Tools)
+PowerShell Version: Required 7.0+ (use 'pwsh', NOT 'powershell')
+CPU: AMD64 Family 25 Model 80 (Zen 3) - AVX-512 NOT AVAILABLE
+OMP Setting: $env:OMP_NUM_THREADS = "1" (for debugging)
+
+TOOLCHAIN PATHS:
+  vcvarsall.bat: C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat
+  cmake: cmake (must be in PATH)
+  python: python (must be in PATH)
+  pwsh: pwsh (PowerShell 7+, must be in PATH)
+
+================================================================================
+COMMAND FOR NEW CHAT SESSION
+================================================================================
+
+Use this command to provide continuity to a new chat session:
+
+@APEX I'm debugging a forward() crash in Ryzanstein LLM at s:\Ryot\RYZEN-LLM. 
+The build is complete (ryzen_llm_bindings.pyd exists, 404.5 KB).
+Every forward() call crashes with exit code 1 inside attention_layer() in engine.cpp (lines 687-820).
+The crash occurs AFTER the Q-projection matvec completes successfully (verified: all 32 rows complete with valid sums) 
+but BEFORE attention_layer() returns.
+
+DIAGNOSTIC EVIDENCE:
+- "[FWD] embedding done" ✅ PRINTS
+- "[FWD] layer 0 attn_norm done" ✅ PRINTS  
+- Q-projection matvec COMPLETES (verified via instrumentation: "matmul complete, all 32 rows done") ✅
+- "[FWD] layer 0 attention done" ❌ NEVER PRINTS (CRASH INSIDE attention_layer)
+
+NEXT STEPS:
+1. Read attention_layer() function in s:\Ryot\RYZEN-LLM\src\core\bitnet\engine.cpp (lines ~687-820)
+2. Add granular cerr diagnostics AFTER each sub-operation inside attention_layer():
+   - After input quantization
+   - IMMEDIATELY AFTER K-projection matvec (~line 711)
+   - IMMEDIATELY AFTER V-projection matvec (~line 717)
+   - IMMEDIATELY AFTER O-projection matvec (~line 808)
+3. Incremental rebuild: cmd /c '"C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" amd64 && cmake --build s:\Ryot\RYZEN-LLM\build --config Release -j 16 2>&1' | Select-Object -Last 3
+4. Test with: $env:OMP_NUM_THREADS = "1"; python -c "import sys; sys.path.insert(0, r's:\Ryot\RYZEN-LLM\python'); from ryzanstein_llm.ryzen_llm_bindings import BitNetEngine, ModelConfig; cfg = ModelConfig(); cfg.vocab_size = 64; cfg.hidden_size = 32; cfg.intermediate_size = 86; cfg.num_layers = 1; cfg.num_heads = 2; cfg.head_dim = 16; cfg.max_seq_length = 32; engine = BitNetEngine(cfg); engine.load_weights('_'); output = engine.forward(0, 0); print(f'Done: {len(output)} logits')" 2>&1
+5. Identify which operation crashes (K-proj, V-proj, O-proj, or attention computation)
+6. Fix root cause
+7. Clean up diagnostics
+8. Deliver Phase A Completion Report
+
+Reference doc: s:\Ryot\CRASH_DEBUG_SESSION_CONTINUATION.txt
+
+================================================================================
+WORKING INVENTORY (VERIFIED)
+================================================================================
+
+✅ Build system operational (VS 2022 Build Tools, CMake 4.2.1)
+✅ All build prerequisites installed (pybind11, MSVC, pwsh)
+✅ Python bindings compile and link correctly
+✅ Module imports successfully
+✅ API fully discovered (14 module exports, 5 BitNetEngine methods)
+✅ load_weights() works
+✅ forward() entry works, embedding works
+✅ First matvec call (Q-projection) succeeds completely
+✅ Test harness working
+✅ Incremental rebuild working
+✅ OMP_NUM_THREADS=1 set for single-threaded debugging
+✅ Diagnostic instrumentation technique proven effective
+
+❌ forward() crashes inside attention_layer()
+❌ Exact crash location within attention_layer() unknown
+❌ generate() not yet tested (blocked by forward() crash)
+❌ Phase A Completion Report not yet delivered
+
+================================================================================
+CRASH DEBUG SESSION LOG
+================================================================================
+
+SESSION HISTORY (CONDENSED):
+1. Build Phase: 4 blockers resolved, .pyd compiled successfully
+2. Import Phase: Module imports, API discovered
+3. Initial Crash Investigation: Empty weight vectors? No. Dimension mismatch? No.
+4. Quantization Audit: All primitives work in isolation. Not the cause.
+5. Threading Investigation: OMP=1 still crashes. Not threading-related.
+6. Vector Allocation Audit: All pre-allocated correctly in constructor. Not undersized.
+7. Scalar Loop Investigation: Added per-row diagnostics to matmul.cpp. First matvec completes all 32 rows.
+8. forward() Step-Level Diagnostics: Added cerr after embedding, attn_norm, attention_layer, mlp_norm, mlp_layer.
+9. BREAKTHROUGH: Rebuild and test reveals crash IS INSIDE attention_layer(). Clue: "[FWD] layer 0 attention done" never prints.
+10. Q-Projection Validation: Added matvec call number tracking. First call (Q-proj) completes successfully.
+11. Current State: Crash is after Q-proj but before attention_layer returns. Need granular diagnostics inside function.
+
+================================================================================
+END SESSION STATE
+================================================================================
+
+Status: ACTIVE - CRASH ISOLATED, AWAITING GRANULAR DIAGNOSTICS
+Next Action: Read attention_layer(), add intra-function diagnostics
+Blocker: None (ready to continue immediately)
+Commands Ready: All rebuild and test commands documented above
+
+Estimated Time to Root Cause: 30-60 minutes (depends on which operation fails)
+Estimated Time to Fix: 30-90 minutes (depends on complexity of root cause)
+
+================================================================================

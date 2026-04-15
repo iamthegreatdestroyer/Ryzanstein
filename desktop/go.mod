@@ -3,7 +3,6 @@ module github.com/iamthegreatdestroyer/Ryzanstein/desktop
 go 1.24.0
 
 require (
-	github.com/iamthegreatdestroyer/Ryzanstein/mcp v0.0.0-20260108091119-d9de6c605fc7
 	github.com/wailsapp/wails/v2 v2.11.0
 	google.golang.org/grpc v1.78.0
 	gopkg.in/yaml.v3 v3.0.1

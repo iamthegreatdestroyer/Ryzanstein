@@ -30,11 +30,6 @@ namespace ryzanstein_llm
             std::shared_ptr<tmac::TMACGemmOptimized> gemm_engine)
             : config_(config), weights_(weights), gemm_engine_(std::move(gemm_engine))
         {
-            std::cout << "Initializing BitNet Model: " << config_.name << "\n";
-            std::cout << "  Layers: " << config_.num_layers << "\n";
-            std::cout << "  Hidden dim: " << config_.hidden_dim << "\n";
-            std::cout << "  Vocab size: " << config_.vocab_size << "\n";
-
             // Initialize transformer layers
             layers_.reserve(config_.num_layers);
             for (uint32_t i = 0; i < config_.num_layers; ++i)
@@ -49,7 +44,6 @@ namespace ryzanstein_llm
             hidden_states_.resize(max_hidden_size);
             layer_output_.resize(max_hidden_size);
 
-            std::cout << "Model initialized successfully!\n\n";
         }
 
         // ============================================================================
@@ -64,11 +58,6 @@ namespace ryzanstein_llm
 
             std::vector<uint32_t> tokens = prompt;
 
-            std::cout << "Generating " << gen_config.max_new_tokens << " tokens...\n";
-            std::cout << "  Temperature: " << gen_config.temperature << "\n";
-            std::cout << "  Top-p: " << gen_config.top_p << "\n";
-            std::cout << "  Top-k: " << gen_config.top_k << "\n\n";
-
             // Generate tokens autoregressively
             for (uint32_t step = 0; step < gen_config.max_new_tokens; ++step)
             {
@@ -76,7 +65,6 @@ namespace ryzanstein_llm
                 uint32_t seq_len = tokens.size();
                 if (seq_len > config_.max_seq_len)
                 {
-                    std::cerr << "Sequence length exceeds maximum. Truncating.\n";
                     seq_len = config_.max_seq_len;
                 }
 
@@ -101,13 +89,7 @@ namespace ryzanstein_llm
                 tokens.push_back(next_token);
 
                 // Progress indicator
-                if ((step + 1) % 10 == 0)
-                {
-                    std::cout << "  Generated " << (step + 1) << " tokens...\r" << std::flush;
-                }
             }
-
-            std::cout << "\n";
 
             auto end_time = high_resolution_clock::now();
             auto duration = duration_cast<milliseconds>(end_time - start_time).count();
@@ -117,10 +99,6 @@ namespace ryzanstein_llm
             stats_.total_time_ms += duration;
 
             double tokens_per_sec = (gen_config.max_new_tokens * 1000.0) / duration;
-            std::cout << "Generation complete!\n";
-            std::cout << "  Time: " << duration << " ms\n";
-            std::cout << "  Speed: " << tokens_per_sec << " tokens/sec\n";
-
             return tokens;
         }
 
@@ -215,8 +193,6 @@ namespace ryzanstein_llm
 
                     if (token_id >= config_.vocab_size)
                     {
-                        std::cerr << "Warning: Token ID " << token_id
-                                  << " exceeds vocab size. Clamping.\n";
                         token_id = config_.vocab_size - 1;
                     }
 
@@ -241,8 +217,6 @@ namespace ryzanstein_llm
 
                 if (pos >= config_.max_seq_len)
                 {
-                    std::cerr << "Warning: Position " << pos
-                              << " exceeds max sequence length.\n";
                     pos = config_.max_seq_len - 1;
                 }
 
@@ -463,18 +437,6 @@ namespace ryzanstein_llm
 
         void BitNetModel::print_stats() const
         {
-            if (stats_.total_tokens_generated == 0)
-            {
-                std::cout << "No tokens generated yet.\n";
-                return;
-            }
-
-            std::cout << "\nBitNet Model Statistics\n";
-            std::cout << "=======================\n";
-            std::cout << "Total tokens generated: " << stats_.total_tokens_generated << "\n";
-            std::cout << "Total time: " << stats_.total_time_ms << " ms\n";
-            std::cout << std::fixed << std::setprecision(2);
-            std::cout << "Average speed: " << stats_.tokens_per_second() << " tokens/sec\n";
         }
 
         // ============================================================================
@@ -487,9 +449,6 @@ namespace ryzanstein_llm
         {
             // TODO: Implement actual weight loading from checkpoint
             // For now, return empty weights structure
-            std::cout << "Loading weights from: " << checkpoint_path << "\n";
-            std::cout << "Warning: Weight loading not yet implemented. Using dummy weights.\n";
-
             ModelWeights weights;
             // Initialize with dummy data
             return weights;

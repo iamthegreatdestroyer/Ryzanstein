@@ -1,0 +1,373 @@
+# Ryzanstein LLM — Production Docker Compose Stack
+# [REF:TASK4.1] - Multi-service orchestration with monitoring & observability
+#
+# Services:
+#   - ryzanstein-api: FastAPI server (OpenAI-compatible endpoints)
+#   - mcp-server: gRPC MCP service mesh (inference, agents, training)
+#   - qdrant: Vector database (embeddings, semantic search)
+#   - prometheus: Metrics collection & scraping
+#   - grafana: Metrics visualization & dashboards
+#   - jaeger: Distributed tracing & span visualization
+#
+# Usage:
+#   docker-compose up -d                    # Start all services
+#   docker-compose logs -f ryzanstein-api   # Stream API logs
+#   docker-compose down                     # Stop all services
+#   docker-compose down -v                  # Stop and remove volumes
+
+version: "3.9"
+
+services:
+  # ===========================================================================
+  # Core Ryzanstein Services
+  # ===========================================================================
+
+  ryzanstein-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.linux
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+    container_name: ryzanstein-api
+    image: ryzanstein:latest
+    ports:
+      - "8000:8000"     # FastAPI OpenAI-compatible endpoints
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - MODEL_PATH=/app/models/bitnet-1.58b/model.safetensors
+      - LOG_DIR=/app/logs
+      - CACHE_DIR=/app/cache
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+      - PROMETHEUS_PUSHGATEWAY=prometheus:9091
+    volumes:
+      - ./RYZEN-LLM/models:/app/models:ro              # Read-only model weights
+      - ./cache:/app/cache:rw                          # Persistent cache
+      - ./logs/api:/app/logs:rw                        # API logs
+      - ./config:/app/config:ro                        # Configuration files
+    depends_on:
+      jaeger:
+        condition: service_started
+      prometheus:
+        condition: service_started
+      qdrant:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - ryzanstein-net
+    labels:
+      - "com.ryzanstein.service=api"
+      - "com.ryzanstein.version=2.0.0"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8G
+        reservations:
+          cpus: "2"
+          memory: 4G
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.linux
+    container_name: mcp-server
+    image: ryzanstein:latest
+    entrypoint: /app/mcp_server
+    command: --host 0.0.0.0 --port 8001 --registry-port 8002 --training-port 8003
+    ports:
+      - "8001:8001"     # Inference client gRPC
+      - "8002:8002"     # Agent registry gRPC
+      - "8003:8003"     # Training server gRPC
+    environment:
+      - LOG_LEVEL=INFO
+      - MCP_SERVER_HOST=0.0.0.0
+      - MCP_SERVER_PORT=8001
+      - JAEGER_AGENT_HOST=jaeger
+      - JAEGER_AGENT_PORT=6831
+    depends_on:
+      jaeger:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "grpcurl", "-plaintext", "localhost:8001", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ryzanstein-net
+    labels:
+      - "com.ryzanstein.service=mcp-server"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "1"
+          memory: 1G
+
+  # ===========================================================================
+  # Data & Storage Services
+  # ===========================================================================
+
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: qdrant
+    ports:
+      - "6333:6333"     # REST API
+      - "6334:6334"     # gRPC API
+    environment:
+      - LOG_LEVEL=info
+    volumes:
+      - qdrant_data:/qdrant/storage
+      - ./config/qdrant.yaml:/etc/qdrant/qdrant.yaml:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ryzanstein-net
+    labels:
+      - "com.ryzanstein.service=vector-db"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+        reservations:
+          cpus: "1"
+          memory: 2G
+
+  # ===========================================================================
+  # Observability Stack (Prometheus → Grafana + Jaeger)
+  # ===========================================================================
+
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ryzanstein-net
+    labels:
+      - "com.ryzanstein.service=metrics-db"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=changeme
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ryzanstein-net
+    labels:
+      - "com.ryzanstein.service=visualization"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  jaeger:
+    image: jaegertracing/all-in-one:v1.50
+    container_name: jaeger
+    ports:
+      - "6831:6831/udp"  # Jaeger agent (UDP/compact)
+      - "6832:6832/udp"  # Jaeger agent (UDP/thrift)
+      - "16686:16686"    # Jaeger UI
+      - "14268:14268"    # Jaeger collector (HTTP)
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+      - MEMORY_MAX_TRACES=10000
+    volumes:
+      - jaeger_data:/badger
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:16686"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ryzanstein-net
+    labels:
+      - "com.ryzanstein.service=tracing"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # ===========================================================================
+  # Alerting (Optional: AlertManager for Slack/PagerDuty/Email)
+  # ===========================================================================
+
+  alertmanager:
+    image: prom/alertmanager:v0.26.0
+    container_name: alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+      - "--storage.path=/alertmanager"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9093/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ryzanstein-net
+    labels:
+      - "com.ryzanstein.service=alerting"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+  # ===========================================================================
+  # Metrics Pushgateway (For batch/offline metric collection)
+  # ===========================================================================
+
+  prometheus-pushgateway:
+    image: prom/pushgateway:v1.7.0
+    container_name: prometheus-pushgateway
+    ports:
+      - "9091:9091"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - ryzanstein-net
+    labels:
+      - "com.ryzanstein.service=metrics-gateway"
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
+# ==============================================================================
+# Named Volumes (Persistent Data)
+# ==============================================================================
+volumes:
+  qdrant_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  jaeger_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+
+# ==============================================================================
+# Networks
+# ==============================================================================
+networks:
+  ryzanstein-net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+# ==============================================================================
+# QUICK START
+# ==============================================================================
+# 1. Copy model weights:
+#    cp -r /path/to/bitnet-1.58b RYZEN-LLM/models/
+#
+# 2. Create config directory:
+#    mkdir -p config/grafana/{provisioning,dashboards}
+#    cp config-templates/* config/
+#
+# 3. Build and start:
+#    docker-compose build --no-cache
+#    docker-compose up -d
+#
+# 4. Access services:
+#    - API: http://localhost:8000 (OpenAI-compatible)
+#    - Grafana: http://localhost:3000 (admin/changeme)
+#    - Jaeger: http://localhost:16686 (tracing UI)
+#    - Prometheus: http://localhost:9090 (metrics)
+#    - Qdrant: http://localhost:6333 (vector DB)
+#
+# 5. Monitor logs:
+#    docker-compose logs -f ryzanstein-api
+#    docker-compose logs -f jaeger
+#    docker-compose logs -f prometheus
+#
+# 6. Cleanup:
+#    docker-compose down -v  # Remove all volumes

@@ -1,0 +1,284 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║       PHASE 6: INTEGRATION TESTING - BEGIN NOW                    ║
+║       Validate Monitoring Stack Integration                       ║
+║       February 19, 2026                                           ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════
+
+🎯 PHASE 6 OVERVIEW
+
+Purpose:     Verify monitoring stack (Prometheus, Grafana, Jaeger,
+             AlertManager) is properly integrated with API
+
+Duration:    1-2 hours (mostly manual inspection)
+Effort:      Medium (reviewing dashboards and running queries)
+Result:      Comprehensive integration verification
+
+Deliverable: Phase 6 Integration Testing Report
+
+═══════════════════════════════════════════════════════════════════════
+
+📋 QUICK START - 3 STEPS
+
+Step 1: Verify Monitoring Services
+──────────────────────────────────
+Run this batch file:
+  > s:\Ryot\verify_phase6_monitoring.bat
+
+This checks if all 5 monitoring services are accessible:
+  ✅ API (localhost:8000)
+  ✅ Prometheus (localhost:9090)
+  ✅ Grafana (localhost:3000)
+  ✅ Jaeger (localhost:16686)
+  ✅ AlertManager (localhost:9093)
+
+Step 2: Follow the Checklist
+────────────────────────────
+Open and follow: PHASE6_EXECUTION_CHECKLIST.md
+
+This guide walks you through:
+  1. Prometheus metric queries
+  2. Grafana dashboard inspection
+  3. Jaeger trace analysis
+  4. AlertManager verification
+  5. Metric correlation
+  6. End-to-end validation
+
+Step 3: Document Results
+────────────────────────
+Create Phase 6 completion report with findings
+
+═══════════════════════════════════════════════════════════════════════
+
+🖥️  SET UP PORT-FORWARDS FIRST
+
+You need 5 active port-forwards. Open 5 terminal windows:
+
+Terminal 1 - API:
+  > kubectl port-forward -n ryzanstein-staging svc/ryzanstein-api 8000:8000
+
+Terminal 2 - Prometheus:
+  > kubectl port-forward -n ryzanstein-staging svc/prometheus 9090:9090
+
+Terminal 3 - Grafana:
+  > kubectl port-forward -n ryzanstein-staging svc/grafana 3000:3000
+
+Terminal 4 - Jaeger:
+  > kubectl port-forward -n ryzanstein-staging svc/jaeger 16686:16686
+
+Terminal 5 - AlertManager:
+  > kubectl port-forward -n ryzanstein-staging svc/alertmanager 9093:9093
+
+Keep all 5 windows OPEN during Phase 6!
+
+═══════════════════════════════════════════════════════════════════════
+
+🚀 START HERE
+
+1. Open 5 terminal windows with port-forwards (above)
+2. Double-click: s:\Ryot\verify_phase6_monitoring.bat
+3. If all pass ✅, proceed with manual checks
+4. Open: PHASE6_EXECUTION_CHECKLIST.md
+5. Work through each section
+
+═══════════════════════════════════════════════════════════════════════
+
+📊 WHAT YOU'LL VERIFY
+
+✅ Prometheus Integration
+   - Metrics being collected from API
+   - Query functionality works
+   - Data accuracy for endpoints, latency, errors
+
+✅ Grafana Dashboards
+   - Inference Performance dashboard
+   - Resource Usage dashboard
+   - System Health dashboard
+   - Model Inference dashboard
+
+✅ Jaeger Distributed Tracing
+   - Traces being collected
+   - Latency information captured
+   - Can drill down into span details
+
+✅ AlertManager
+   - Configured and receiving alerts
+   - Alert rules active
+   - Alert history available
+
+✅ Correlation
+   - k6 load test metrics match Prometheus
+   - Latency percentiles consistent
+   - Error rates match between systems
+
+═══════════════════════════════════════════════════════════════════════
+
+📋 MONITORING SERVICE URLS
+
+Once port-forwards are active, you can access:
+
+API:
+  http://localhost:8000/health
+
+Prometheus (Metrics):
+  http://localhost:9090
+  Metrics graph: http://localhost:9090/graph
+  Targets: http://localhost:9090/targets
+
+Grafana (Dashboards):
+  http://localhost:3000
+  Login: admin / admin
+  Password: admin
+
+Jaeger (Distributed Tracing):
+  http://localhost:16686
+  Service: ryzanstein-api
+
+AlertManager (Alerts):
+  http://localhost:9093
+  Alerts tab: http://localhost:9093/#/alerts
+
+═══════════════════════════════════════════════════════════════════════
+
+🔍 KEY PROMETHEUS QUERIES
+
+Test these in Prometheus UI (Graph tab):
+
+1. Verify Prometheus is running:
+   up{job="prometheus"}
+   Expected: 1
+
+2. Request rate:
+   rate(http_requests_total[1m])
+   Expected: 0-5 req/sec
+
+3. P99 latency:
+   histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m]))
+   Expected: < 1000ms
+
+4. Error rate:
+   rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m])
+   Expected: 0 or near 0
+
+5. Per-endpoint breakdown:
+   sum(rate(http_requests_total[5m])) by (endpoint)
+   Expected: Metrics for each endpoint
+
+═══════════════════════════════════════════════════════════════════════
+
+📈 GRAFANA DASHBOARDS TO CHECK
+
+1. Inference Performance Dashboard
+   Panels: Request rate, error rate, P99 latency, token throughput
+
+2. Resource Usage Dashboard
+   Panels: CPU usage, memory usage, disk usage, pod status
+
+3. System Health Dashboard
+   Panels: Circuit breaker state, bulkhead status, retry attempts
+
+4. Model Inference Dashboard
+   Panels: Model performance, token generation, latency
+
+═══════════════════════════════════════════════════════════════════════
+
+⏱️  TIMELINE
+
+Phase 6.1 - Prometheus:          15-20 minutes
+Phase 6.2 - Grafana:             15-20 minutes
+Phase 6.3 - Jaeger:              10-15 minutes
+Phase 6.4 - AlertManager:        5-10 minutes
+Phase 6.5 - Correlation:         10-15 minutes
+Phase 6.6 - End-to-End:          10 minutes
+
+Total:                           1-2 hours
+
+═══════════════════════════════════════════════════════════════════════
+
+✅ SUCCESS CRITERIA
+
+Phase 6 is SUCCESSFUL when:
+
+✅ All monitoring services are accessible
+✅ Prometheus queries execute successfully
+✅ Grafana dashboards display data
+✅ Jaeger shows recent traces
+✅ AlertManager accessible
+✅ k6 metrics correlate with Prometheus
+✅ All dashboards have current data
+✅ No critical errors in any system
+
+═══════════════════════════════════════════════════════════════════════
+
+🎯 EXECUTION PLAN
+
+1. Keep 5 port-forward windows open
+2. Run verification script
+3. Review Prometheus metrics
+4. Inspect Grafana dashboards
+5. Check Jaeger traces
+6. Verify AlertManager
+7. Cross-check metrics
+8. Document findings
+9. Create completion report
+
+═══════════════════════════════════════════════════════════════════════
+
+📞 TROUBLESHOOTING
+
+Issue: "Connection refused" for a service
+
+Solution:
+  • Make sure port-forward window is open
+  • Restart port-forward if needed
+  • Verify pod is running: kubectl get pods -n ryzanstein-staging
+
+Issue: "No data" in Prometheus queries
+
+Solution:
+  • Wait 30 seconds for metrics to appear
+  • Check API is running: curl http://localhost:8000/health
+  • Verify Prometheus is scraping: http://localhost:9090/targets
+
+Issue: Grafana dashboards empty
+
+Solution:
+  • Login with: admin / admin
+  • Make sure Prometheus data source is connected
+  • Refresh the page
+  • Wait 1-2 minutes for data
+
+═══════════════════════════════════════════════════════════════════════
+
+📚 DOCUMENTATION
+
+Main Guide:
+  → PHASE6_INTEGRATION_TESTING_GUIDE.md (Full details)
+
+Execution Checklist:
+  → PHASE6_EXECUTION_CHECKLIST.md (Step-by-step)
+
+Verification Script:
+  → verify_phase6_monitoring.bat (Automated checks)
+
+This File:
+  → PHASE6_BEGIN.txt (Quick start)
+
+═══════════════════════════════════════════════════════════════════════
+
+🚀 BEGIN PHASE 6
+
+1. Open 5 terminal windows with port-forwards
+2. Run: verify_phase6_monitoring.bat
+3. Follow: PHASE6_EXECUTION_CHECKLIST.md
+4. Document findings
+5. Proceed to Phase 7 when complete
+
+═══════════════════════════════════════════════════════════════════════
+
+Status: Ready for Execution ✅
+Next: Complete manual integration testing
+Then: Phase 7 (Final Go/No-Go Decision)
+
+═══════════════════════════════════════════════════════════════════════

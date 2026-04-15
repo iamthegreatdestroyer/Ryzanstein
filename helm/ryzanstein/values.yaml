@@ -1,0 +1,608 @@
+# Ryzanstein LLM — Kubernetes Helm Chart Values
+# [REF:TASK4.2] - Production Kubernetes deployment configuration
+#
+# Usage:
+#   helm install ryzanstein ./helm/ryzanstein
+#   helm install ryzanstein ./helm/ryzanstein -f values-production.yaml
+#   helm upgrade ryzanstein ./helm/ryzanstein --values values-dev.yaml
+
+# ============================================================================
+# Global Configuration
+# ============================================================================
+global:
+  environment: development  # development, staging, production
+  namespace: default
+  domain: ryzanstein.local
+  imagePullPolicy: IfNotPresent  # Always, IfNotPresent, Never
+
+# ============================================================================
+# Ryzanstein API Server (FastAPI)
+# ============================================================================
+api:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: ryzanstein
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # Container port
+  port: 8000
+
+  # Service configuration
+  service:
+    type: LoadBalancer  # LoadBalancer, ClusterIP, NodePort
+    port: 80
+    targetPort: 8000
+    annotations: {}
+
+  # Ingress configuration
+  ingress:
+    enabled: false  # Set to true for production
+    className: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      nginx.ingress.kubernetes.io/rate-limit: "100"
+    hosts:
+      - host: ryzanstein.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: ryzanstein-tls
+        hosts:
+          - ryzanstein.example.com
+
+  # Resource limits and requests
+  resources:
+    requests:
+      cpu: 2
+      memory: 4Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+
+  # Autoscaling (Horizontal Pod Autoscaler)
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    # Custom metrics (if using custom metrics provider)
+    metrics:
+      - type: Pods
+        pods:
+          metric:
+            name: http_requests_per_second
+          target:
+            type: AverageValue
+            averageValue: 1000m  # 1000 requests/sec per pod
+
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8000
+    initialDelaySeconds: 40
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /health/ready
+      port: 8000
+    initialDelaySeconds: 40
+    periodSeconds: 15
+    timeoutSeconds: 10
+    failureThreshold: 3
+
+  # Environment variables
+  env:
+    LOG_LEVEL: INFO
+    API_HOST: 0.0.0.0
+    API_PORT: "8000"
+    PYTHONUNBUFFERED: "1"
+    PYTHONDONTWRITEBYTECODE: "1"
+
+  # Secrets (stored separately, mounted as environment variables)
+  secrets:
+    - name: JAEGER_AGENT_HOST
+      value: jaeger
+    - name: JAEGER_AGENT_PORT
+      value: "6831"
+    - name: PROMETHEUS_PUSHGATEWAY
+      value: prometheus-pushgateway:9091
+
+  # Volume mounts
+  volumeMounts:
+    - name: models
+      mountPath: /app/models
+      readOnly: true
+    - name: cache
+      mountPath: /app/cache
+    - name: logs
+      mountPath: /app/logs
+    - name: config
+      mountPath: /app/config
+      readOnly: true
+
+  # Persistence
+  persistence:
+    cache:
+      enabled: true
+      storageClass: standard
+      size: 5Gi
+      mountPath: /app/cache
+    logs:
+      enabled: true
+      storageClass: standard
+      size: 10Gi
+      mountPath: /app/logs
+
+  # Node affinity (prefer CPU-optimized nodes)
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          preference:
+            matchExpressions:
+              - key: node-type
+                operator: In
+                values: [cpu-optimized, compute]
+
+  # Pod disruption budget (for high availability)
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+  # Service account
+  serviceAccount:
+    create: true
+    name: ryzanstein-api
+    annotations: {}
+
+# ============================================================================
+# MCP gRPC Server (Agent Orchestration)
+# ============================================================================
+mcp:
+  enabled: true
+  replicaCount: 2
+
+  image:
+    repository: ryzanstein
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  # gRPC ports
+  ports:
+    inference: 8001
+    registry: 8002
+    training: 8003
+
+  # Service configuration (headless for gRPC)
+  service:
+    type: ClusterIP
+    clusterIP: None  # Headless service for gRPC
+    ports:
+      - name: inference
+        port: 8001
+        targetPort: 8001
+      - name: registry
+        port: 8002
+        targetPort: 8002
+      - name: training
+        port: 8003
+        targetPort: 8003
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+
+  # Autoscaling
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 75
+
+  # Health checks (gRPC)
+  livenessProbe:
+    exec:
+      command: [grpcurl, -plaintext, localhost:8001, list]
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    failureThreshold: 3
+
+  readinessProbe:
+    exec:
+      command: [grpcurl, -plaintext, localhost:8001, list]
+    initialDelaySeconds: 20
+    periodSeconds: 10
+    failureThreshold: 2
+
+  # Service account
+  serviceAccount:
+    create: true
+    name: ryzanstein-mcp
+
+# ============================================================================
+# Vector Database (Qdrant)
+# ============================================================================
+qdrant:
+  enabled: true
+
+  # Using Qdrant Helm chart (external dependency)
+  # Docs: https://github.com/qdrant/qdrant-helm
+  image:
+    repository: qdrant/qdrant
+    tag: v1.7.0
+    pullPolicy: IfNotPresent
+
+  replicaCount: 1  # StatefulSet for persistence
+
+  service:
+    type: ClusterIP
+    ports:
+      rest: 6333
+      grpc: 6334
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: standard
+    size: 20Gi
+    mountPath: /qdrant/storage
+
+  # Health check
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 6333
+    initialDelaySeconds: 20
+    periodSeconds: 30
+    failureThreshold: 3
+
+# ============================================================================
+# Monitoring Stack (Prometheus)
+# ============================================================================
+prometheus:
+  enabled: true
+
+  image:
+    repository: prom/prometheus
+    tag: v2.48.0
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 9090
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 0.5
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: standard
+    size: 50Gi
+    mountPath: /prometheus
+
+  # Retention policy
+  retention: 30d
+
+  # Configuration
+  config:
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    scrape_configs:
+      - job_name: ryzanstein-api
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: ryzanstein-api
+
+# ============================================================================
+# Grafana (Visualization)
+# ============================================================================
+grafana:
+  enabled: true
+
+  image:
+    repository: grafana/grafana
+    tag: "10.2.0"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: LoadBalancer  # Expose Grafana externally
+    port: 80
+    targetPort: 3000
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 0.5
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: standard
+    size: 5Gi
+    mountPath: /var/lib/grafana
+
+  # Admin credentials (change in production)
+  adminUser: admin
+  adminPassword: changeme  # SET IN VALUES-PRODUCTION.YAML
+
+  # Data sources
+  datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus:9090
+      isDefault: true
+    - name: Jaeger
+      type: jaeger
+      url: http://jaeger:16686
+
+# ============================================================================
+# Jaeger (Distributed Tracing)
+# ============================================================================
+jaeger:
+  enabled: true
+
+  image:
+    repository: jaegertracing/all-in-one
+    tag: v1.50
+    pullPolicy: IfNotPresent
+
+  service:
+    type: LoadBalancer
+    ports:
+      ui: 16686
+      agent_compact: 6831
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 0.5
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+  # In-memory trace limit
+  memory:
+    maxTraces: 10000
+
+# ============================================================================
+# AlertManager (Alert Routing)
+# ============================================================================
+alertmanager:
+  enabled: true
+
+  image:
+    repository: prom/alertmanager
+    tag: v0.26.0
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 9093
+
+  # Resource limits
+  resources:
+    requests:
+      cpu: 0.25
+      memory: 256Mi
+    limits:
+      cpu: 0.5
+      memory: 512Mi
+
+  # Persistence
+  persistence:
+    enabled: true
+    storageClass: standard
+    size: 2Gi
+
+  # Slack webhook (set in values-production.yaml)
+  slack:
+    webhook: https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+    channel: "#alerts"
+
+  # PagerDuty key (set in values-production.yaml)
+  pagerduty:
+    serviceKey: YOUR_PAGERDUTY_KEY
+
+# ============================================================================
+# Model Configuration (ConfigMap)
+# ============================================================================
+modelConfig:
+  # BitNet 1.58b model configuration
+  vocab_size: 32000
+  hidden_size: 2048
+  intermediate_size: 5632
+  num_layers: 24
+  num_heads: 32
+  head_dim: 64
+  max_seq_length: 4096
+
+  # Inference settings
+  temperature: 0.7
+  top_p: 1.0
+  max_tokens: 1024
+
+  # Optimization flags
+  use_tmac: true
+  use_speculative_decoding: true
+  use_kv_cache: true
+
+# ============================================================================
+# Model Weights (PersistentVolumeClaim)
+# ============================================================================
+modelStorage:
+  enabled: true
+  # Path: /app/models/bitnet-1.58b/model.safetensors
+  pvc:
+    name: ryzanstein-models
+    size: 20Gi
+    storageClass: standard
+    accessModes:
+      - ReadOnlyMany  # Read-only for all pods
+
+  # Pre-populate via init container
+  initContainer:
+    enabled: false  # Set to true to download models on startup
+    image: curlimages/curl
+    commands:
+      - |
+        if [ ! -f /models/bitnet-1.58b/model.safetensors ]; then
+          echo "Downloading BitNet 1.58b model..."
+          huggingface-cli download 1bitLLM/bitnet_b1_58-large \
+            --local-dir /models/bitnet-1.58b
+        fi
+
+# ============================================================================
+# Secrets Management
+# ============================================================================
+secrets:
+  # API keys and authentication
+  apiKeys:
+    enabled: true
+    # Keys defined in values-production.yaml
+    create: true
+    name: ryzanstein-api-keys
+    # Keys to store:
+    # - OPENAI_API_KEY (if proxying to OpenAI)
+    # - JWT_SECRET (for authentication)
+    # - SLACK_WEBHOOK (for notifications)
+
+  # Database credentials (Qdrant)
+  database:
+    enabled: true
+    name: ryzanstein-db-creds
+    username: admin
+    password: changeme  # Change in production
+
+  # Jaeger/Prometheus credentials (if protected)
+  monitoring:
+    enabled: true
+    name: ryzanstein-monitoring-creds
+
+# ============================================================================
+# Network Policy (Kubernetes Network Security)
+# ============================================================================
+networkPolicy:
+  enabled: false  # Set to true for production
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: nginx-ingress
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
+
+# ============================================================================
+# Role-Based Access Control (RBAC)
+# ============================================================================
+rbac:
+  enabled: true
+  # Create service accounts and roles
+  create: true
+
+# ============================================================================
+# Pod Security Policy / Pod Security Standards
+# ============================================================================
+podSecurityPolicy:
+  enabled: false  # Deprecated in K8s 1.25+, use Pod Security Standards
+  name: ryzanstein-psp
+
+podSecurityStandards:
+  enforce: baseline  # baseline, restricted, unrestricted
+  audit: restricted
+  warn: restricted
+
+# ============================================================================
+# Common Labels and Annotations
+# ============================================================================
+labels:
+  app: ryzanstein
+  version: "2.0.0"
+  environment: development
+  component: llm-inference
+
+annotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8000"
+  prometheus.io/path: "/metrics"
+
+# ============================================================================
+# Development / Staging / Production Profiles
+# ============================================================================
+# Override with:
+#   helm install ryzanstein ./helm/ryzanstein -f values-dev.yaml
+#   helm install ryzanstein ./helm/ryzanstein -f values-staging.yaml
+#   helm install ryzanstein ./helm/ryzanstein -f values-production.yaml
+
+# Development: Single replica, small resources
+# Staging: 2 replicas, medium resources, HPA enabled
+# Production: 3+ replicas, large resources, HPA enabled, all security features
+
+# ============================================================================
+# Feature Flags
+# ============================================================================
+features:
+  enableMetrics: true
+  enableTracing: true
+  enableAlerts: true
+  enableMonitoring: true
+  enableAutoscaling: true
+  enablePersistence: true
+  enableNetworkPolicy: false
+  enableSecurityPolicy: false
+
+# ============================================================================
+# Debug / Troubleshooting
+# ============================================================================
+debug:
+  enabled: false
+  logLevel: INFO  # DEBUG, INFO, WARNING, ERROR
+  traceEnabled: false
+  metricsPort: 9090

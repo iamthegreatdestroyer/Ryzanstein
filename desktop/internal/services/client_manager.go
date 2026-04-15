@@ -1,8 +1,12 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"sync"
 	"time"
 
@@ -15,11 +19,12 @@ import (
 type ClientManager struct {
 	config *config.AppConfig
 
-	// REST client
-	restClient interface{} // Would be *http.Client in real implementation
+	// REST client and base endpoint
+	restClient  *http.Client
+	restBaseURL string
 
 	// gRPC client
-	grpcConn interface{} // Would be *grpc.ClientConn in real implementation
+	grpcConn *grpc.ClientConn
 
 	// Lifecycle management
 	mu          sync.RWMutex
@@ -60,7 +65,7 @@ func (cm *ClientManager) Initialize() error {
 	}
 
 	// Initialize based on server type configuration
-	switch cm.config.Server.Type {
+	switch cm.config.Server.Protocol {
 	case "rest":
 		if err := cm.initializeRESTClient(); err != nil {
 			return fmt.Errorf("failed to initialize REST client: %w", err)
@@ -78,60 +83,67 @@ func (cm *ClientManager) Initialize() error {
 			fmt.Printf("warning: gRPC initialization failed: %v\n", err)
 		}
 	default:
-		return fmt.Errorf("unsupported server type: %s", cm.config.Server.Type)
+		return fmt.Errorf("unsupported protocol: %s", cm.config.Server.Protocol)
 	}
 
 	cm.initialized = true
 	return nil
 }
 
-// initializeRESTClient sets up REST client with proper configuration
+// initializeRESTClient sets up a real *http.Client with timeouts.
 func (cm *ClientManager) initializeRESTClient() error {
-	// In real implementation, create http.Client with timeouts
-	// For now, just validate configuration
-	if cm.config.REST == nil {
-		return fmt.Errorf("REST configuration missing but REST server type specified")
-	}
-
-	if cm.config.REST.Host == "" || cm.config.REST.Port == 0 {
+	if cm.config.Server.Host == "" || cm.config.Server.Port == 0 {
 		return fmt.Errorf("invalid REST configuration: host or port missing")
 	}
 
-	// Verify connectivity
-	endpoint := fmt.Sprintf("http://%s:%d", cm.config.REST.Host, cm.config.REST.Port)
-	timeout := time.Duration(cm.config.REST.Timeout) * time.Second
-
-	// Test connection with timeout
-	testCtx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	// Simulate connection attempt
-	select {
-	case <-testCtx.Done():
-		return fmt.Errorf("REST server connection timeout: %s", endpoint)
-	default:
-		// Connection successful
+	timeout := cm.config.Inference.Timeout
+	if timeout == 0 {
+		timeout = 30 * time.Second
 	}
 
-	// Store configured endpoint
-	cm.restClient = endpoint
+	cm.restBaseURL = fmt.Sprintf("http://%s:%d", cm.config.Server.Host, cm.config.Server.Port)
+	cm.restClient = &http.Client{
+		Timeout: timeout,
+		Transport: &http.Transport{
+			MaxIdleConns:        10,
+			IdleConnTimeout:     90 * time.Second,
+			DisableCompression:  false,
+		},
+	}
 
+	// Probe the health endpoint to verify the server is reachable.
+	healthURL := cm.restBaseURL + "/health"
+	probeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(probeCtx, http.MethodGet, healthURL, nil)
+	if err != nil {
+		// Server may not be started yet — not a fatal error, but log it.
+		fmt.Printf("[ClientManager] health probe request creation failed: %v (continuing)\n", err)
+		return nil
+	}
+
+	resp, err := cm.restClient.Do(req)
+	if err != nil {
+		// Server offline at init time — record warning but don't block startup.
+		fmt.Printf("[ClientManager] REST server unreachable at %s (will retry on first request): %v\n", cm.restBaseURL, err)
+		return nil
+	}
+	resp.Body.Close()
+
+	fmt.Printf("[ClientManager] REST client connected to %s (status %d)\n", cm.restBaseURL, resp.StatusCode)
 	return nil
 }
 
 // initializeGRPCClient sets up gRPC client with proper configuration
 func (cm *ClientManager) initializeGRPCClient() error {
-	if cm.config.GRPC == nil {
-		return fmt.Errorf("gRPC configuration missing but gRPC server type specified")
-	}
-
-	if cm.config.GRPC.Host == "" || cm.config.GRPC.Port == 0 {
+	if cm.config.Server.Host == "" || cm.config.Server.Port == 0 {
 		return fmt.Errorf("invalid gRPC configuration: host or port missing")
 	}
 
 	// Create gRPC connection with timeouts
-	endpoint := fmt.Sprintf("%s:%d", cm.config.GRPC.Host, cm.config.GRPC.Port)
-	timeout := time.Duration(cm.config.GRPC.Timeout) * time.Second
+	endpoint := fmt.Sprintf("%s:%d", cm.config.Server.Host, cm.config.Server.Port)
+	timeout := cm.config.Inference.Timeout
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -151,7 +163,7 @@ func (cm *ClientManager) initializeGRPCClient() error {
 	return nil
 }
 
-// GetRESTEndpoint returns the configured REST endpoint
+// GetRESTEndpoint returns the configured REST base URL.
 func (cm *ClientManager) GetRESTEndpoint() (string, error) {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
@@ -160,22 +172,17 @@ func (cm *ClientManager) GetRESTEndpoint() (string, error) {
 		return "", fmt.Errorf("client manager not initialized")
 	}
 
-	if cm.restClient == nil {
+	if cm.restBaseURL == "" {
 		return "", fmt.Errorf("REST client not available")
 	}
 
-	endpoint, ok := cm.restClient.(string)
-	if !ok {
-		return "", fmt.Errorf("invalid REST client state")
-	}
-
-	return endpoint, nil
+	return cm.restBaseURL, nil
 }
 
 // GetGRPCConnection returns the gRPC connection
 func (cm *ClientManager) GetGRPCConnection() (*grpc.ClientConn, error) {
 	cm.mu.RLock()
-	defer cm.mu.Unlock()
+	defer cm.mu.RUnlock()
 
 	if !cm.initialized {
 		return nil, fmt.Errorf("client manager not initialized")
@@ -185,12 +192,7 @@ func (cm *ClientManager) GetGRPCConnection() (*grpc.ClientConn, error) {
 		return nil, fmt.Errorf("gRPC client not available")
 	}
 
-	conn, ok := cm.grpcConn.(*grpc.ClientConn)
-	if !ok {
-		return nil, fmt.Errorf("invalid gRPC connection state")
-	}
-
-	return conn, nil
+	return cm.grpcConn, nil
 }
 
 // ExecuteWithRouting routes request based on configuration
@@ -203,7 +205,7 @@ func (cm *ClientManager) ExecuteWithRouting(ctx context.Context, operation strin
 		return nil, fmt.Errorf("client manager not initialized")
 	}
 
-	switch cm.config.Server.Type {
+	switch cm.config.Server.Protocol {
 	case "rest":
 		return cm.executeREST(ctx, operation, data)
 	case "grpc":
@@ -216,31 +218,84 @@ func (cm *ClientManager) ExecuteWithRouting(ctx context.Context, operation strin
 		}
 		return result, nil
 	default:
-		return nil, fmt.Errorf("unsupported server type: %s", cm.config.Server.Type)
+		return nil, fmt.Errorf("unsupported protocol: %s", cm.config.Server.Protocol)
 	}
 }
 
-// executeREST handles REST-based requests
+// executeREST handles REST-based requests against the Ryzanstein API.
 func (cm *ClientManager) executeREST(ctx context.Context, operation string, data interface{}) (interface{}, error) {
-	endpoint, err := cm.GetRESTEndpoint()
-	if err != nil {
-		return nil, err
+	if cm.restClient == nil {
+		return nil, fmt.Errorf("REST client not initialized")
 	}
 
-	// Simulate REST request with context
-	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("context cancelled during REST execution")
+	var urlPath string
+	switch operation {
+	case "infer":
+		urlPath = "/v1/completions"
+	case "infer_stream":
+		urlPath = "/v1/completions"
+	case "list_models":
+		urlPath = "/v1/models"
+	case "load_model":
+		urlPath = "/v1/models/load"
+	case "unload_model":
+		urlPath = "/v1/models/unload"
 	default:
+		urlPath = "/v1/" + operation
 	}
 
-	// Return operation result (would use actual HTTP client in real implementation)
-	return map[string]interface{}{
-		"operation": operation,
-		"protocol":  "REST",
-		"endpoint":  endpoint,
-		"data":      data,
-	}, nil
+	fullURL := cm.restBaseURL + urlPath
+
+	// GET-style operations carry no body.
+	if operation == "list_models" {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
+		if err != nil {
+			return nil, fmt.Errorf("build GET request: %w", err)
+		}
+		req.Header.Set("Accept", "application/json")
+
+		resp, err := cm.restClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("GET %s: %w", fullURL, err)
+		}
+		defer resp.Body.Close()
+
+		var result interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return nil, fmt.Errorf("decode GET response: %w", err)
+		}
+		return result, nil
+	}
+
+	// POST-style operations.
+	bodyBytes, err := json.Marshal(data)
+	if err != nil {
+		return nil, fmt.Errorf("marshal request body: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, bytes.NewReader(bodyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("build POST request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := cm.restClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("POST %s: %w", fullURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error %d: %s", resp.StatusCode, string(body))
+	}
+
+	var result interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("decode POST response: %w", err)
+	}
+	return result, nil
 }
 
 // executeGRPC handles gRPC-based requests
@@ -288,9 +343,7 @@ func (cm *ClientManager) Close() error {
 
 	// Close gRPC connection if exists
 	if cm.grpcConn != nil {
-		if conn, ok := cm.grpcConn.(*grpc.ClientConn); ok {
-			conn.Close()
-		}
+		cm.grpcConn.Close()
 	}
 
 	// Cancel context
@@ -309,6 +362,6 @@ func (cm *ClientManager) GetMetrics() map[string]interface{} {
 		"initialized": cm.initialized,
 		"requests":    cm.requests,
 		"uptime":      time.Since(cm.createdAt).Seconds(),
-		"server_type": cm.config.Server.Type,
+		"server_type": cm.config.Server.Protocol,
 	}
 }

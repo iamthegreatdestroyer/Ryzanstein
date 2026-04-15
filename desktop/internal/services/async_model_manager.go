@@ -157,7 +157,7 @@ func (m *AsyncModelManager) LoadModel(ctx context.Context, modelID string) (*Mod
 
 	// Check cache first
 	m.mu.RLock()
-	cachedModel, isCached := m.modelCache[modelID]
+	_, isCached := m.modelCache[modelID]
 	m.mu.RUnlock()
 
 	if isCached {

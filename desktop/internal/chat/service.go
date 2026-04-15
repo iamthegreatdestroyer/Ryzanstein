@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
@@ -113,12 +114,22 @@ func (s *Service) callMCPInference(ctx context.Context, message string, modelID 
 	}
 
 	// Create inference request
-	req := &InferenceRequest{
-		Messages:      messages,
-		Model:         modelID,
-		AgentCodename: agentCodename,
-		MaxTokens:     1000,
-		Temperature:   0.7,
+	inputData, err := json.Marshal(map[string]interface{}{
+		"messages":       messages,
+		"model":          modelID,
+		"agent_codename": agentCodename,
+		"max_tokens":     1000,
+		"temperature":    0.7,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to serialize request: %w", err)
+	}
+	req := &client.InferRequest{
+		ModelID: modelID,
+		Input:   inputData,
+		Metadata: map[string]string{
+			"agent_codename": agentCodename,
+		},
 	}
 
 	// Call MCP inference
@@ -127,7 +138,7 @@ func (s *Service) callMCPInference(ctx context.Context, message string, modelID 
 		return "", fmt.Errorf("MCP inference failed: %w", err)
 	}
 
-	return resp.Content, nil
+	return string(resp.Output), nil
 }
 
 // simulateResponse provides fallback simulation when MCP is unavailable

@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ryzanstein-config
+  namespace: ryzanstein-staging
+data:
+  model.yaml: |
+    vocab_size: 32000
+    hidden_size: 2048
+    num_layers: 24
+    num_heads: 32
+    head_dim: 64
+    quantization: int8
+  prometheus.yaml: |
+    scrape_interval: 15s
+    evaluation_interval: 15s
+  api.yaml: |
+    batch_size: 1
+    cache_enabled: true
+    cors_enabled: true
+  mcp.yaml: |
+    agents: 40
+    inference_port: 8001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ryzanstein-api
+  namespace: ryzanstein-staging
+  labels:
+    app: ryzanstein-api
+spec:
+  type: NodePort
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP
+  selector:
+    app: ryzanstein-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ryzanstein-api
+  namespace: ryzanstein-staging
+  labels:
+    app: ryzanstein-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ryzanstein-api
+  template:
+    metadata:
+      labels:
+        app: ryzanstein-api
+    spec:
+      serviceAccountName: default
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: api
+        image: ryzanstein:staging
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 20
+          periodSeconds: 5
+        volumeMounts:
+        - name: config
+          mountPath: /app/config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: ryzanstein-config

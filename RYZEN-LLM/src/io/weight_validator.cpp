@@ -97,11 +97,6 @@ namespace ryzanstein_llm
             // 1. Validate individual tensors
             for (const auto &[name, tensor] : weights)
             {
-                if (verbose_)
-                {
-                    std::cerr << "Validating tensor: " << name << "\n";
-                }
-
                 auto errors = validate_tensor(tensor);
                 auto [stable, msg] = check_numerical_stability(tensor);
 

@@ -81,22 +81,6 @@ namespace ryzanstein_llm
                 speculative_decoder_ = std::make_unique<speculative::SpeculativeDecoder>(spec_config);
             }
 
-            // Log SIMD capabilities at startup
-            {
-                avx512::CPUFeatures simd_caps;
-                std::cout << "[Engine] " << simd_caps.to_string() << "\n";
-                std::cout << "[Engine] AVX-512 VNNI matvec: "
-                          << (simd_caps.supports_optimized_kernel() ? "ACTIVE" : "DISABLED (scalar fallback)")
-                          << "\n";
-                std::cout << "[Engine] OpenMP threads: "
-#ifdef _OPENMP
-                          << omp_get_max_threads()
-#else
-                          << 1
-#endif
-                          << "\n";
-            }
-
             // Initialize T-MAC engine if enabled
             if (config.use_tmac)
             {
@@ -109,7 +93,6 @@ namespace ryzanstein_llm
                 {
                     // Precompute tables for common matrix sizes
                     // This will be done after weights are loaded
-                    std::cout << "[T-MAC] Engine initialized, tables will be built on first inference\n";
                 }
             }
 
@@ -745,9 +728,16 @@ namespace ryzanstein_llm
             }
 
             // Get current sequence length
-            uint32_t current_length;
+            uint32_t current_length = 0;
             const float *k_sequence = kv_cache_manager_->GetKeySequence(sequence_id, layer_idx, current_length);
             const float *v_sequence = kv_cache_manager_->GetValueSequence(sequence_id, layer_idx, current_length);
+
+            // Guard against null or empty sequence (safety fix)
+            if (k_sequence == nullptr || v_sequence == nullptr || current_length == 0)
+            {
+                std::fill(output, output + h, 0.0f);
+                return;
+            }
 
             // Multi-head attention
             std::vector<float> attn_scores(current_length, 0.0f);

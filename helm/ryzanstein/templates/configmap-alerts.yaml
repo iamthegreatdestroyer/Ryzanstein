@@ -1,0 +1,321 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-prometheus-rules
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    prometheus: kube-prometheus
+data:
+  ryzanstein-alerts.yaml: |
+    groups:
+      # =====================================================================
+      # API Server Alerts
+      # =====================================================================
+      - name: ryzanstein-api
+        interval: 15s
+        rules:
+          # API is down
+          - alert: RyzansteinAPIDown
+            expr: up{job="ryzanstein-api"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              component: api
+              service: ryzanstein
+            annotations:
+              summary: "Ryzanstein API is down"
+              description: "Ryzanstein API pod {{ $labels.pod }} has been unreachable for 2 minutes"
+              runbook_url: "https://wiki.example.com/ryzanstein/api-down"
+
+          # High error rate (>1%)
+          - alert: APIHighErrorRate
+            expr: |
+              (
+                rate(http_requests_total{job="ryzanstein-api", status=~"5.."}[5m]) /
+                rate(http_requests_total{job="ryzanstein-api"}[5m])
+              ) > 0.01
+            for: 5m
+            labels:
+              severity: warning
+              component: api
+            annotations:
+              summary: "High API error rate ({{ $value | humanizePercentage }})"
+              description: "API error rate exceeds 1% threshold (current: {{ $value | humanizePercentage }})"
+              runbook_url: "https://wiki.example.com/ryzanstein/high-error-rate"
+
+          # High latency (P99 > 1s)
+          - alert: APIHighLatency
+            expr: |
+              histogram_quantile(
+                0.99,
+                rate(http_request_duration_seconds_bucket{job="ryzanstein-api"}[5m])
+              ) > 1.0
+            for: 5m
+            labels:
+              severity: warning
+              component: api
+            annotations:
+              summary: "High API latency ({{ $value | humanizeDuration }})"
+              description: "P99 latency exceeds 1s threshold (current: {{ $value | humanizeDuration }})"
+              runbook_url: "https://wiki.example.com/ryzanstein/high-latency"
+
+          # Circuit breaker is OPEN
+          - alert: CircuitBreakerOpen
+            expr: circuit_breaker_state{state="open"} > 0
+            for: 1m
+            labels:
+              severity: critical
+              component: api
+            annotations:
+              summary: "Circuit breaker is OPEN"
+              description: "Circuit breaker for {{ $labels.service }} is open (failure threshold exceeded)"
+              runbook_url: "https://wiki.example.com/ryzanstein/circuit-breaker-open"
+
+          # Bulkhead exhausted
+          - alert: BulkheadExhausted
+            expr: bulkhead_active_count >= bulkhead_max_concurrent
+            for: 2m
+            labels:
+              severity: warning
+              component: api
+            annotations:
+              summary: "Bulkhead at maximum capacity"
+              description: "API bulkhead has {{ $value }} active requests (max: {{ $labels.max_concurrent }})"
+              runbook_url: "https://wiki.example.com/ryzanstein/bulkhead-exhausted"
+
+      # =====================================================================
+      # Model Inference Alerts
+      # =====================================================================
+      - name: ryzanstein-inference
+        interval: 15s
+        rules:
+          # High inference latency (P99 > 5s)
+          - alert: HighInferenceLatency
+            expr: |
+              histogram_quantile(
+                0.99,
+                rate(inference_duration_seconds_bucket{model="bitnet-1.58b"}[5m])
+              ) > 5.0
+            for: 5m
+            labels:
+              severity: warning
+              component: inference
+            annotations:
+              summary: "Model inference latency is high ({{ $value | humanizeDuration }})"
+              description: "BitNet 1.58b P99 latency exceeds 5s (current: {{ $value | humanizeDuration }})"
+              runbook_url: "https://wiki.example.com/ryzanstein/high-inference-latency"
+
+          # High inference failure rate (>5%)
+          - alert: HighInferenceFailureRate
+            expr: |
+              (
+                rate(inference_failures_total{model="bitnet-1.58b"}[5m]) /
+                rate(inference_total{model="bitnet-1.58b"}[5m])
+              ) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+              component: inference
+            annotations:
+              summary: "High inference failure rate ({{ $value | humanizePercentage }})"
+              description: "BitNet 1.58b failure rate exceeds 5% (current: {{ $value | humanizePercentage }})"
+              runbook_url: "https://wiki.example.com/ryzanstein/inference-failure"
+
+          # Low token throughput (<10 tok/s)
+          - alert: LowTokenThroughput
+            expr: rate(tokens_generated_total{model="bitnet-1.58b"}[5m]) < 10
+            for: 10m
+            labels:
+              severity: info
+              component: inference
+            annotations:
+              summary: "Token generation throughput is low ({{ $value | humanize }} tok/s)"
+              description: "BitNet 1.58b throughput is below 10 tok/s (current: {{ $value | humanize }} tok/s)"
+              runbook_url: "https://wiki.example.com/ryzanstein/low-throughput"
+
+      # =====================================================================
+      # Resource & System Alerts
+      # =====================================================================
+      - name: ryzanstein-resources
+        interval: 30s
+        rules:
+          # High CPU usage
+          - alert: ContainerHighCPU
+            expr: |
+              (sum(rate(container_cpu_usage_seconds_total{pod=~"ryzanstein-.*"}[5m])) /
+               sum(container_spec_cpu_quota{pod=~"ryzanstein-.*"}/container_spec_cpu_period{pod=~"ryzanstein-.*"})
+              ) > 0.85
+            for: 5m
+            labels:
+              severity: warning
+              component: system
+            annotations:
+              summary: "High CPU usage ({{ $value | humanizePercentage }})"
+              description: "Container CPU usage exceeds 85% (current: {{ $value | humanizePercentage }})"
+              runbook_url: "https://wiki.example.com/ryzanstein/high-cpu"
+
+          # High memory usage
+          - alert: ContainerHighMemory
+            expr: |
+              (sum(container_memory_usage_bytes{pod=~"ryzanstein-.*"}) /
+               sum(container_spec_memory_limit_bytes{pod=~"ryzanstein-.*"})
+              ) > 0.90
+            for: 5m
+            labels:
+              severity: critical
+              component: system
+            annotations:
+              summary: "Critical memory usage ({{ $value | humanizePercentage }})"
+              description: "Container memory usage exceeds 90% (current: {{ $value | humanizePercentage }})"
+              runbook_url: "https://wiki.example.com/ryzanstein/high-memory"
+
+      # =====================================================================
+      # Observability Stack Alerts
+      # =====================================================================
+      - name: ryzanstein-observability
+        interval: 30s
+        rules:
+          # Prometheus is down
+          - alert: PrometheusDown
+            expr: up{job="prometheus"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              component: observability
+            annotations:
+              summary: "Prometheus monitoring is down"
+              description: "Prometheus has been unreachable for 2 minutes"
+              runbook_url: "https://wiki.example.com/ryzanstein/prometheus-down"
+
+          # AlertManager is down
+          - alert: AlertManagerDown
+            expr: up{job="alertmanager"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              component: observability
+            annotations:
+              summary: "AlertManager is down"
+              description: "AlertManager has been unreachable, alerts won't be sent"
+              runbook_url: "https://wiki.example.com/ryzanstein/alertmanager-down"
+
+          # Prometheus TSDB high (>40GB of 50GB)
+          - alert: PrometheusHighDiskUsage
+            expr: |
+              (prometheus_tsdb_symbol_table_size_bytes +
+               prometheus_tsdb_index_chunk_persisted_bytes) > 40e9
+            for: 10m
+            labels:
+              severity: warning
+              component: observability
+            annotations:
+              summary: "Prometheus TSDB is getting full ({{ $value | humanize1024 }}B)"
+              description: "Prometheus TSDB size approaches 50GB limit"
+              runbook_url: "https://wiki.example.com/ryzanstein/prometheus-disk-full"
+
+          # Jaeger is down
+          - alert: JaegerDown
+            expr: up{job="jaeger"} == 0
+            for: 2m
+            labels:
+              severity: warning
+              component: observability
+            annotations:
+              summary: "Jaeger tracing is down"
+              description: "Jaeger has been unreachable, distributed tracing disabled"
+              runbook_url: "https://wiki.example.com/ryzanstein/jaeger-down"
+
+      # =====================================================================
+      # Storage Alerts
+      # =====================================================================
+      - name: ryzanstein-storage
+        interval: 30s
+        rules:
+          # Qdrant is down
+          - alert: QdrantDown
+            expr: up{job="qdrant"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              component: storage
+            annotations:
+              summary: "Qdrant vector database is down"
+              description: "Qdrant has been unreachable for 2 minutes"
+              runbook_url: "https://wiki.example.com/ryzanstein/qdrant-down"
+
+          # Qdrant high disk usage (>80%)
+          - alert: QdrantHighDiskUsage
+            expr: |
+              (vector_db_disk_used_bytes{job="qdrant"} /
+               vector_db_disk_total_bytes{job="qdrant"}) > 0.8
+            for: 10m
+            labels:
+              severity: warning
+              component: storage
+            annotations:
+              summary: "Qdrant disk usage is high ({{ $value | humanizePercentage }})"
+              description: "Vector DB disk usage exceeds 80% (current: {{ $value | humanizePercentage }})"
+              runbook_url: "https://wiki.example.com/ryzanstein/qdrant-disk-full"
+
+          # Qdrant high memory usage (>90%)
+          - alert: QdrantHighMemory
+            expr: |
+              (vector_db_memory_used_bytes{job="qdrant"} /
+               vector_db_memory_total_bytes{job="qdrant"}) > 0.9
+            for: 10m
+            labels:
+              severity: critical
+              component: storage
+            annotations:
+              summary: "Qdrant memory usage is critical ({{ $value | humanizePercentage }})"
+              description: "Vector DB memory usage exceeds 90% (current: {{ $value | humanizePercentage }})"
+              runbook_url: "https://wiki.example.com/ryzanstein/qdrant-oom"
+
+      # =====================================================================
+      # Kubernetes Alerts
+      # =====================================================================
+      - name: ryzanstein-kubernetes
+        interval: 30s
+        rules:
+          # Pod restart rate high
+          - alert: HighPodRestartRate
+            expr: |
+              rate(kube_pod_container_status_restarts_total{pod=~"ryzanstein-.*"}[1h]) > 0.1
+            for: 5m
+            labels:
+              severity: warning
+              component: kubernetes
+            annotations:
+              summary: "High pod restart rate for {{ $labels.pod }}"
+              description: "Pod {{ $labels.pod }} is restarting frequently"
+              runbook_url: "https://wiki.example.com/ryzanstein/pod-restart"
+
+          # HPA scaling at max
+          - alert: HPAAtMaxReplicas
+            expr: |
+              kube_hpa_status_current_replicas{hpa=~"ryzanstein-.*"} >=
+              kube_hpa_status_desired_replicas{hpa=~"ryzanstein-.*"}
+            for: 5m
+            labels:
+              severity: warning
+              component: kubernetes
+            annotations:
+              summary: "HPA {{ $labels.hpa }} is at max replicas"
+              description: "HPA has scaled to maximum replicas, consider increasing limits"
+              runbook_url: "https://wiki.example.com/ryzanstein/hpa-max"
+
+          # PVC usage high (>90%)
+          - alert: PVCHighUsage
+            expr: |
+              (kubelet_volume_stats_used_bytes{persistentvolumeclaim=~"ryzanstein-.*"} /
+               kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~"ryzanstein-.*"}
+              ) > 0.9
+            for: 10m
+            labels:
+              severity: warning
+              component: kubernetes
+            annotations:
+              summary: "PVC {{ $labels.persistentvolumeclaim }} usage is high ({{ $value | humanizePercentage }})"
+              description: "Persistent volume usage exceeds 90%"
+              runbook_url: "https://wiki.example.com/ryzanstein/pvc-full"
