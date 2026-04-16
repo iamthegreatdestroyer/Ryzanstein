@@ -224,7 +224,8 @@ func (is *InferenceService) ExecuteStream(ctx context.Context, req *InferenceReq
 		return
 	}
 
-	// DEAD-CODE-STUB [Sprint 1.2]: Simulated streaming — replace with real SSE streaming per docs/STREAMING_API_CONTRACT.md
+	// TODO: DEAD CODE — App.SendMessageStream() calls apiClient.ChatCompletionStream() directly.
+	// This method is never invoked. Do not delete (test coverage), do not refactor.
 	go func() {
 		defer close(resultChan)
 

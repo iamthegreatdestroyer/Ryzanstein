@@ -19,6 +19,7 @@ import (
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/config"
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/ipc"
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/models"
+	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
@@ -36,6 +37,7 @@ type App struct {
 	config    *config.Manager
 	ipc       *ipc.Server
 	apiClient *client.RyzansteinClient
+	logger    *services.LogService
 	mu        sync.RWMutex
 	isRunning bool
 }
@@ -77,6 +79,8 @@ func (a *App) Startup(ctx context.Context) {
 	}
 	a.apiClient = client.NewRyzansteinClient(apiURL)
 	a.apiClient.SetTimeout(60 * time.Second)
+
+	a.logger = services.NewLogService(services.LogLevelInfo)
 
 	go a.startIPCServer()
 	go a.models.LoadInstalledModels()
@@ -260,6 +264,21 @@ func (a *App) GetCircuitStatus() map[string]interface{} {
 		"context_timeout_s": 120,
 		"timestamp":         time.Now().UTC().Format(time.RFC3339),
 	}
+}
+
+// GetRecentLogs returns recent log entries for the UI diagnostics panel.
+func (a *App) GetRecentLogs(n int) []map[string]interface{} {
+	entries := a.logger.GetRecentEntries(n, services.LogLevelDebug)
+	result := make([]map[string]interface{}, len(entries))
+	for i, e := range entries {
+		result[i] = map[string]interface{}{
+			"level":     e.Level.String(),
+			"message":   e.Message,
+			"timestamp": e.Timestamp.UTC().Format("2006-01-02T15:04:05Z"),
+			"source":    e.Component,
+		}
+	}
+	return result
 }
 
 func (a *App) GetHistory(limit int) ([]Message, error) {

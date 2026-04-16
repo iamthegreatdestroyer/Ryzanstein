@@ -22,6 +22,10 @@ export function GetHistory(arg1) {
   return window['go']['main']['App']['GetHistory'](arg1);
 }
 
+export function GetRecentLogs(arg1) {
+  return window['go']['main']['App']['GetRecentLogs'](arg1);
+}
+
 export function GetSystemInfo() {
   return window['go']['main']['App']['GetSystemInfo']();
 }
