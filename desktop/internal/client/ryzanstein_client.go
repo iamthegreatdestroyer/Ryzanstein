@@ -88,6 +88,11 @@ func (c *RyzansteinClient) SetMaxRetries(maxRetries int) {
 	c.maxRetries = maxRetries
 }
 
+// GetBaseURL returns the configured API base URL
+func (c *RyzansteinClient) GetBaseURL() string {
+	return c.baseURL
+}
+
 // Infer makes an inference request to the API
 func (c *RyzansteinClient) Infer(ctx context.Context, req *InferenceRequest) (*InferenceResponse, error) {
 	var lastErr error

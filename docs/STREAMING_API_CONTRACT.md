@@ -26,22 +26,22 @@
 
 All endpoints are relative to the configured `RyzansteinAPIURL` (default: `http://localhost:8000`).
 
-| Method | HTTP Verb | Endpoint | Request Body | Response | Retry? |
-|---|---|---|---|---|---|
-| `Infer()` | POST | `/v1/completions` | `InferenceRequest` JSON | `InferenceResponse` | YES (3× exponential backoff) |
-| `ListModels()` | GET | `/v1/models` | none | `{"data": []ModelInfo}` | YES (3× exponential backoff) |
-| `LoadModel()` | POST | `/v1/models/load` | `{"model_id": "<id>"}` | 200 OK (no body) | YES (3× exponential backoff) |
-| `UnloadModel()` | POST | `/v1/models/<id>/unload` | none | 200 OK (no body) | YES (3× exponential backoff) |
-| `ChatCompletion()` | POST | `/v1/chat/completions` | `ChatCompletionRequest` JSON | `ChatCompletionResponse` | NO |
-| `ChatCompletionStream()` | POST | `/v1/chat/completions` | `ChatCompletionRequest` (Stream forced `true`) | SSE stream → `tokenChan` | NO |
-| `Health()` | GET | `/health` | none | `bool` (200 = healthy) | NO |
+| Method                   | HTTP Verb | Endpoint                 | Request Body                                   | Response                 | Retry?                       |
+| ------------------------ | --------- | ------------------------ | ---------------------------------------------- | ------------------------ | ---------------------------- |
+| `Infer()`                | POST      | `/v1/completions`        | `InferenceRequest` JSON                        | `InferenceResponse`      | YES (3× exponential backoff) |
+| `ListModels()`           | GET       | `/v1/models`             | none                                           | `{"data": []ModelInfo}`  | YES (3× exponential backoff) |
+| `LoadModel()`            | POST      | `/v1/models/load`        | `{"model_id": "<id>"}`                         | 200 OK (no body)         | YES (3× exponential backoff) |
+| `UnloadModel()`          | POST      | `/v1/models/<id>/unload` | none                                           | 200 OK (no body)         | YES (3× exponential backoff) |
+| `ChatCompletion()`       | POST      | `/v1/chat/completions`   | `ChatCompletionRequest` JSON                   | `ChatCompletionResponse` | NO                           |
+| `ChatCompletionStream()` | POST      | `/v1/chat/completions`   | `ChatCompletionRequest` (Stream forced `true`) | SSE stream → `tokenChan` | NO                           |
+| `Health()`               | GET       | `/health`                | none                                           | `bool` (200 = healthy)   | NO                           |
 
 ### Headers
 
-| Header | Value | Applied To |
-|---|---|---|
-| `Content-Type` | `application/json` | All POST requests |
-| `Accept` | `text/event-stream` | `ChatCompletionStream()` only |
+| Header         | Value               | Applied To                    |
+| -------------- | ------------------- | ----------------------------- |
+| `Content-Type` | `application/json`  | All POST requests             |
+| `Accept`       | `text/event-stream` | `ChatCompletionStream()` only |
 
 ---
 
@@ -188,16 +188,17 @@ systemPrompt := fmt.Sprintf(
 
 ### Default Parameter Values
 
-| Parameter | Value | Notes |
-|---|---|---|
-| `MaxTokens` | `2048` | Hardcoded in both paths |
-| `Temperature` | `0.7` | Hardcoded in both paths |
-| `TopP` | `0.9` | Hardcoded in both paths |
-| `Stream` | Not set by caller | Forced to `true` inside `ChatCompletionStream()` before marshalling |
+| Parameter     | Value             | Notes                                                               |
+| ------------- | ----------------- | ------------------------------------------------------------------- |
+| `MaxTokens`   | `2048`            | Hardcoded in both paths                                             |
+| `Temperature` | `0.7`             | Hardcoded in both paths                                             |
+| `TopP`        | `0.9`             | Hardcoded in both paths                                             |
+| `Stream`      | Not set by caller | Forced to `true` inside `ChatCompletionStream()` before marshalling |
 
 ### Message Array Structure
 
 The messages array always contains exactly 2 messages:
+
 1. **System message** — agent persona prompt with codename
 2. **User message** — the user's input text
 
@@ -206,6 +207,7 @@ The messages array always contains exactly 2 messages:
 ## 4. SSE Wire Format
 
 `ChatCompletionStream()` sends `POST /v1/chat/completions` with:
+
 - `req.Stream = true` (forced before JSON marshal)
 - Header: `Accept: text/event-stream`
 
@@ -296,13 +298,13 @@ Output: []string (non-empty lines)
 
 ### Guarantees
 
-| Property | Behaviour |
-|---|---|
-| `\n` line endings | ✅ Correctly split |
-| `\r\n` line endings | ✅ `\r` stripped before append |
-| Empty lines | ✅ Skipped (only non-empty lines returned) |
-| Trailing content (no final `\n`) | ✅ Captured as final line |
-| Zero-length input | ✅ Returns empty slice |
+| Property                         | Behaviour                                  |
+| -------------------------------- | ------------------------------------------ |
+| `\n` line endings                | ✅ Correctly split                         |
+| `\r\n` line endings              | ✅ `\r` stripped before append             |
+| Empty lines                      | ✅ Skipped (only non-empty lines returned) |
+| Trailing content (no final `\n`) | ✅ Captured as final line                  |
+| Zero-length input                | ✅ Returns empty slice                     |
 
 ### Usage in SSE Processing
 
@@ -356,14 +358,14 @@ SendMessageStream()
 
 ### tokenChan Lifecycle (6 usage sites)
 
-| Location | Line | Operation |
-|---|---|---|
-| `main.go` | 207 | **Create:** `make(chan string, 64)` |
-| `main.go` | 211 | **Close:** `defer close(tokenChan)` |
-| `main.go` | 212 | **Pass:** `ChatCompletionStream(ctx, chatReq, tokenChan)` |
-| `main.go` | 219 | **Consume:** `for token := range tokenChan` |
-| `ryzanstein_client.go` | 378 | **Signature:** `tokenChan chan<- string` (write-only) |
-| `ryzanstein_client.go` | 432 | **Deliver:** `tokenChan <- choice.Delta.Content` |
+| Location               | Line | Operation                                                 |
+| ---------------------- | ---- | --------------------------------------------------------- |
+| `main.go`              | 207  | **Create:** `make(chan string, 64)`                       |
+| `main.go`              | 211  | **Close:** `defer close(tokenChan)`                       |
+| `main.go`              | 212  | **Pass:** `ChatCompletionStream(ctx, chatReq, tokenChan)` |
+| `main.go`              | 219  | **Consume:** `for token := range tokenChan`               |
+| `ryzanstein_client.go` | 378  | **Signature:** `tokenChan chan<- string` (write-only)     |
+| `ryzanstein_client.go` | 432  | **Deliver:** `tokenChan <- choice.Delta.Content`          |
 
 ### Data Flow
 
@@ -389,10 +391,10 @@ ctx, cancel := context.WithTimeout(a.ctx, 120*time.Second)
 
 ### Timeout vs. HTTP Client Timeout
 
-| Timeout | Value | Scope |
-|---|---|---|
-| `context.WithTimeout` | 120s | Per-stream operation in `SendMessageStream()` |
-| `httpClient.Timeout` | 30s | Default HTTP client timeout on `RyzansteinClient` |
+| Timeout               | Value | Scope                                             |
+| --------------------- | ----- | ------------------------------------------------- |
+| `context.WithTimeout` | 120s  | Per-stream operation in `SendMessageStream()`     |
+| `httpClient.Timeout`  | 30s   | Default HTTP client timeout on `RyzansteinClient` |
 
 > **⚠️ Known Concern:** The 30-second `httpClient.Timeout` may terminate long-running streams before the 120-second context timeout expires. This is tracked for resolution in Week 2, Sprint 2.2.
 
@@ -410,20 +412,20 @@ The context flows from the Wails application context through the timeout wrapper
 
 ### Retry-Enabled Endpoints
 
-| Method | Retries | Backoff Formula |
-|---|---|---|
-| `Infer()` | 3 | `retryDelay × 2^attempt` (1s → 2s → 4s) |
-| `ListModels()` | 3 | `retryDelay × 2^attempt` |
-| `LoadModel()` | 3 | `retryDelay × 2^attempt` |
-| `UnloadModel()` | 3 | `retryDelay × 2^attempt` |
+| Method          | Retries | Backoff Formula                         |
+| --------------- | ------- | --------------------------------------- |
+| `Infer()`       | 3       | `retryDelay × 2^attempt` (1s → 2s → 4s) |
+| `ListModels()`  | 3       | `retryDelay × 2^attempt`                |
+| `LoadModel()`   | 3       | `retryDelay × 2^attempt`                |
+| `UnloadModel()` | 3       | `retryDelay × 2^attempt`                |
 
 ### Non-Retry Endpoints
 
-| Method | Reason |
-|---|---|
-| `ChatCompletion()` | Latency-sensitive, user-facing |
-| `ChatCompletionStream()` | Long-running SSE connection |
-| `Health()` | Simple connectivity check |
+| Method                   | Reason                         |
+| ------------------------ | ------------------------------ |
+| `ChatCompletion()`       | Latency-sensitive, user-facing |
+| `ChatCompletionStream()` | Long-running SSE connection    |
+| `Health()`               | Simple connectivity check      |
 
 ### HTTP Error Detection (Streaming)
 
@@ -462,8 +464,8 @@ if err != nil {
 
 ### Other Application Events
 
-| Event | Payload | When |
-|---|---|---|
+| Event       | Payload                                | When                |
+| ----------- | -------------------------------------- | ------------------- |
 | `app:ready` | `{version: "1.0.0", timestamp: <now>}` | Application startup |
 
 ### Event Direction
@@ -476,17 +478,17 @@ All events flow **Go → Svelte** via `runtime.EventsEmit()`. The Svelte fronten
 
 ### Non-Streaming (`SendMessage`)
 
-| Condition | Response |
-|---|---|
-| API call fails | `"[Offline Mode] The Ryzanstein inference API at <URL> is not reachable. Start backend with: docker-compose up -d"` |
-| Success with choices | `chatResp.Choices[0].Message.Content` |
-| Empty choices array | `"[Error] Empty response from inference API."` |
+| Condition            | Response                                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| API call fails       | `"[Offline Mode] The Ryzanstein inference API at <URL> is not reachable. Start backend with: docker-compose up -d"` |
+| Success with choices | `chatResp.Choices[0].Message.Content`                                                                               |
+| Empty choices array  | `"[Error] Empty response from inference API."`                                                                      |
 
 ### Streaming (`SendMessageStream`)
 
-| Condition | Response |
-|---|---|
-| Stream error | `chat:streamError` event emitted with error string; `tokenChan` closed |
+| Condition            | Response                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------ |
+| Stream error         | `chat:streamError` event emitted with error string; `tokenChan` closed               |
 | Empty final response | `"[Offline Mode] Streaming not available. Start backend with: docker-compose up -d"` |
 
 In all fallback cases, the response is persisted to chat history via `a.chat.AddMessage()`.
@@ -564,5 +566,5 @@ RyzansteinClient{
 
 ---
 
-*Document generated as Sprint 1.1, Action #1 of the Autonomous Execution Plan (Weeks 1–5).*
-*Source files: `desktop/internal/client/ryzanstein_client.go` (494 lines), `desktop/main.go` (lines 125–230).*
+_Document generated as Sprint 1.1, Action #1 of the Autonomous Execution Plan (Weeks 1–5)._
+_Source files: `desktop/internal/client/ryzanstein_client.go` (494 lines), `desktop/main.go` (lines 125–230)._

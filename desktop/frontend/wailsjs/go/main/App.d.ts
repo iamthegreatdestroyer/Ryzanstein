@@ -6,6 +6,8 @@ export function CheckAPIHealth():Promise<boolean>;
 
 export function ClearHistory():Promise<void>;
 
+export function GetCircuitStatus():Promise<Record<string, any>>;
+
 export function GetConfig():Promise<main.ConfigData>;
 
 export function GetHistory(arg1:number):Promise<Array<main.Message>>;

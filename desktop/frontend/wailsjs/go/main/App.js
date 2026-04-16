@@ -10,6 +10,10 @@ export function ClearHistory() {
   return window['go']['main']['App']['ClearHistory']();
 }
 
+export function GetCircuitStatus() {
+  return window['go']['main']['App']['GetCircuitStatus']();
+}
+
 export function GetConfig() {
   return window['go']['main']['App']['GetConfig']();
 }

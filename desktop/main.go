@@ -246,6 +246,22 @@ func (a *App) CheckAPIHealth() (bool, error) {
 	return a.apiClient.Health(ctx)
 }
 
+// GetCircuitStatus returns real-time API health and circuit breaker state
+func (a *App) GetCircuitStatus() map[string]interface{} {
+	a.mu.RLock()
+	running := a.isRunning
+	a.mu.RUnlock()
+	return map[string]interface{}{
+		"api_running":       running,
+		"api_base_url":      a.apiClient.GetBaseURL(),
+		"max_retries":       3,
+		"retry_delay_ms":    1000,
+		"stream_buffer":     64,
+		"context_timeout_s": 120,
+		"timestamp":         time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
 func (a *App) GetHistory(limit int) ([]Message, error) {
 	log.Printf("[Chat] Fetching history (limit: %d)\n", limit)
 	chatHistory := a.chat.GetHistory(limit)
