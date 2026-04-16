@@ -78,7 +78,7 @@ func (a *App) Startup(ctx context.Context) {
 		apiURL = "http://localhost:8000"
 	}
 	a.apiClient = client.NewRyzansteinClient(apiURL)
-	a.apiClient.SetTimeout(60 * time.Second)
+	a.apiClient.SetTimeout(150 * time.Second)
 
 	a.logger = services.NewLogService(services.LogLevelInfo)
 
@@ -263,6 +263,66 @@ func (a *App) GetCircuitStatus() map[string]interface{} {
 		"stream_buffer":     64,
 		"context_timeout_s": 120,
 		"timestamp":         time.Now().UTC().Format(time.RFC3339),
+	}
+}
+
+// GetSystemHealth returns a comprehensive health snapshot for UI diagnostics.
+// It aggregates API reachability, circuit status, timeout configuration,
+// and runtime state into a single map suitable for the health panel.
+func (a *App) GetSystemHealth() map[string]interface{} {
+	a.mu.RLock()
+	running := a.isRunning
+	a.mu.RUnlock()
+
+	// Probe API health with a short timeout
+	healthCtx, cancel := context.WithTimeout(a.ctx, 5*time.Second)
+	defer cancel()
+	healthy, apiErr := a.apiClient.Health(healthCtx)
+	apiReachable := apiErr == nil && healthy
+	apiStatus := "healthy"
+	if !apiReachable {
+		if apiErr != nil {
+			apiStatus = fmt.Sprintf("unreachable: %v", apiErr)
+		} else {
+			apiStatus = "unhealthy"
+		}
+	}
+
+	return map[string]interface{}{
+		// Runtime state
+		"is_running": running,
+		"api_status": apiStatus,
+
+		// Connection info
+		"api_base_url": a.apiClient.GetBaseURL(),
+
+		// Timeout configuration (seconds)
+		"timeouts": map[string]interface{}{
+			"http_client_s":    150,
+			"send_message_s":   30,
+			"stream_s":         120,
+			"health_check_s":   5,
+			"model_load_s":     30,
+			"batch_ms":         50,
+			"pool_health_s":    30,
+			"pool_idle_s":      300,
+			"pool_max_conn_s":  600,
+			"grpc_dial_s":      5,
+			"cache_expiry_s":   300,
+		},
+
+		// Retry configuration
+		"retry": map[string]interface{}{
+			"max_retries":    3,
+			"retry_delay_ms": 1000,
+			"strategy":       "exponential_backoff",
+		},
+
+		// Streaming
+		"stream_buffer_size": 64,
+
+		// Timestamp
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
 }
 

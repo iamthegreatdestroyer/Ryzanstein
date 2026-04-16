@@ -26,6 +26,10 @@ export function GetRecentLogs(arg1) {
   return window['go']['main']['App']['GetRecentLogs'](arg1);
 }
 
+export function GetSystemHealth() {
+  return window['go']['main']['App']['GetSystemHealth']();
+}
+
 export function GetSystemInfo() {
   return window['go']['main']['App']['GetSystemInfo']();
 }

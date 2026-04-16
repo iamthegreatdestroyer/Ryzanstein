@@ -14,6 +14,8 @@ export function GetHistory(arg1:number):Promise<Array<main.Message>>;
 
 export function GetRecentLogs(arg1:number):Promise<Array<Record<string, any>>>;
 
+export function GetSystemHealth():Promise<Record<string, any>>;
+
 export function GetSystemInfo():Promise<Record<string, any>>;
 
 export function GetVersion():Promise<string>;
