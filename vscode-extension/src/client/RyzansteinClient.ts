@@ -93,4 +93,22 @@ export class RyzansteinClient {
       );
     }
   }
+
+  async infer(prompt: string, modelId?: string): Promise<string> {
+    try {
+      const response = await this.client.post("/v1/completions", {
+        prompt,
+        model: modelId ?? "default",
+        max_tokens: 512,
+        temperature: 0.7,
+      });
+      return response.data?.choices?.[0]?.text ?? "";
+    } catch (error) {
+      throw new Error(
+        `Inference failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
 }
