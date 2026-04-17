@@ -9,12 +9,15 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	client "github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/client"
 )
 
 // Service handles agent operations
 type Service struct {
-	agents map[string]*AgentInfo
-	mu     sync.RWMutex
+	agents    map[string]*AgentInfo
+	mu        sync.RWMutex
+	apiClient *client.RyzansteinClient
 }
 
 // AgentInfo represents agent information
@@ -36,9 +39,10 @@ type Tool struct {
 }
 
 // NewService creates a new agents service
-func NewService() *Service {
+func NewService(apiClient *client.RyzansteinClient) *Service {
 	s := &Service{
-		agents: make(map[string]*AgentInfo),
+		agents:    make(map[string]*AgentInfo),
+		apiClient: apiClient,
 	}
 
 	// Register core agents
@@ -284,4 +288,51 @@ func (s *Service) InvokeTool(ctx context.Context, agentCodename string, toolName
 	}
 
 	return result, nil
+}
+
+// InvokeAgentChat sends a chat message to an agent via the Ryzanstein API
+func (s *Service) InvokeAgentChat(ctx context.Context, agentCodename string, message string) (string, error) {
+	s.mu.RLock()
+	agent, ok := s.agents[agentCodename]
+	s.mu.RUnlock()
+	if !ok {
+		return "", fmt.Errorf("agent not found: %s", agentCodename)
+	}
+
+	if s.apiClient == nil {
+		return "", fmt.Errorf("API client not available")
+	}
+
+	// Determine max tokens based on agent tier
+	maxTokens := 1024
+	switch agent.Tier {
+	case 1:
+		maxTokens = 4096
+	case 2:
+		maxTokens = 2048
+	}
+
+	// Build system message from agent philosophy
+	systemMsg := fmt.Sprintf("You are %s (%s). %s", agent.Name, agent.Codename, agent.Philosophy)
+
+	req := client.ChatCompletionRequest{
+		Model: "ryzanstein-agent",
+		Messages: []client.ChatMessage{
+			{Role: "system", Content: systemMsg},
+			{Role: "user", Content: message},
+		},
+		MaxTokens:   maxTokens,
+		Temperature: 0.7,
+	}
+
+	resp, err := s.apiClient.ChatCompletion(ctx, &req)
+	if err != nil {
+		return "", fmt.Errorf("agent chat failed: %w", err)
+	}
+
+	if len(resp.Choices) == 0 {
+		return "", fmt.Errorf("no response from agent")
+	}
+
+	return resp.Choices[0].Message.Content, nil
 }

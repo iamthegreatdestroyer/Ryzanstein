@@ -69,15 +69,16 @@ func (a *App) Startup(ctx context.Context) {
 
 	a.chat = chat.NewService()
 	a.models = models.NewService(a.config)
-	a.agents = agents.NewService()
 
-	// Initialize the Ryzanstein API client (before IPC so we can inject it)
+	// Initialize the Ryzanstein API client before agents so we can inject it
 	apiURL := a.config.GetConfig().RyzansteinAPIURL
 	if apiURL == "" {
 		apiURL = "http://localhost:8000"
 	}
 	a.apiClient = client.NewRyzansteinClient(apiURL)
 	a.apiClient.SetTimeout(150 * time.Second)
+
+	a.agents = agents.NewService(a.apiClient)
 
 	a.ipc = ipc.NewServer(a.agents, a.models, a.apiClient)
 
@@ -452,6 +453,28 @@ func (a *App) InvokeAgent(agentCodename string, toolName string, parameters map[
 		"result": result,
 	})
 	return result, nil
+}
+
+// InvokeAgentChat sends a chat message to an agent and returns the response
+func (a *App) InvokeAgentChat(agentCodename string, message string) (string, error) {
+	ctx, cancel := context.WithTimeout(a.ctx, 60*time.Second)
+	defer cancel()
+
+	response, err := a.agents.InvokeAgentChat(ctx, agentCodename, message)
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "agent:chat:error", map[string]interface{}{
+			"agent": agentCodename,
+			"error": err.Error(),
+		})
+		return "", err
+	}
+
+	runtime.EventsEmit(a.ctx, "agent:chat:response", map[string]interface{}{
+		"agent":   agentCodename,
+		"message": message,
+		"response": response,
+	})
+	return response, nil
 }
 
 // ============================================================================

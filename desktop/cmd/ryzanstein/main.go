@@ -60,7 +60,7 @@ func (a *App) Startup(ctx context.Context) {
 	// Initialize services
 	a.chat = chat.NewService()
 	a.models = models.NewService(a.config)
-	a.agents = agents.NewService()
+	a.agents = agents.NewService(nil)
 	a.ipc = ipc.NewServer()
 
 	// Start IPC server
