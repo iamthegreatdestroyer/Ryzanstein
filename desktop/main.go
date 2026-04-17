@@ -70,15 +70,16 @@ func (a *App) Startup(ctx context.Context) {
 	a.chat = chat.NewService()
 	a.models = models.NewService(a.config)
 	a.agents = agents.NewService()
-	a.ipc = ipc.NewServer()
 
-	// Initialize the Ryzanstein API client
+	// Initialize the Ryzanstein API client (before IPC so we can inject it)
 	apiURL := a.config.GetConfig().RyzansteinAPIURL
 	if apiURL == "" {
 		apiURL = "http://localhost:8000"
 	}
 	a.apiClient = client.NewRyzansteinClient(apiURL)
 	a.apiClient.SetTimeout(150 * time.Second)
+
+	a.ipc = ipc.NewServer(a.agents, a.models, a.apiClient)
 
 	a.logger = services.NewLogService(services.LogLevelInfo)
 

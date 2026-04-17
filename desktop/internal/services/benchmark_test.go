@@ -229,3 +229,146 @@ func TestLoadScaling(t *testing.T) {
 	}
 }
 
+// =============================================================================
+// Pipeline Orchestrator Benchmarks (Sprint 6 Week 3 Day 5)
+// =============================================================================
+
+func BenchmarkPipelineThroughput(b *testing.B) {
+	orch := NewOrchestrator(nil)
+	defer orch.Stop()
+
+	ctx := context.Background()
+
+	b.Run("single_request", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			req := &PipelineRequest{
+				ID:        fmt.Sprintf("bench-%d", i),
+				ModelID:   "bench-model",
+				Input:     "benchmark input",
+				Priority:  1,
+				Timestamp: time.Now(),
+			}
+			_, _ = orch.ProcessRequest(ctx, req)
+		}
+	})
+
+	b.Run("batch_5_requests", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			requests := make([]*PipelineRequest, 5)
+			for j := 0; j < 5; j++ {
+				requests[j] = &PipelineRequest{
+					ID:        fmt.Sprintf("batch-bench-%d-%d", i, j),
+					ModelID:   fmt.Sprintf("model-%d", j%3),
+					Input:     "batch benchmark input",
+					Priority:  j % 3,
+					Timestamp: time.Now(),
+				}
+			}
+			_, _ = orch.ProcessBatch(ctx, requests)
+		}
+	})
+
+	b.Run("concurrent_10_goroutines", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			var wg sync.WaitGroup
+			for g := 0; g < 10; g++ {
+				wg.Add(1)
+				go func(id int) {
+					defer wg.Done()
+					req := &PipelineRequest{
+						ID:        fmt.Sprintf("conc-bench-%d-%d", i, id),
+						ModelID:   fmt.Sprintf("model-%d", id%3),
+						Input:     "concurrent benchmark",
+						Priority:  1,
+						Timestamp: time.Now(),
+					}
+					_, _ = orch.ProcessRequest(ctx, req)
+				}(g)
+			}
+			wg.Wait()
+		}
+	})
+}
+
+func BenchmarkOrchestratorMetrics(b *testing.B) {
+	orch := NewOrchestrator(nil)
+	defer orch.Stop()
+
+	ctx := context.Background()
+
+	// Warm up with some requests
+	for i := 0; i < 20; i++ {
+		req := &PipelineRequest{
+			ID:        fmt.Sprintf("warmup-%d", i),
+			ModelID:   "metrics-model",
+			Input:     "warmup",
+			Priority:  1,
+			Timestamp: time.Now(),
+		}
+		_, _ = orch.ProcessRequest(ctx, req)
+	}
+
+	b.Run("get_metrics", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			_ = orch.GetMetrics()
+		}
+	})
+
+	b.Run("pipeline_depth_tracking", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			var wg sync.WaitGroup
+			var completed int64
+			for g := 0; g < 5; g++ {
+				wg.Add(1)
+				go func(id int) {
+					defer wg.Done()
+					req := &PipelineRequest{
+						ID:        fmt.Sprintf("depth-bench-%d-%d", i, id),
+						ModelID:   "depth-model",
+						Input:     "depth tracking",
+						Priority:  1,
+						Timestamp: time.Now(),
+					}
+					_, err := orch.ProcessRequest(ctx, req)
+					if err == nil {
+						atomic.AddInt64(&completed, 1)
+					}
+				}(g)
+			}
+			wg.Wait()
+		}
+	})
+}
+
+func BenchmarkOrchestratorLifecycle(b *testing.B) {
+	b.Run("create_and_stop", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			orch := NewOrchestrator(nil)
+			orch.Stop()
+		}
+	})
+
+	b.Run("create_process_stop", func(b *testing.B) {
+		ctx := context.Background()
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			orch := NewOrchestrator(nil)
+			req := &PipelineRequest{
+				ID:        fmt.Sprintf("lifecycle-%d", i),
+				ModelID:   "lifecycle-model",
+				Input:     "lifecycle test",
+				Priority:  1,
+				Timestamp: time.Now(),
+			}
+			_, _ = orch.ProcessRequest(ctx, req)
+			orch.Stop()
+		}
+	})
+}
+

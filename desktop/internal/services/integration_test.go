@@ -2,7 +2,9 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -441,5 +443,349 @@ func TestModelCacheConsistency(t *testing.T) {
 			t.Log("cache invalidation successful")
 		}
 	})
+}
+
+// ============================================================================
+// Orchestrator Pipeline Integration Tests
+// ============================================================================
+
+func TestOrchestratorPipeline(t *testing.T) {
+	t.Run("single_request_through_pipeline", func(t *testing.T) {
+		orch := NewOrchestrator(nil)
+		defer orch.Stop()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		req := &PipelineRequest{
+			ID:        "pipe-001",
+			ModelID:   "test-model-alpha",
+			Input:     map[string]string{"prompt": "hello world"},
+			Priority:  1,
+			Timestamp: time.Now(),
+		}
+
+		result, err := orch.ProcessRequest(ctx, req)
+		if err != nil {
+			t.Fatalf("ProcessRequest failed: %v", err)
+		}
+
+		if result.RequestID != "pipe-001" {
+			t.Errorf("expected RequestID pipe-001, got %s", result.RequestID)
+		}
+		if result.ModelID != "test-model-alpha" {
+			t.Errorf("expected ModelID test-model-alpha, got %s", result.ModelID)
+		}
+		if result.Latency <= 0 {
+			t.Error("expected positive latency")
+		}
+
+		outputStr, ok := result.Output.(string)
+		if !ok {
+			t.Fatalf("expected string output, got %T", result.Output)
+		}
+		if outputStr != "inference_result_pipe-001" {
+			t.Errorf("expected inference_result_pipe-001, got %s", outputStr)
+		}
+
+		t.Logf("Pipeline result: ID=%s, Latency=%v, CacheHit=%v", result.RequestID, result.Latency, result.CacheHit)
+	})
+
+	t.Run("pipeline_with_custom_config", func(t *testing.T) {
+		cfg := DefaultOrchestratorConfig()
+		cfg.MaxConcurrentLoad = 2
+
+		orch := NewOrchestrator(cfg)
+		defer orch.Stop()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		req := &PipelineRequest{
+			ID:        "pipe-cfg-001",
+			ModelID:   "custom-model",
+			Input:     "test input",
+			Priority:  5,
+			Timestamp: time.Now(),
+		}
+
+		result, err := orch.ProcessRequest(ctx, req)
+		if err != nil {
+			t.Fatalf("ProcessRequest with custom config failed: %v", err)
+		}
+
+		if result.RequestID != "pipe-cfg-001" {
+			t.Errorf("expected RequestID pipe-cfg-001, got %s", result.RequestID)
+		}
+		t.Logf("Custom config pipeline: Latency=%v", result.Latency)
+	})
+
+	t.Run("pipeline_request_context_cancellation", func(t *testing.T) {
+		orch := NewOrchestrator(nil)
+		defer orch.Stop()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel() // cancel immediately
+
+		req := &PipelineRequest{
+			ID:        "pipe-cancel-001",
+			ModelID:   "cancel-model",
+			Input:     "will be cancelled",
+			Priority:  1,
+			Timestamp: time.Now(),
+		}
+
+		_, err := orch.ProcessRequest(ctx, req)
+		if err == nil {
+			t.Log("request completed before cancellation took effect")
+		} else {
+			t.Logf("correctly received error on cancelled context: %v", err)
+		}
+	})
+}
+
+func TestOrchestratorConcurrentPipeline(t *testing.T) {
+	orch := NewOrchestrator(nil)
+	defer orch.Stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	const numRequests = 20
+	var (
+		wg        sync.WaitGroup
+		successes int64
+		failures  int64
+	)
+
+	for i := 0; i < numRequests; i++ {
+		wg.Add(1)
+		go func(idx int) {
+			defer wg.Done()
+			req := &PipelineRequest{
+				ID:        fmt.Sprintf("conc-%03d", idx),
+				ModelID:   fmt.Sprintf("model-%d", idx%3),
+				Input:     fmt.Sprintf("concurrent input %d", idx),
+				Priority:  idx % 5,
+				Timestamp: time.Now(),
+			}
+
+			result, err := orch.ProcessRequest(ctx, req)
+			if err != nil {
+				atomic.AddInt64(&failures, 1)
+				t.Logf("request %d failed: %v", idx, err)
+				return
+			}
+
+			expectedOutput := fmt.Sprintf("inference_result_conc-%03d", idx)
+			if outputStr, ok := result.Output.(string); ok && outputStr != expectedOutput {
+				t.Logf("request %d output mismatch: got %s", idx, outputStr)
+			}
+
+			atomic.AddInt64(&successes, 1)
+		}(i)
+	}
+
+	wg.Wait()
+
+	t.Logf("Concurrent pipeline: %d/%d succeeded, %d failed", successes, numRequests, failures)
+	if successes == 0 {
+		t.Fatal("all concurrent requests failed")
+	}
+}
+
+func TestOrchestratorBatchProcessing(t *testing.T) {
+	t.Run("batch_multiple_requests", func(t *testing.T) {
+		orch := NewOrchestrator(nil)
+		defer orch.Stop()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		requests := make([]*PipelineRequest, 5)
+		for i := 0; i < 5; i++ {
+			requests[i] = &PipelineRequest{
+				ID:        fmt.Sprintf("batch-%03d", i),
+				ModelID:   "batch-model",
+				Input:     fmt.Sprintf("batch input %d", i),
+				Priority:  i,
+				Timestamp: time.Now(),
+			}
+		}
+
+		results, err := orch.ProcessBatch(ctx, requests)
+		if err != nil {
+			// ProcessBatch may return partial errors
+			t.Logf("batch processing returned error (may be partial): %v", err)
+		}
+
+		if len(results) == 0 {
+			t.Fatal("batch returned no results")
+		}
+
+		t.Logf("Batch results: %d/%d completed", len(results), len(requests))
+		for _, r := range results {
+			t.Logf("  Result: ID=%s, Latency=%v, CacheHit=%v", r.RequestID, r.Latency, r.CacheHit)
+		}
+	})
+
+	t.Run("empty_batch", func(t *testing.T) {
+		orch := NewOrchestrator(nil)
+		defer orch.Stop()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		results, err := orch.ProcessBatch(ctx, []*PipelineRequest{})
+		if err != nil {
+			t.Logf("empty batch error: %v", err)
+		}
+		t.Logf("Empty batch results: %d", len(results))
+	})
+}
+
+func TestOrchestratorMetrics(t *testing.T) {
+	orch := NewOrchestrator(nil)
+	defer orch.Stop()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	// Process some requests to generate metrics
+	for i := 0; i < 5; i++ {
+		req := &PipelineRequest{
+			ID:        fmt.Sprintf("metrics-%03d", i),
+			ModelID:   "metrics-model",
+			Input:     "metrics test",
+			Priority:  1,
+			Timestamp: time.Now(),
+		}
+		_, _ = orch.ProcessRequest(ctx, req)
+	}
+
+	metrics := orch.GetMetrics()
+
+	if metrics.TotalRequests < 5 {
+		t.Errorf("expected TotalRequests >= 5, got %d", metrics.TotalRequests)
+	}
+	if metrics.UptimeSeconds <= 0 {
+		t.Error("expected positive UptimeSeconds")
+	}
+
+	t.Logf("Orchestrator Metrics:")
+	t.Logf("  TotalRequests:  %d", metrics.TotalRequests)
+	t.Logf("  TotalCompleted: %d", metrics.TotalCompleted)
+	t.Logf("  TotalFailed:    %d", metrics.TotalFailed)
+	t.Logf("  AvgLatency:     %.2f ms", metrics.AverageLatency)
+	t.Logf("  P99Latency:     %.2f ms", metrics.P99Latency)
+	t.Logf("  Throughput:     %.2f req/s", metrics.Throughput)
+	t.Logf("  PipelineDepth:  %d", metrics.PipelineDepth)
+	t.Logf("  UptimeSeconds:  %.1f", metrics.UptimeSeconds)
+
+	// Verify sub-component metrics are populated
+	if metrics.PoolMetrics == nil {
+		t.Error("expected PoolMetrics to be populated")
+	}
+	if metrics.BatchMetrics == nil {
+		t.Error("expected BatchMetrics to be populated")
+	}
+	if metrics.StreamMetrics == nil {
+		t.Error("expected StreamMetrics to be populated")
+	}
+}
+
+func TestOrchestratorGracefulShutdown(t *testing.T) {
+	t.Run("stop_with_pending_requests", func(t *testing.T) {
+		orch := NewOrchestrator(nil)
+
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		// Fire off some concurrent requests
+		var wg sync.WaitGroup
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func(idx int) {
+				defer wg.Done()
+				req := &PipelineRequest{
+					ID:        fmt.Sprintf("shutdown-%03d", idx),
+					ModelID:   "shutdown-model",
+					Input:     "shutdown test",
+					Priority:  1,
+					Timestamp: time.Now(),
+				}
+				_, _ = orch.ProcessRequest(ctx, req)
+			}(i)
+		}
+
+		// Give requests a moment to enter pipeline
+		time.Sleep(50 * time.Millisecond)
+
+		// Stop should drain gracefully
+		start := time.Now()
+		orch.Stop()
+		shutdownDuration := time.Since(start)
+
+		t.Logf("Graceful shutdown completed in %v", shutdownDuration)
+		if shutdownDuration > 15*time.Second {
+			t.Errorf("shutdown took too long: %v", shutdownDuration)
+		}
+
+		wg.Wait()
+	})
+
+	t.Run("stop_idempotent", func(t *testing.T) {
+		orch := NewOrchestrator(nil)
+
+		// Multiple stops should not panic
+		orch.Stop()
+		orch.Stop()
+		orch.Stop()
+
+		t.Log("Idempotent stop: no panic on multiple calls")
+	})
+
+	t.Run("requests_after_stop_rejected", func(t *testing.T) {
+		orch := NewOrchestrator(nil)
+		orch.Stop()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		req := &PipelineRequest{
+			ID:        "post-stop-001",
+			ModelID:   "dead-model",
+			Input:     "should fail",
+			Priority:  1,
+			Timestamp: time.Now(),
+		}
+
+		_, err := orch.ProcessRequest(ctx, req)
+		if err == nil {
+			t.Error("expected error when processing request after stop")
+		} else {
+			t.Logf("Correctly rejected post-stop request: %v", err)
+		}
+	})
+}
+
+func TestOrchestratorComponentAccess(t *testing.T) {
+	orch := NewOrchestrator(nil)
+	defer orch.Stop()
+
+	if orch.GetPool() == nil {
+		t.Error("GetPool() returned nil")
+	}
+	if orch.GetBatcher() == nil {
+		t.Error("GetBatcher() returned nil")
+	}
+	if orch.GetStreamer() == nil {
+		t.Error("GetStreamer() returned nil")
+	}
+	if orch.GetModelManager() == nil {
+		t.Error("GetModelManager() returned nil")
+	}
+
+	t.Log("All component accessors returned non-nil values")
 }
 

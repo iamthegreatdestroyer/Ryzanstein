@@ -27,12 +27,12 @@ Adopt `agentmem` as the canonical agent memory subsystem with the following arch
 
 ### Four-Layer Memory Architecture
 
-| Layer | Module | Persistence | Purpose |
-|-------|--------|-------------|---------|
-| **Working Memory** | `working.py` | Ephemeral (task-scoped) | Active task context, scratchpad |
-| **Episodic Memory** | `episodic.py` | Persistent (timestamped) | Experiences with HNSW vector index for O(log n) retrieval |
-| **Semantic Memory** | `semantic.py` | Persistent (knowledge graph) | Facts and relations via NetworkX directed graph |
-| **Procedural Memory** | `procedural.py` | Persistent (workflow store) | Learned multi-step workflows and strategies |
+| Layer                 | Module          | Persistence                  | Purpose                                                   |
+| --------------------- | --------------- | ---------------------------- | --------------------------------------------------------- |
+| **Working Memory**    | `working.py`    | Ephemeral (task-scoped)      | Active task context, scratchpad                           |
+| **Episodic Memory**   | `episodic.py`   | Persistent (timestamped)     | Experiences with HNSW vector index for O(log n) retrieval |
+| **Semantic Memory**   | `semantic.py`   | Persistent (knowledge graph) | Facts and relations via NetworkX directed graph           |
+| **Procedural Memory** | `procedural.py` | Persistent (workflow store)  | Learned multi-step workflows and strategies               |
 
 ### Consolidation Pipeline
 
@@ -121,12 +121,12 @@ __all__ = [
 
 ### Dependencies
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `numpy` | >=1.24.0 | Vector operations for embeddings |
-| `pydantic` | >=2.0.0 | Type-safe data models |
-| `hnswlib` | >=0.7.0 | HNSW approximate nearest neighbor index |
-| `networkx` | >=3.0 | Semantic memory knowledge graph |
+| Package    | Version  | Purpose                                 |
+| ---------- | -------- | --------------------------------------- |
+| `numpy`    | >=1.24.0 | Vector operations for embeddings        |
+| `pydantic` | >=2.0.0  | Type-safe data models                   |
+| `hnswlib`  | >=0.7.0  | HNSW approximate nearest neighbor index |
+| `networkx` | >=3.0    | Semantic memory knowledge graph         |
 
 Optional (`ryzanstein` extra): `sigma-lang`, `sigma-vault`  
 Dev: `pytest`, `pytest-asyncio`, `pytest-cov`, `mypy`
