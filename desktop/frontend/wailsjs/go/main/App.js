@@ -46,6 +46,10 @@ export function InvokeAgent(arg1, arg2, arg3) {
   return window['go']['main']['App']['InvokeAgent'](arg1, arg2, arg3);
 }
 
+export function InvokeAgentChat(arg1, arg2) {
+  return window['go']['main']['App']['InvokeAgentChat'](arg1, arg2);
+}
+
 export function ListAgents() {
   return window['go']['main']['App']['ListAgents']();
 }
