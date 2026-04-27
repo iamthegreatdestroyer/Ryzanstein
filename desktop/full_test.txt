@@ -1,0 +1,8 @@
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop	[no test files]
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/agents	[no test files]
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/chat	[no test files]
+ok  	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/client	19.052s
+ok  	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/config	0.034s
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/ipc	[no test files]
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/models	[no test files]
+ok  	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services	2.150s

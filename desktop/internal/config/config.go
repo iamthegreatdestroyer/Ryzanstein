@@ -292,7 +292,7 @@ func DefaultAppConfig() AppConfig {
 			MaxConnIdleTime:   5 * time.Minute,
 		},
 		Inference: InferenceConfig{
-			DefaultModel:  "default",
+			DefaultModel:  "bitnet-7b",
 			Timeout:       30 * time.Second,
 			MaxRetries:    3,
 			RetryBackoff:  100 * time.Millisecond,
@@ -303,7 +303,7 @@ func DefaultAppConfig() AppConfig {
 			StreamResults: false,
 		},
 		Models: map[string]ModelConfig{
-			"default": {
+			"bitnet-7b": {
 				ID:              "bitnet-7b",
 				Name:            "BitNet b1.58 7B",
 				Type:            "bitnet",
