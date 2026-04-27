@@ -8,7 +8,7 @@ export class CommandHandler {
   constructor(
     context: ExtensionContext,
     private ryzansteinClient: RyzansteinClient,
-    private mcpClient: MCPClient
+    private mcpClient: MCPClient,
   ) {
     this.registerCommands(context);
   }
@@ -22,7 +22,7 @@ export class CommandHandler {
           "ryzansteinChat",
           "Ryzanstein Chat",
           vscode.ViewColumn.Beside,
-          { enableScripts: true }
+          { enableScripts: true },
         );
         panel.webview.html = this.getChatWebviewContent();
         panel.webview.onDidReceiveMessage(async (message) => {
@@ -38,7 +38,7 @@ export class CommandHandler {
             }
           }
         });
-      }
+      },
     );
 
     // Select Agent Command
@@ -54,7 +54,7 @@ export class CommandHandler {
             .update("selectedAgent", selected);
           vscode.window.showInformationMessage(`✓ Selected agent: ${selected}`);
         }
-      }
+      },
     );
 
     // Load Model Command
@@ -68,10 +68,10 @@ export class CommandHandler {
           vscode.window.showErrorMessage(
             `Failed to load model: ${
               error instanceof Error ? error.message : "Unknown error"
-            }`
+            }`,
           );
         }
-      }
+      },
     );
 
     // Generate Code Command
@@ -100,44 +100,44 @@ export class CommandHandler {
           vscode.window.showErrorMessage(
             `Code generation failed: ${
               error instanceof Error ? error.message : "Unknown error"
-            }`
+            }`,
           );
         }
-      }
+      },
     );
 
-const inferCommand = vscode.commands.registerCommand(
-          "ryzanstein.infer",
-          async () => {
-            const prompt = await vscode.window.showInputBox({
-              prompt: "Enter inference prompt",
-              placeHolder: "Ask Ryzanstein...",
-            });
-            if (!prompt) return;
-            try {
-              const result = await this.ryzansteinClient.infer(prompt);
-              vscode.window.showInformationMessage(`Ryzanstein: ${result}`);
-            } catch (error) {
-              vscode.window.showErrorMessage(
-                `Inference failed: ${
-                  error instanceof Error ? error.message : "Unknown error"
-                }`
-              );
-            }
-          }
-        );
+    const inferCommand = vscode.commands.registerCommand(
+      "ryzanstein.infer",
+      async () => {
+        const prompt = await vscode.window.showInputBox({
+          prompt: "Enter inference prompt",
+          placeHolder: "Ask Ryzanstein...",
+        });
+        if (!prompt) return;
+        try {
+          const result = await this.ryzansteinClient.infer(prompt);
+          vscode.window.showInformationMessage(`Ryzanstein: ${result}`);
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Inference failed: ${
+              error instanceof Error ? error.message : "Unknown error"
+            }`,
+          );
+        }
+      },
+    );
 
-        context.subscriptions.push(
-          openChatCommand,
-          selectAgentCommand,
-          loadModelCommand,
-          generateCodeCommand,
-          inferCommand
-        );
-      }
+    context.subscriptions.push(
+      openChatCommand,
+      selectAgentCommand,
+      loadModelCommand,
+      generateCodeCommand,
+      inferCommand,
+    );
+  }
 
-      private getChatWebviewContent(): string {
-        return `<!DOCTYPE html>
+  private getChatWebviewContent(): string {
+    return `<!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
