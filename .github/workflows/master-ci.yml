@@ -26,6 +26,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+              with:
+                  submodules: recursive
 
             - name: Install Rust stable + WASM target
               uses: dtolnay/rust-toolchain@stable
@@ -71,6 +73,8 @@ jobs:
             fail-fast: false
         steps:
             - uses: actions/checkout@v4
+              with:
+                  submodules: recursive
 
             - uses: actions/setup-python@v5
               with:
@@ -125,6 +129,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+              with:
+                  submodules: recursive
 
             - uses: actions/setup-go@v5
               with:
@@ -158,11 +164,16 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+              with:
+                  submodules: recursive
 
             - uses: actions/setup-node@v4
               with:
                   node-version: "20"
                   cache: npm
+                  cache-dependency-path: |
+                      dependencies/flowstate/package-lock.json
+                      dependencies/intent-spec/package-lock.json
 
             - name: Install & test flowstate
               working-directory: dependencies/flowstate

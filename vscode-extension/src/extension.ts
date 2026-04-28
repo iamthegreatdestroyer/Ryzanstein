@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ExtensionContext, window, commands, ViewColumn } from "vscode";
+import { ExtensionContext, window } from "vscode";
 import { AgentTreeProvider } from "./providers/AgentTreeProvider";
 import { ModelTreeProvider } from "./providers/ModelTreeProvider";
 import { ChatWebviewProvider } from "./providers/ChatWebviewProvider";
@@ -53,19 +53,9 @@ export async function activate(context: ExtensionContext) {
   vscode.window.registerTreeDataProvider("ryzanstein.agents", agentProvider);
   vscode.window.registerTreeDataProvider("ryzanstein.models", modelProvider);
 
-  // Register Copilot Chat model provider
-  const chatModelProvider = new RyzansteinChatModelProvider(ryzansteinClient);
-  const chatResponseProvider = new RyzansteinChatResponseProvider(
-    ryzansteinClient
-  );
-
-  context.subscriptions.push(
-    vscode.chat.registerChatModelProvider("ryzanstein", chatModelProvider),
-    vscode.chat.registerChatResponseProvider(
-      { vendor: "ryzanstein" },
-      chatResponseProvider
-    )
-  );
+  // Instantiate providers (available for future command/webview use)
+  new RyzansteinChatModelProvider(ryzansteinClient);
+  new RyzansteinChatResponseProvider(ryzansteinClient);
 
   // Register chat webview provider
   const chatProvider = new ChatWebviewProvider(
@@ -77,8 +67,6 @@ export async function activate(context: ExtensionContext) {
     vscode.window.registerWebviewViewProvider("ryzanstein.chat", chatProvider)
   );
 
-  // Register all commands
-  commandHandler.registerCommands();
 
   // Status bar
   const statusBar = window.createStatusBarItem(
