@@ -17,7 +17,8 @@ import { setTimeout as sleep } from 'node:timers/promises';
  * Wails apps are singleton: workers=1 in playwright.config.ts.
  */
 
-const BINARY_PATH = resolve(__dirname, '..', '..', 'desktop.exe');
+const BINARY_PATH =
+  process.env.RYZANSTEIN_BIN ?? resolve(__dirname, '..', '..', 'desktop.exe');
 const CDP_CONNECT_TIMEOUT_MS = 30_000;
 const CDP_POLL_INTERVAL_MS = 250;
 
