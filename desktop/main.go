@@ -38,6 +38,7 @@ type App struct {
 	ipc       *ipc.Server
 	apiClient *client.RyzansteinClient
 	logger    *services.LogService
+	telemetry *services.TelemetryService
 	mu        sync.RWMutex
 	isRunning bool
 }
@@ -83,6 +84,7 @@ func (a *App) Startup(ctx context.Context) {
 	a.ipc = ipc.NewServer(a.agents, a.models, a.apiClient)
 
 	a.logger = services.NewLogService(services.LogLevelInfo)
+	a.telemetry = services.NewTelemetryService()
 
 	go a.startIPCServer()
 	go a.models.LoadInstalledModels()
@@ -122,11 +124,13 @@ func (a *App) SendMessage(userMessage string, modelID string, agentCodename stri
 	log.Printf("[Chat] Sending message: %s (model: %s, agent: %s)\n",
 		userMessage, modelID, agentCodename)
 
+	inferenceStart := time.Now()
 	ctx, cancel := context.WithTimeout(a.ctx, 30*time.Second)
 	defer cancel()
 
 	// Add user message to chat history
 	a.chat.AddMessage(ctx, "user", userMessage, modelID, agentCodename)
+	a.telemetry.RecordChatMessage()
 
 	runtime.EventsEmit(a.ctx, "chat:message", Message{
 		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
@@ -152,6 +156,8 @@ func (a *App) SendMessage(userMessage string, modelID string, agentCodename stri
 	}
 
 	chatResp, err := a.apiClient.ChatCompletion(ctx, chatReq)
+	inferenceErrored := err != nil
+	a.telemetry.RecordInference(float64(time.Since(inferenceStart).Milliseconds()), inferenceErrored)
 	if err != nil {
 		log.Printf("[Chat] API call failed, using fallback: %v\n", err)
 		// Fallback to mock response when API is not available
@@ -165,6 +171,7 @@ func (a *App) SendMessage(userMessage string, modelID string, agentCodename stri
 
 	// Add assistant response to history
 	a.chat.AddMessage(ctx, "assistant", responseText, modelID, agentCodename)
+	a.telemetry.RecordChatMessage()
 
 	runtime.EventsEmit(a.ctx, "chat:response", Message{
 		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
@@ -181,10 +188,12 @@ func (a *App) SendMessageStream(userMessage string, modelID string, agentCodenam
 	log.Printf("[Chat] Streaming message: %s (model: %s, agent: %s)\n",
 		userMessage, modelID, agentCodename)
 
+	streamStart := time.Now()
 	ctx, cancel := context.WithTimeout(a.ctx, 120*time.Second)
 
 	// Add user message to history
 	a.chat.AddMessage(ctx, "user", userMessage, modelID, agentCodename)
+	a.telemetry.RecordChatMessage()
 
 	runtime.EventsEmit(a.ctx, "chat:message", Message{
 		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
@@ -232,7 +241,9 @@ func (a *App) SendMessageStream(userMessage string, modelID string, agentCodenam
 			responseText = "[Offline Mode] Streaming not available. Start backend with: docker-compose up -d"
 		}
 
+		a.telemetry.RecordStreaming(float64(time.Since(streamStart).Milliseconds()))
 		a.chat.AddMessage(a.ctx, "assistant", responseText, modelID, agentCodename)
+		a.telemetry.RecordChatMessage()
 
 		runtime.EventsEmit(a.ctx, "chat:streamEnd", Message{
 			ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
@@ -440,9 +451,11 @@ func (a *App) ListAgents() ([]string, error) {
 
 func (a *App) InvokeAgent(agentCodename string, toolName string, parameters map[string]interface{}) (interface{}, error) {
 	log.Printf("[Agents] Invoking %s.%s\n", agentCodename, toolName)
+	agentStart := time.Now()
 	ctx, cancel := context.WithTimeout(a.ctx, 30*time.Second)
 	defer cancel()
 	result, err := a.agents.InvokeTool(ctx, agentCodename, toolName, parameters)
+	a.telemetry.RecordAgentInvocation(float64(time.Since(agentStart).Milliseconds()))
 	if err != nil {
 		log.Printf("[Agents] Error invoking agent: %v\n", err)
 		return nil, err
@@ -542,6 +555,23 @@ func (a *App) GetVersion() string {
 func (a *App) GetSystemInfo() map[string]interface{} {
 	return map[string]interface{}{
 		"arch": os.Getenv("PROCESSOR_ARCHITECTURE"),
+	}
+}
+
+// GetTelemetrySnapshot returns a point-in-time snapshot of Desktop runtime
+// telemetry: inference counts, error rates, latency histograms, and gauges.
+// Mirrors the sigma-telemetry SpanRecord model from the Rust inference layer.
+func (a *App) GetTelemetrySnapshot() map[string]interface{} {
+	snap := a.telemetry.Snapshot()
+	return map[string]interface{}{
+		"timestamp":           snap.Timestamp,
+		"inference_requests":  snap.InferenceRequests,
+		"inference_errors":    snap.InferenceErrors,
+		"chat_messages":       snap.ChatMessages,
+		"agent_invocations":   snap.AgentInvocations,
+		"streaming_requests":  snap.StreamingRequests,
+		"latencies":           snap.Latencies,
+		"gauges":              snap.Gauges,
 	}
 }
 
