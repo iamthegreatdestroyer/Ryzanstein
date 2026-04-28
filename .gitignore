@@ -1,4 +1,6 @@
-.history/
+# VSCode Local History extension artifacts (any depth, including submodules)
+**/.history/
+
 # Temp CI / helper files
 temp_ci.yml
 temp_ci_updated.yml
