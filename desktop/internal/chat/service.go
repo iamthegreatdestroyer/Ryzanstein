@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/client"
 )
 
@@ -52,7 +53,7 @@ func (s *Service) SendMessage(ctx context.Context, message string, modelID strin
 
 	// Add user message to history
 	userMsg := Message{
-		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
+		ID:        uuid.NewString(),
 		Role:      "user",
 		Content:   message,
 		Timestamp: time.Now().Unix(),
@@ -80,7 +81,7 @@ func (s *Service) SendMessage(ctx context.Context, message string, modelID strin
 
 	// Add assistant message to history
 	assistantMsg := Message{
-		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
+		ID:        uuid.NewString(),
 		Role:      "assistant",
 		Content:   response,
 		Timestamp: time.Now().Unix(),
@@ -153,7 +154,7 @@ func (s *Service) AddMessage(ctx context.Context, role string, content string, m
 	defer s.mu.Unlock()
 
 	msg := Message{
-		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
+		ID:        uuid.NewString(),
 		Role:      role,
 		Content:   content,
 		Timestamp: time.Now().Unix(),
