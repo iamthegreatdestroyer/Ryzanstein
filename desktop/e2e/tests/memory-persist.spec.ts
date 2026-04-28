@@ -128,9 +128,7 @@ test.describe("memory persistence", () => {
       { model: TEST_MODEL, agent: TEST_AGENT },
     );
 
-    const seeded = await page.evaluate(() =>
-      window.go.main.App.GetHistory(10),
-    );
+    const seeded = await page.evaluate(() => window.go.main.App.GetHistory(10));
     expect(seeded.length).toBeGreaterThanOrEqual(2);
 
     // Subscribe to chat:cleared BEFORE invoking the clear, then await it.
@@ -164,9 +162,7 @@ test.describe("memory persistence", () => {
     expect(after.length).toBe(0);
   });
 
-  test("GetHistory(limit) returns the last N entries", async ({
-    wailsApp,
-  }) => {
+  test("GetHistory(limit) returns the last N entries", async ({ wailsApp }) => {
     const { page } = wailsApp;
     await waitForBindings(page);
 

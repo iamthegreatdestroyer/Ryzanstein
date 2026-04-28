@@ -1,8 +1,13 @@
-import { test as base, chromium, type Browser, type Page } from '@playwright/test';
-import { spawn, type ChildProcess } from 'node:child_process';
-import { createServer } from 'node:net';
-import { resolve } from 'node:path';
-import { setTimeout as sleep } from 'node:timers/promises';
+import {
+  test as base,
+  chromium,
+  type Browser,
+  type Page,
+} from "@playwright/test";
+import { spawn, type ChildProcess } from "node:child_process";
+import { createServer } from "node:net";
+import { resolve } from "node:path";
+import { setTimeout as sleep } from "node:timers/promises";
 
 /**
  * Wails E2E fixture per ADR-046.
@@ -18,7 +23,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
  */
 
 const BINARY_PATH =
-  process.env.RYZANSTEIN_BIN ?? resolve(__dirname, '..', '..', 'desktop.exe');
+  process.env.RYZANSTEIN_BIN ?? resolve(__dirname, "..", "..", "desktop.exe");
 const CDP_CONNECT_TIMEOUT_MS = 30_000;
 const CDP_POLL_INTERVAL_MS = 250;
 
@@ -26,15 +31,15 @@ async function getFreePort(): Promise<number> {
   return new Promise((resolveFn, rejectFn) => {
     const srv = createServer();
     srv.unref();
-    srv.on('error', rejectFn);
+    srv.on("error", rejectFn);
     srv.listen(0, () => {
       const addr = srv.address();
-      if (addr && typeof addr === 'object') {
+      if (addr && typeof addr === "object") {
         const port = addr.port;
         srv.close(() => resolveFn(port));
       } else {
         srv.close();
-        rejectFn(new Error('failed to acquire free port'));
+        rejectFn(new Error("failed to acquire free port"));
       }
     });
   });
@@ -69,11 +74,11 @@ export const test = base.extend<WailsFixtures>({
         ...process.env,
         WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`,
       },
-      stdio: 'pipe',
+      stdio: "pipe",
       windowsHide: false,
     });
 
-    proc.on('error', (err) => {
+    proc.on("error", (err) => {
       // Surface spawn failures (missing binary, permissions, etc.)
       console.error(`[wailsApp] spawn error: ${err.message}`);
     });
@@ -83,11 +88,11 @@ export const test = base.extend<WailsFixtures>({
     // Wails opens exactly one BrowserContext with one Page (the main window).
     const contexts = browser.contexts();
     if (contexts.length === 0) {
-      throw new Error('no BrowserContext exposed by Wails CDP');
+      throw new Error("no BrowserContext exposed by Wails CDP");
     }
     const ctx = contexts[0];
     const pages = ctx.pages();
-    const page = pages.length > 0 ? pages[0] : await ctx.waitForEvent('page');
+    const page = pages.length > 0 ? pages[0] : await ctx.waitForEvent("page");
 
     await use({ page, browser, proc, port });
 

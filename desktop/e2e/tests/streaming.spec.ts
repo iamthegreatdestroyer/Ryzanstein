@@ -35,10 +35,7 @@ test("App.SendMessageStream emits streamStart, streamToken*, streamEnd", async (
       }>((resolve) => {
         const w = window as unknown as {
           runtime: {
-            EventsOn: (
-              event: string,
-              cb: (payload: unknown) => void,
-            ) => void;
+            EventsOn: (event: string, cb: (payload: unknown) => void) => void;
           };
         };
 

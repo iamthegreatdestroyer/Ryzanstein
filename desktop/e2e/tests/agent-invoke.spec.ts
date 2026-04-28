@@ -90,10 +90,7 @@ test("App.SendMessage emits chat:response event with assistant message", async (
       new Promise<unknown>((resolve, reject) => {
         const w = window as unknown as {
           runtime: {
-            EventsOn: (
-              event: string,
-              cb: (payload: unknown) => void,
-            ) => void;
+            EventsOn: (event: string, cb: (payload: unknown) => void) => void;
           };
         };
         const timer = setTimeout(
