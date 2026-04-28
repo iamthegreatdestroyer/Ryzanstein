@@ -71,3 +71,13 @@ node_modules/
 logs/
 .DS_Store
 Thumbs.db
+
+# Desktop local helper scripts and test output artifacts (Sprint 6/7)
+desktop/_build.ps1
+desktop/_test_*.ps1
+desktop/integration_*.txt
+
+# Transient git inspection dumps
+git_graph.txt
+git_status.txt
+git_*.txt
