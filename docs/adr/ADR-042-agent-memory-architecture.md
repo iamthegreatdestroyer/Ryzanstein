@@ -1,17 +1,17 @@
 # ADR-042: Agent Memory Architecture
 
-| Field       | Value                                |
-|-------------|--------------------------------------|
-| **Status**  | Proposed                             |
-| **Date**    | 2025-07-17                           |
-| **Authors** | Ryzanstein Core Team                 |
-| **Relates** | ADR-043 (Compression Strategy)       |
+| Field       | Value                          |
+| ----------- | ------------------------------ |
+| **Status**  | Proposed                       |
+| **Date**    | 2025-07-17                     |
+| **Authors** | Ryzanstein Core Team           |
+| **Relates** | ADR-043 (Compression Strategy) |
 
 ## Context
 
 The `agentmem` library provides an in-memory `MemoryStore` backed by Python
-dicts with optional numpy-based vector search.  While this is fine for a single
-session, all agent memories are lost on process restart.  A desktop-first AI
+dicts with optional numpy-based vector search. While this is fine for a single
+session, all agent memories are lost on process restart. A desktop-first AI
 platform **must** persist conversation history, learned procedures, and semantic
 facts across restarts without requiring an external database process.
 
@@ -26,7 +26,7 @@ MemoryStore (in-memory)
 
 The existing `MemoryStore` is sophisticated—pluggable backends (local, redis,
 neo4j, vault), numpy cosine-similarity search, and layered indexing (episodic,
-semantic, procedural, working).  Modifying it for persistence would risk
+semantic, procedural, working). Modifying it for persistence would risk
 regressions across the entire memory subsystem.
 
 ## Decision
@@ -56,16 +56,16 @@ Entry schema (one JSON object per line):
 
 ### Retrieval Strategies
 
-| Strategy        | Method               | Complexity |
-|-----------------|----------------------|------------|
-| Last-N          | `get_last_n(n)`      | O(1) slice |
-| Session filter  | `get_session(sid)`   | O(n) scan  |
-| Semantic search | Deferred to Week 5   | —          |
+| Strategy        | Method             | Complexity |
+| --------------- | ------------------ | ---------- |
+| Last-N          | `get_last_n(n)`    | O(1) slice |
+| Session filter  | `get_session(sid)` | O(n) scan  |
+| Semantic search | Deferred to Week 5 | —          |
 
 ### Integration Point
 
-The new `AgentMemoryStore` does **not** replace `MemoryStore`.  It is a
-complementary class for simple JSONL persistence.  Higher-level orchestrators
+The new `AgentMemoryStore` does **not** replace `MemoryStore`. It is a
+complementary class for simple JSONL persistence. Higher-level orchestrators
 can use both: `MemoryStore` for runtime vector search, and
 `AgentMemoryStore` for durable cross-restart history.
 
@@ -86,18 +86,18 @@ can use both: `MemoryStore` for runtime vector search, and
 
 ### Risks
 
-| Risk                    | Mitigation                                      |
-|-------------------------|-------------------------------------------------|
-| Disk full               | Bounded to 10K entries; rotation deletes oldest  |
-| Corrupt JSONL           | Skip unparseable lines on load                   |
-| Concurrent writers      | Desktop is single-process; no locking needed     |
+| Risk               | Mitigation                                      |
+| ------------------ | ----------------------------------------------- |
+| Disk full          | Bounded to 10K entries; rotation deletes oldest |
+| Corrupt JSONL      | Skip unparseable lines on load                  |
+| Concurrent writers | Desktop is single-process; no locking needed    |
 
 ## Alternatives Considered
 
-| Alternative            | Why Rejected                                     |
-|------------------------|--------------------------------------------------|
-| SQLite                 | Adds a native dependency; overkill for append log |
-| Redis                  | Requires external process; unacceptable for desktop |
-| Modify MemoryStore     | High regression risk; MemoryStore is complex      |
-| Pure in-memory only    | Memories lost on every restart; unacceptable       |
-| Pickle serialization   | Not human-readable; security risk with untrusted data |
+| Alternative          | Why Rejected                                          |
+| -------------------- | ----------------------------------------------------- |
+| SQLite               | Adds a native dependency; overkill for append log     |
+| Redis                | Requires external process; unacceptable for desktop   |
+| Modify MemoryStore   | High regression risk; MemoryStore is complex          |
+| Pure in-memory only  | Memories lost on every restart; unacceptable          |
+| Pickle serialization | Not human-readable; security risk with untrusted data |

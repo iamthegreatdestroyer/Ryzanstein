@@ -1,0 +1,7 @@
+--- FAIL: TestMetricsAccuracy (0.00s)
+    pool_test.go:208: Expected 1 reused, got 2
+--- FAIL: TestStreamContextCancellation (0.00s)
+    streamer_test.go:211: Expected context cancellation error
+FAIL
+FAIL	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services	2.156s
+FAIL

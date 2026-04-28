@@ -1,0 +1,650 @@
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop	[no test files]
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/agents	[no test files]
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/chat	[no test files]
+ok  	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/client	(cached)
+ok  	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/config	(cached)
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/ipc	[no test files]
+?   	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/models	[no test files]
+--- FAIL: TestAddRequest (0.00s)
+    batcher_test.go:52: Expected batch size 1, got 0
+--- FAIL: TestBatchAccumulation (0.00s)
+    batcher_test.go:77: Expected 30 accumulated, got 16
+--- FAIL: TestBatcherClose (0.00s)
+    batcher_test.go:286: Expected error after close
+panic: test timed out after 10m0s
+	running tests:
+		TestBatcherStress (9m58s)
+
+goroutine 60 [running]:
+testing.(*M).startAlarm.func1()
+	C:/Program Files/Go/src/testing/testing.go:2682 +0x345
+created by time.goFunc
+	C:/Program Files/Go/src/time/sleep.go:215 +0x2d
+
+goroutine 1 [chan receive, 9 minutes]:
+testing.(*T).Run(0xc0000036c0, {0x7ff64568c3fe?, 0x7ffebc993fb0?}, 0x7ff6456bc560)
+	C:/Program Files/Go/src/testing/testing.go:2005 +0x469
+testing.runTests.func1(0xc0000036c0)
+	C:/Program Files/Go/src/testing/testing.go:2477 +0x37
+testing.tRunner(0xc0000036c0, 0xc0000f9c70)
+	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+testing.runTests(0xc000008a08, {0x7ff645bf62c0, 0x38, 0x38}, {0x7?, 0xc000095300?, 0x7ff645c015c0?})
+	C:/Program Files/Go/src/testing/testing.go:2475 +0x4b4
+testing.(*M).Run(0xc000099e00)
+	C:/Program Files/Go/src/testing/testing.go:2337 +0x63a
+main.main()
+	_testmain.go:171 +0x9b
+
+goroutine 247 [sync.WaitGroup.Wait, 9 minutes]:
+sync.runtime_SemacquireWaitGroup(0xc00049c9f0?, 0x40?)
+	C:/Program Files/Go/src/runtime/sema.go:114 +0x2e
+sync.(*WaitGroup).Wait(0xc0004ac050)
+	C:/Program Files/Go/src/sync/waitgroup.go:206 +0x85
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress(0xc000496540)
+	S:/Ryot/desktop/internal/services/batcher_test.go:351 +0x19c
+testing.tRunner(0xc000496540, 0x7ff6456bc560)
+	C:/Program Files/Go/src/testing/testing.go:1934 +0xc3
+created by testing.(*T).Run in goroutine 1
+	C:/Program Files/Go/src/testing/testing.go:1997 +0x44b
+
+goroutine 248 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).dispatchBatch(0xc00048a180?, {0xc000155208, 0x0?, 0x11f?})
+	S:/Ryot/desktop/internal/services/batcher.go:160 +0x170
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).batchAccumulatorRoutine(0xc00048a180)
+	S:/Ryot/desktop/internal/services/batcher.go:108 +0x2c5
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.NewRequestBatcher in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher.go:80 +0x17a
+
+goroutine 255 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6c86?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x6)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 256 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000612e90?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x7)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 257 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0003851b6?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x8)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 258 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a400?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x9)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 261 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a310?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0xc)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 262 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000209b30?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0xd)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 263 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000303a37?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0xe)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 267 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6c20?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x12)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 270 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000982190?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x15)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 273 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0003851a7?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x18)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 274 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000612ea0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x19)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 276 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000682947?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x1b)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 277 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000612eb0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x1c)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 278 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000285147?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x1d)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 280 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a387?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x1f)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 281 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000a82180?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x20)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 282 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a470?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x21)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 283 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000208027?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x22)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 284 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00078a660?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x23)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 285 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000982180?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x24)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 286 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000208010?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x25)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 287 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6cb7?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x26)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 288 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a370?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x27)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 289 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a447?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x28)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 290 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000208040?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x29)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 291 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000612e80?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x2a)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 292 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00058ace0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x2b)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 294 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000303a57?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x2d)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 295 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000303a27?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x2e)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 296 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000384010?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x2f)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 297 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000110007?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x30)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 299 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0004aca00?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x32)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 300 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a430?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x33)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 302 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000682930?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x35)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 303 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0004aca10?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x36)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 304 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000209b67?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x37)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 305 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a417?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x38)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 306 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6c77?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x39)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 307 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a360?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x3a)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 308 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6ca0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x3b)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 309 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6c30?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x3c)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 310 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a3b7?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x3d)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 311 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00058acd0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x3e)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 313 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00078a650?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x40)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 315 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6d00?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x42)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 316 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000303a47?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x43)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 318 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a3e7?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x45)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 320 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6d27?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x47)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 321 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6cd0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x48)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 322 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000209b50?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x49)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 323 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000284010?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x4a)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 325 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6ce7?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x4c)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 326 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a4a0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x4d)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 327 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a330?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x4e)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 328 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0004aca20?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x4f)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 330 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000209b77?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x51)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 331 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6c60?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x52)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 332 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0009821a0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x53)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 333 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6c10?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x54)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 334 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a3d0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x55)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 335 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6c47?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x56)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 336 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a347?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x57)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 337 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000385197?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x58)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 338 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc0001f6d17?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x59)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 339 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000209b40?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x5a)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 340 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00078a670?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x5b)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 341 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000284027?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x5c)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 342 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000209b87?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x5d)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 343 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a3a0?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x5e)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 344 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000a82190?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x5f)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 345 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a457?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x60)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 346 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc000682910?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x61)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 347 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00090a487?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x62)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+
+goroutine 348 [select, 9 minutes]:
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.(*RequestBatcher).AddRequest(0xc00058ac90?, {0x7ff645779348, 0x7ff645c4a0c0}, 0x1?)
+	S:/Ryot/desktop/internal/services/batcher.go:180 +0xbe
+github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress.func1(0x63)
+	S:/Ryot/desktop/internal/services/batcher_test.go:344 +0x27f
+created by github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services.TestBatcherStress in goroutine 247
+	S:/Ryot/desktop/internal/services/batcher_test.go:334 +0xc5
+FAIL	github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/services	600.060s
+FAIL

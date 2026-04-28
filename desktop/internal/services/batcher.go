@@ -101,30 +101,32 @@ func (rb *RequestBatcher) batchAccumulatorRoutine() {
 
 		case req := <-rb.accumulator:
 			currentBatch = append(currentBatch, req)
-			atomic.AddInt32(&rb.currentBatchSize, 1)
 
 			// Check if batch should be dispatched by size
 			if len(currentBatch) >= rb.config.MaxBatchSize {
+				n := int32(len(currentBatch))
 				rb.dispatchBatch(currentBatch)
 				atomic.AddInt64(&rb.metrics.SizeDespatch, 1)
 				currentBatch = nil
-				atomic.StoreInt32(&rb.currentBatchSize, 0)
+				atomic.AddInt32(&rb.currentBatchSize, -n)
 			}
 
 		case <-ticker.C:
 			// Timeout dispatch
 			if len(currentBatch) >= rb.config.MinBatchSize {
+				n := int32(len(currentBatch))
 				rb.dispatchBatch(currentBatch)
 				atomic.AddInt64(&rb.metrics.TimeoutDespatch, 1)
 				currentBatch = nil
-				atomic.StoreInt32(&rb.currentBatchSize, 0)
+				atomic.AddInt32(&rb.currentBatchSize, -n)
 				ticker.Reset(rb.config.BatchTimeout)
 			} else if len(currentBatch) > 0 {
 				// Small batch - dispatch anyway to avoid stalling
+				n := int32(len(currentBatch))
 				rb.dispatchBatch(currentBatch)
 				atomic.AddInt64(&rb.metrics.TimeoutDespatch, 1)
 				currentBatch = nil
-				atomic.StoreInt32(&rb.currentBatchSize, 0)
+				atomic.AddInt32(&rb.currentBatchSize, -n)
 				ticker.Reset(rb.config.BatchTimeout)
 			}
 		}
@@ -177,17 +179,26 @@ func (rb *RequestBatcher) AddRequest(ctx context.Context, req *BatchRequest) err
 		return fmt.Errorf("request cannot be nil")
 	}
 
+	// Check explicit cancellation/closure first to avoid select-race nondeterminism.
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	select {
+	case <-rb.stopCh:
+		return fmt.Errorf("batcher is closed")
+	default:
+	}
+
 	select {
 	case rb.accumulator <- req:
+		atomic.AddInt32(&rb.currentBatchSize, 1)
 		return nil
 	case <-rb.stopCh:
 		return fmt.Errorf("batcher is closed")
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-}
-
-// GetBatch retrieves the next batch for processing
+}// GetBatch retrieves the next batch for processing
 func (rb *RequestBatcher) GetBatch() ([]*BatchRequest, bool) {
 	select {
 	case batch := <-rb.dispatcher:

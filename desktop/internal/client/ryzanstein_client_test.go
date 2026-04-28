@@ -58,8 +58,8 @@ func TestInfer_Success(t *testing.T) {
 			Model: "bitnet-7b",
 		}
 		resp.Choices = make([]struct {
-			Text         string
-			FinishReason string
+			Text         string `json:"text"`
+			FinishReason string `json:"finish_reason"`
 		}, 1)
 		resp.Choices[0].Text = "Hello, World!"
 		resp.Choices[0].FinishReason = "stop"
@@ -163,8 +163,8 @@ func TestInfer_RetryLogic(t *testing.T) {
 				Model: "bitnet-7b",
 			}
 			resp.Choices = make([]struct {
-				Text         string
-				FinishReason string
+				Text         string `json:"text"`
+				FinishReason string `json:"finish_reason"`
 			}, 1)
 			resp.Choices[0].Text = "Hello!"
 			resp.Choices[0].FinishReason = "stop"
