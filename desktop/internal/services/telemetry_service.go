@@ -1,6 +1,7 @@
 package services
 
 import (
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -46,23 +47,28 @@ func (h *latencyHistogram) stats() HistogramStats {
 		return HistogramStats{}
 	}
 
+	sorted := make([]int64, n)
+	copy(sorted, h.samples)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
+
 	var sum int64
-	min, max := h.samples[0], h.samples[0]
-	for _, v := range h.samples {
+	for _, v := range sorted {
 		sum += v
-		if v < min {
-			min = v
-		}
-		if v > max {
-			max = v
-		}
+	}
+
+	percentile := func(p float64) float64 {
+		idx := int(float64(n-1) * p)
+		return float64(sorted[idx]) / 1e6
 	}
 
 	return HistogramStats{
 		Count:   n,
 		MeanMs:  float64(sum) / float64(n) / 1e6,
-		MinMs:   float64(min) / 1e6,
-		MaxMs:   float64(max) / 1e6,
+		MinMs:   float64(sorted[0]) / 1e6,
+		MaxMs:   float64(sorted[n-1]) / 1e6,
+		P50Ms:   percentile(0.50),
+		P95Ms:   percentile(0.95),
+		P99Ms:   percentile(0.99),
 		Samples: n,
 	}
 }
@@ -73,6 +79,9 @@ type HistogramStats struct {
 	MeanMs  float64 `json:"mean_ms"`
 	MinMs   float64 `json:"min_ms"`
 	MaxMs   float64 `json:"max_ms"`
+	P50Ms   float64 `json:"p50_ms"`
+	P95Ms   float64 `json:"p95_ms"`
+	P99Ms   float64 `json:"p99_ms"`
 	Samples int     `json:"samples"`
 }
 

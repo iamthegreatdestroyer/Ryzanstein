@@ -104,3 +104,29 @@ func TestTelemetryService_HistogramMinMaxMean(t *testing.T) {
 		t.Errorf("expected 3 samples, got %d", stats.Count)
 	}
 }
+
+func TestTelemetryService_Percentiles(t *testing.T) {
+	svc := NewTelemetryService()
+	// Record 100 evenly-spaced samples: 1ms, 2ms, ..., 100ms.
+	for i := 1; i <= 100; i++ {
+		svc.RecordInference(float64(i), false)
+	}
+
+	stats := svc.Snapshot().Latencies["inference"]
+
+	// P50 should be ~50ms, P95 ~95ms, P99 ~99ms (nearest-rank).
+	if stats.P50Ms < 49 || stats.P50Ms > 51 {
+		t.Errorf("P50 out of range: %f", stats.P50Ms)
+	}
+	if stats.P95Ms < 94 || stats.P95Ms > 96 {
+		t.Errorf("P95 out of range: %f", stats.P95Ms)
+	}
+	if stats.P99Ms < 98 || stats.P99Ms > 100 {
+		t.Errorf("P99 out of range: %f", stats.P99Ms)
+	}
+	// Ordering invariant: P50 <= P95 <= P99.
+	if stats.P50Ms > stats.P95Ms || stats.P95Ms > stats.P99Ms {
+		t.Errorf("percentile ordering violated: P50=%f P95=%f P99=%f",
+			stats.P50Ms, stats.P95Ms, stats.P99Ms)
+	}
+}
