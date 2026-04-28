@@ -1,0 +1,16 @@
+{
+  "name": "ryzanstein-desktop-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end tests for the Ryzanstein Wails desktop binary (see ADR-046).",
+  "scripts": {
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "@types/node": "^20.11.0",
+    "typescript": "^5.4.0"
+  }
+}
