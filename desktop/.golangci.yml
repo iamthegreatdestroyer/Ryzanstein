@@ -1,0 +1,12 @@
+linters:
+  disable:
+    - errcheck
+
+linters-settings:
+  govet:
+    enable-all: false
+
+issues:
+  exclude-rules:
+    - linters: [errcheck]
+      text: ".*"

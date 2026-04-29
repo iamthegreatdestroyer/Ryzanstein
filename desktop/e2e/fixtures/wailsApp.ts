@@ -79,9 +79,20 @@ export const test = base.extend<WailsFixtures>({
     });
 
     proc.on("error", (err) => {
-      // Surface spawn failures (missing binary, permissions, etc.)
       console.error(`[wailsApp] spawn error: ${err.message}`);
     });
+    proc.stdout?.on("data", (d: Buffer) =>
+      process.stdout.write(`[wailsApp stdout] ${d}`)
+    );
+    proc.stderr?.on("data", (d: Buffer) =>
+      process.stderr.write(`[wailsApp stderr] ${d}`)
+    );
+    proc.on("exit", (code, signal) =>
+      console.log(`[wailsApp] exited code=${code} signal=${signal}`)
+    );
+
+    // Give WebView2 time to initialise before polling CDP.
+    await sleep(3_000);
 
     const browser = await connectWithRetry(port);
 
