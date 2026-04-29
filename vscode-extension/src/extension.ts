@@ -59,9 +59,8 @@ export async function activate(context: ExtensionContext) {
 
   // Register chat webview provider
   const chatProvider = new ChatWebviewProvider(
-    extensionContext,
-    ryzansteinClient,
-    mcpClient
+    extensionContext.extensionUri,
+    ryzansteinClient
   );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("ryzanstein.chat", chatProvider)

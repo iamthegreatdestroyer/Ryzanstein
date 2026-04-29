@@ -30,6 +30,7 @@ jobs:
 
       - name: "🤖 Phase 1 Autonomous Optimization: Task 1 - BitNet Kernel Tuning"
         run: |
+          mkdir -p "RYZEN-LLM/build"
           python "RYZEN-LLM/scripts/kernel_optimizer.py" --repo-root "." --output "RYZEN-LLM/build/kernel_config.cmake" --report
 
       - name: "🗜️ Phase 1 Autonomous Optimization: Task 2 - Semantic Compression"
