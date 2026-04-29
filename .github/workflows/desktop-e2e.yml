@@ -71,7 +71,7 @@ jobs:
               working-directory: desktop
               shell: pwsh
               run: |
-                  wails build -platform windows/amd64 -o Ryzanstein.exe
+                  wails build -platform windows/amd64 -o Ryzanstein.exe -devtools
                   if (-not (Test-Path "build/bin/Ryzanstein.exe")) {
                     Write-Error "Wails build did not produce build/bin/Ryzanstein.exe"
                     exit 1
