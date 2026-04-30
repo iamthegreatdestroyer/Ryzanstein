@@ -46,7 +46,6 @@ jobs:
         name: Playwright E2E (Windows)
         runs-on: windows-latest
         timeout-minutes: 30
-        continue-on-error: true
         steps:
             - name: Checkout
               uses: actions/checkout@v4
@@ -72,11 +71,7 @@ jobs:
               working-directory: desktop
               shell: pwsh
               run: |
-                  # native_webview2loader: use C++ WebView2Loader which honours
-                  # WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS at runtime (the new Go
-                  # loader reads AdditionalBrowserArgs at env-init time, ignoring
-                  # the env var set by the Playwright fixture).
-                  wails build -platform windows/amd64 -o Ryzanstein.exe -devtools -tags native_webview2loader
+                  wails build -platform windows/amd64 -o Ryzanstein.exe -devtools
                   if (-not (Test-Path "build/bin/Ryzanstein.exe")) {
                     Write-Error "Wails build did not produce build/bin/Ryzanstein.exe"
                     exit 1

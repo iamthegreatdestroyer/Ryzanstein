@@ -43,3 +43,5 @@ require (
 replace github.com/iamthegreatdestroyer/ryzanstein/desktop => ./
 
 replace github.com/iamthegreatdestroyer/Ryzanstein/desktop => ./
+
+replace github.com/wailsapp/go-webview2 => ./internal/go-webview2-patch

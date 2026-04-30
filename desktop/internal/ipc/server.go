@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/agents"
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/client"
@@ -92,18 +93,24 @@ func (s *Server) handleClient(clientID string, conn net.Conn) {
 		log.Printf("[IPC] Client disconnected: %s\n", clientID)
 	}()
 
+	conn.SetDeadline(time.Now().Add(30 * time.Second)) //nolint:errcheck
 	scanner := bufio.NewScanner(conn)
 	scanner.Buffer(make([]byte, 1024*1024), 1024*1024) // 1MB buffer
 
 	for scanner.Scan() {
+		// D-3: reset read deadline on each message
+		conn.SetDeadline(time.Now().Add(30 * time.Second)) //nolint:errcheck
+
 		line := scanner.Text()
-		log.Printf("[IPC] Received from %s: %s\n", clientID, line)
 
 		var cmd IPCCommand
 		if err := json.Unmarshal([]byte(line), &cmd); err != nil {
 			s.sendResponse(conn, IPCResponse{Status: "error", Error: fmt.Sprintf("invalid JSON: %v", err)})
 			continue
 		}
+
+		// I-1: log command type only, never payload content
+		log.Printf("[IPC] cmd=%s client=%s\n", cmd.Command, clientID)
 
 		resp := s.dispatchCommand(cmd)
 		s.sendResponse(conn, resp)
@@ -112,7 +119,6 @@ func (s *Server) handleClient(clientID string, conn net.Conn) {
 
 // dispatchCommand routes an IPCCommand to the appropriate handler
 func (s *Server) dispatchCommand(cmd IPCCommand) IPCResponse {
-	log.Printf("[IPC] Dispatching command: %s\n", cmd.Command)
 
 	switch cmd.Command {
 	case "health":
