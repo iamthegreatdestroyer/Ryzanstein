@@ -1,21 +1,26 @@
 [submodule "dependencies/agentmem"]
 	path = dependencies/agentmem
 	url = https://github.com/iamthegreatdestroyer/agentmem.git
+	ignore = untracked
 [submodule "dependencies/ann-hybrid"]
 	path = dependencies/ann-hybrid
 	url = https://github.com/iamthegreatdestroyer/ann-hybrid.git
+	ignore = untracked
 [submodule "dependencies/archaeo"]
 	path = dependencies/archaeo
 	url = https://github.com/iamthegreatdestroyer/archaeo.git
 [submodule "dependencies/causedb"]
 	path = dependencies/causedb
 	url = https://github.com/iamthegreatdestroyer/causedb.git
+	ignore = untracked
 [submodule "dependencies/cpu-infer"]
 	path = dependencies/cpu-infer
 	url = https://github.com/iamthegreatdestroyer/cpu-infer.git
+	ignore = untracked
 [submodule "dependencies/dep-bloom"]
 	path = dependencies/dep-bloom
 	url = https://github.com/iamthegreatdestroyer/dep-bloom.git
+	ignore = untracked
 [submodule "dependencies/flowstate"]
 	path = dependencies/flowstate
 	url = https://github.com/iamthegreatdestroyer/flowstate.git
@@ -25,18 +30,21 @@
 [submodule "dependencies/mcp-mesh"]
 	path = dependencies/mcp-mesh
 	url = https://github.com/iamthegreatdestroyer/mcp-mesh.git
+	ignore = untracked
 [submodule "dependencies/neurectomy-shell"]
 	path = dependencies/neurectomy-shell
 	url = https://github.com/iamthegreatdestroyer/neurectomy-shell.git
 [submodule "dependencies/semlog"]
 	path = dependencies/semlog
 	url = https://github.com/iamthegreatdestroyer/semlog.git
+	ignore = untracked
 [submodule "dependencies/sigma-api"]
 	path = dependencies/sigma-api
 	url = https://github.com/iamthegreatdestroyer/sigma-api.git
 [submodule "dependencies/sigma-compress"]
 	path = dependencies/sigma-compress
 	url = https://github.com/iamthegreatdestroyer/sigma-compress.git
+	ignore = untracked
 [submodule "dependencies/sigma-diff"]
 	path = dependencies/sigma-diff
 	url = https://github.com/iamthegreatdestroyer/sigma-diff.git

@@ -1,0 +1,325 @@
+# Prometheus Alert Rules
+# [REF:TASK4.1] - Production alerting thresholds
+
+groups:
+  # ===========================================================================
+  # Ryzanstein API Alerts
+  # ===========================================================================
+  - name: ryzanstein-api
+    interval: 15s
+    rules:
+      # API is down
+      - alert: RyzansteinAPIDown
+        expr: up{job="ryzanstein-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "Ryzanstein API is down"
+          description: "Ryzanstein API has been unreachable for 2 minutes"
+          value: "{{ $value }}"
+
+      # High error rate (>1%)
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{job="ryzanstein-api", status=~"5.."}[5m]) /
+          rate(http_requests_total{job="ryzanstein-api"}[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High error rate on Ryzanstein API"
+          description: "Error rate is {{ $value | humanizePercentage }} (threshold: 1%)"
+          value: "{{ $value }}"
+
+      # High latency (P99 >1s)
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job="ryzanstein-api"}[5m])) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High API latency"
+          description: "P99 latency is {{ $value | humanizeDuration }} (threshold: 1s)"
+          value: "{{ $value }}"
+
+      # High throughput variance (token generation rate instability)
+      - alert: HighThroughputVariance
+        expr: |
+          abs(rate(tokens_generated_total{job="ryzanstein-api"}[5m]) -
+              rate(tokens_generated_total{job="ryzanstein-api"}[15m])) /
+          rate(tokens_generated_total{job="ryzanstein-api"}[15m]) > 0.5
+        for: 10m
+        labels:
+          severity: info
+          component: api
+        annotations:
+          summary: "Throughput instability detected"
+          description: "Token generation rate variance is {{ $value | humanizePercentage }}"
+          value: "{{ $value }}"
+
+      # Circuit breaker is OPEN
+      - alert: CircuitBreakerOpen
+        expr: circuit_breaker_state{state="open"} > 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "Circuit breaker is OPEN"
+          description: "Circuit breaker is open for {{ $labels.service }}, service degradation expected"
+          value: "{{ $value }}"
+
+      # Bulkhead exhausted (at capacity)
+      - alert: BulkheadExhausted
+        expr: bulkhead_active_count >= bulkhead_max_concurrent
+        for: 2m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Bulkhead at maximum capacity"
+          description: "{{ $labels.service }} bulkhead has {{ $value }} active requests (max: {{ $labels.max_concurrent }})"
+          value: "{{ $value }}"
+
+  # ===========================================================================
+  # MCP Server Alerts
+  # ===========================================================================
+  - name: mcp-server
+    interval: 15s
+    rules:
+      # MCP server is down
+      - alert: MCPServerDown
+        expr: up{job="mcp-server"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: mcp
+        annotations:
+          summary: "MCP gRPC server is down"
+          description: "MCP server has been unreachable for 2 minutes"
+          value: "{{ $value }}"
+
+      # High gRPC error rate
+      - alert: HighGRPCErrorRate
+        expr: |
+          rate(grpc_server_handled_total{job="mcp-server", grpc_code!="OK"}[5m]) /
+          rate(grpc_server_handled_total{job="mcp-server"}[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          component: mcp
+        annotations:
+          summary: "High gRPC error rate"
+          description: "gRPC error rate is {{ $value | humanizePercentage }} (threshold: 1%)"
+          value: "{{ $value }}"
+
+  # ===========================================================================
+  # Storage & Database Alerts
+  # ===========================================================================
+  - name: storage
+    interval: 30s
+    rules:
+      # Qdrant is down
+      - alert: QdrantDown
+        expr: up{job="qdrant"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Qdrant vector database is down"
+          description: "Qdrant has been unreachable for 2 minutes"
+          value: "{{ $value }}"
+
+      # Vector DB high disk usage (>80%)
+      - alert: VectorDBHighDiskUsage
+        expr: |
+          (vector_db_disk_used_bytes{job="qdrant"} /
+           vector_db_disk_total_bytes{job="qdrant"}) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Qdrant disk usage is high"
+          description: "Disk usage is {{ $value | humanizePercentage }} (threshold: 80%)"
+          value: "{{ $value }}"
+
+      # Vector DB high memory usage (>90%)
+      - alert: VectorDBHighMemory
+        expr: |
+          (vector_db_memory_used_bytes{job="qdrant"} /
+           vector_db_memory_total_bytes{job="qdrant"}) > 0.9
+        for: 10m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Qdrant memory usage is critical"
+          description: "Memory usage is {{ $value | humanizePercentage }} (threshold: 90%)"
+          value: "{{ $value }}"
+
+  # ===========================================================================
+  # Observability Stack Alerts
+  # ===========================================================================
+  - name: observability
+    interval: 30s
+    rules:
+      # Prometheus is down
+      - alert: PrometheusDown
+        expr: up{job="prometheus"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: observability
+        annotations:
+          summary: "Prometheus is down"
+          description: "Prometheus monitoring has stopped"
+          value: "{{ $value }}"
+
+      # Prometheus high TSDB size (>40GB of 50GB)
+      - alert: PrometheusHighDiskUsage
+        expr: |
+          prometheus_tsdb_symbol_table_size_bytes +
+          prometheus_tsdb_index_chunk_persisted_bytes > 40e9
+        for: 10m
+        labels:
+          severity: warning
+          component: observability
+        annotations:
+          summary: "Prometheus TSDB is getting full"
+          description: "TSDB size is {{ $value | humanize1024 }}B (limit: 50GB)"
+          value: "{{ $value }}"
+
+      # Jaeger is down
+      - alert: JaegerDown
+        expr: up{job="jaeger"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: observability
+        annotations:
+          summary: "Jaeger tracing is down"
+          description: "Jaeger server is unreachable, tracing disabled"
+          value: "{{ $value }}"
+
+      # Grafana is down
+      - alert: GrafanaDown
+        expr: up{job="grafana"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: observability
+        annotations:
+          summary: "Grafana is down"
+          description: "Grafana dashboard is unreachable"
+          value: "{{ $value }}"
+
+      # AlertManager is down
+      - alert: AlertManagerDown
+        expr: up{job="alertmanager"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: observability
+        annotations:
+          summary: "AlertManager is down"
+          description: "AlertManager has stopped, alerts won't be sent"
+          value: "{{ $value }}"
+
+  # ===========================================================================
+  # System & Resource Alerts
+  # ===========================================================================
+  - name: system
+    interval: 30s
+    rules:
+      # Container memory usage >85%
+      - alert: ContainerHighMemory
+        expr: |
+          (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Container memory usage is high"
+          description: "{{ $labels.container_name }} memory is {{ $value | humanizePercentage }} of limit"
+          value: "{{ $value }}"
+
+      # Container CPU throttling
+      - alert: ContainerCPUThrottled
+        expr: |
+          rate(container_cpu_cfs_throttled_periods_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Container CPU is being throttled"
+          description: "{{ $labels.container_name }} CPU throttled at {{ $value | humanizePercentage }}"
+          value: "{{ $value }}"
+
+      # Host disk space low (<10% free)
+      - alert: HostDiskSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{fstype=~"ext4|xfs"} /
+           node_filesystem_size_bytes{fstype=~"ext4|xfs"}) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "Host disk space is low"
+          description: "Disk {{ $labels.mountpoint }} has only {{ $value | humanizePercentage }} free"
+          value: "{{ $value }}"
+
+  # ===========================================================================
+  # Model Inference Alerts
+  # ===========================================================================
+  - name: inference
+    interval: 15s
+    rules:
+      # Model inference latency too high (>5s for 99th percentile)
+      - alert: HighInferenceLatency
+        expr: |
+          histogram_quantile(0.99, rate(inference_duration_seconds_bucket{model="bitnet-1.58b"}[5m])) > 5.0
+        for: 5m
+        labels:
+          severity: warning
+          component: inference
+        annotations:
+          summary: "Model inference latency is high"
+          description: "{{ $labels.model }} P99 latency is {{ $value | humanizeDuration }} (threshold: 5s)"
+          value: "{{ $value }}"
+
+      # Model inference failures increasing
+      - alert: HighInferenceFailureRate
+        expr: |
+          rate(inference_failures_total{model="bitnet-1.58b"}[5m]) /
+          rate(inference_total{model="bitnet-1.58b"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: inference
+        annotations:
+          summary: "High model inference failure rate"
+          description: "{{ $labels.model }} failure rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+          value: "{{ $value }}"
+
+      # Low token throughput
+      - alert: LowTokenThroughput
+        expr: |
+          rate(tokens_generated_total{model="bitnet-1.58b"}[5m]) < 10
+        for: 10m
+        labels:
+          severity: info
+          component: inference
+        annotations:
+          summary: "Token generation throughput is low"
+          description: "{{ $labels.model }} throughput is {{ $value | humanize }} tok/s (expected: >10)"
+          value: "{{ $value }}"

@@ -192,7 +192,14 @@ func (l *Loader) Load() (*AppConfig, error) {
 }
 
 // LoadWithDefaults loads configuration with fallback to defaults
+// when the config file does not exist.
 func LoadWithDefaults(filePath string) (*AppConfig, error) {
+	if filePath != "" {
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			cfg := DefaultAppConfig()
+			return &cfg, nil
+		}
+	}
 	loader := NewLoader(filePath)
 	return loader.Load()
 }

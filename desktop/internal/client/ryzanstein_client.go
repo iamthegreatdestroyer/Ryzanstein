@@ -1,10 +1,10 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 )
@@ -88,6 +88,11 @@ func (c *RyzansteinClient) SetMaxRetries(maxRetries int) {
 	c.maxRetries = maxRetries
 }
 
+// GetBaseURL returns the configured API base URL
+func (c *RyzansteinClient) GetBaseURL() string {
+	return c.baseURL
+}
+
 // Infer makes an inference request to the API
 func (c *RyzansteinClient) Infer(ctx context.Context, req *InferenceRequest) (*InferenceResponse, error) {
 	var lastErr error
@@ -120,13 +125,12 @@ func (c *RyzansteinClient) inferOnce(ctx context.Context, req *InferenceRequest)
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/completions", nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/completions", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Body = io.NopCloser(nil)
 
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -233,13 +237,12 @@ func (c *RyzansteinClient) LoadModel(ctx context.Context, modelID string) error 
 func (c *RyzansteinClient) loadModelOnce(ctx context.Context, modelID string) error {
 	body := fmt.Sprintf(`{"model_id": "%s"}`, modelID)
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/models/load", nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/models/load", bytes.NewBufferString(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Body = io.NopCloser(nil)
 
 	httpResp, err := c.httpClient.Do(httpReq)
 	if err != nil {
@@ -304,6 +307,172 @@ func (c *RyzansteinClient) unloadModelOnce(ctx context.Context, modelID string) 
 	}
 
 	return nil
+}
+
+// ChatMessage represents a message in the OpenAI-compatible chat format
+type ChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+// ChatCompletionRequest represents an OpenAI-compatible chat completion request
+type ChatCompletionRequest struct {
+	Model       string        `json:"model"`
+	Messages    []ChatMessage `json:"messages"`
+	MaxTokens   int           `json:"max_tokens,omitempty"`
+	Temperature float32       `json:"temperature,omitempty"`
+	TopP        float32       `json:"top_p,omitempty"`
+	Stream      bool          `json:"stream,omitempty"`
+}
+
+// ChatCompletionResponse represents an OpenAI-compatible chat completion response
+type ChatCompletionResponse struct {
+	ID      string `json:"id"`
+	Object  string `json:"object"`
+	Created int64  `json:"created"`
+	Model   string `json:"model"`
+	Choices []struct {
+		Index        int         `json:"index"`
+		Message      ChatMessage `json:"message"`
+		FinishReason string      `json:"finish_reason"`
+	} `json:"choices"`
+	Usage struct {
+		PromptTokens     int `json:"prompt_tokens"`
+		CompletionTokens int `json:"completion_tokens"`
+		TotalTokens      int `json:"total_tokens"`
+	} `json:"usage"`
+}
+
+// ChatCompletion makes an OpenAI-compatible chat completion request
+func (c *RyzansteinClient) ChatCompletion(ctx context.Context, req *ChatCompletionRequest) (*ChatCompletionResponse, error) {
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	httpResp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode >= 400 {
+		var apiErr RyzansteinError
+		if err := json.NewDecoder(httpResp.Body).Decode(&apiErr); err != nil {
+			return nil, fmt.Errorf("API error (status %d)", httpResp.StatusCode)
+		}
+		return nil, &apiErr
+	}
+
+	var resp ChatCompletionResponse
+	if err := json.NewDecoder(httpResp.Body).Decode(&resp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &resp, nil
+}
+
+// ChatCompletionStream opens an SSE stream for chat completions and sends tokens to the channel
+func (c *RyzansteinClient) ChatCompletionStream(ctx context.Context, req *ChatCompletionRequest, tokenChan chan<- string) error {
+	req.Stream = true
+
+	body, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/v1/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Accept", "text/event-stream")
+
+	httpResp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+	defer httpResp.Body.Close()
+
+	if httpResp.StatusCode >= 400 {
+		var apiErr RyzansteinError
+		if err := json.NewDecoder(httpResp.Body).Decode(&apiErr); err != nil {
+			return fmt.Errorf("API error (status %d)", httpResp.StatusCode)
+		}
+		return &apiErr
+	}
+
+	// Read SSE stream
+	buf := make([]byte, 4096)
+	for {
+		n, err := httpResp.Body.Read(buf)
+		if n > 0 {
+			chunk := string(buf[:n])
+			// Parse SSE data lines
+			for _, line := range splitLines(chunk) {
+				if len(line) > 6 && line[:6] == "data: " {
+					data := line[6:]
+					if data == "[DONE]" {
+						return nil
+					}
+					// Parse the JSON chunk to extract content delta
+					var streamChunk struct {
+						Choices []struct {
+							Delta struct {
+								Content string `json:"content"`
+							} `json:"delta"`
+						} `json:"choices"`
+					}
+					if json.Unmarshal([]byte(data), &streamChunk) == nil {
+						for _, choice := range streamChunk.Choices {
+							if choice.Delta.Content != "" {
+								tokenChan <- choice.Delta.Content
+							}
+						}
+					}
+				}
+			}
+		}
+		if err != nil {
+			if err.Error() == "EOF" {
+				return nil
+			}
+			return fmt.Errorf("stream read error: %w", err)
+		}
+	}
+}
+
+// splitLines splits a string into lines, handling both \n and \r\n
+func splitLines(s string) []string {
+	var lines []string
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\n' {
+			line := s[start:i]
+			if len(line) > 0 && line[len(line)-1] == '\r' {
+				line = line[:len(line)-1]
+			}
+			if line != "" {
+				lines = append(lines, line)
+			}
+			start = i + 1
+		}
+	}
+	if start < len(s) {
+		line := s[start:]
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return lines
 }
 
 // Health checks if the API is healthy

@@ -2,11 +2,13 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/client"
 )
 
@@ -51,7 +53,7 @@ func (s *Service) SendMessage(ctx context.Context, message string, modelID strin
 
 	// Add user message to history
 	userMsg := Message{
-		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
+		ID:        uuid.NewString(),
 		Role:      "user",
 		Content:   message,
 		Timestamp: time.Now().Unix(),
@@ -79,7 +81,7 @@ func (s *Service) SendMessage(ctx context.Context, message string, modelID strin
 
 	// Add assistant message to history
 	assistantMsg := Message{
-		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
+		ID:        uuid.NewString(),
 		Role:      "assistant",
 		Content:   response,
 		Timestamp: time.Now().Unix(),
@@ -113,12 +115,22 @@ func (s *Service) callMCPInference(ctx context.Context, message string, modelID 
 	}
 
 	// Create inference request
-	req := &InferenceRequest{
-		Messages:      messages,
-		Model:         modelID,
-		AgentCodename: agentCodename,
-		MaxTokens:     1000,
-		Temperature:   0.7,
+	inputData, err := json.Marshal(map[string]interface{}{
+		"messages":       messages,
+		"model":          modelID,
+		"agent_codename": agentCodename,
+		"max_tokens":     1000,
+		"temperature":    0.7,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to serialize request: %w", err)
+	}
+	req := &client.InferRequest{
+		ModelID: modelID,
+		Input:   inputData,
+		Metadata: map[string]string{
+			"agent_codename": agentCodename,
+		},
 	}
 
 	// Call MCP inference
@@ -127,7 +139,7 @@ func (s *Service) callMCPInference(ctx context.Context, message string, modelID 
 		return "", fmt.Errorf("MCP inference failed: %w", err)
 	}
 
-	return resp.Content, nil
+	return string(resp.Output), nil
 }
 
 // simulateResponse provides fallback simulation when MCP is unavailable
@@ -142,7 +154,7 @@ func (s *Service) AddMessage(ctx context.Context, role string, content string, m
 	defer s.mu.Unlock()
 
 	msg := Message{
-		ID:        fmt.Sprintf("msg_%d", time.Now().UnixNano()),
+		ID:        uuid.NewString(),
 		Role:      role,
 		Content:   content,
 		Timestamp: time.Now().Unix(),

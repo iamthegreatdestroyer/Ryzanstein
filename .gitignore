@@ -1,4 +1,6 @@
-.history/
+# VSCode Local History extension artifacts (any depth, including submodules)
+**/.history/
+
 # Temp CI / helper files
 temp_ci.yml
 temp_ci_updated.yml
@@ -33,7 +35,8 @@ vscode-extension/node_modules/
 vscode-extension/*.vsix
 
 # Go build artifacts
-go.sum
+# Ignore go.sum in submodules (they manage their own); track desktop/go.sum
+dependencies/*/go.sum
 *.exe
 
 # Python cache and build
@@ -48,3 +51,36 @@ htmlcov/
 build/
 cmake-build-*/
 out/
+
+# Workspace & build artifacts to reduce Source Control noise
+# Rust/Cargo build output
+target/
+**/target/
+
+# Editor, environment & IDE
+.vscode/
+.claude/
+.venv/
+venv/
+.env
+.env.local
+.ipynb_checkpoints/
+
+# Node / JS
+node_modules/
+
+# Logs and temporary files
+*.log
+logs/
+.DS_Store
+Thumbs.db
+
+# Desktop local helper scripts and test output artifacts (Sprint 6/7)
+desktop/_build.ps1
+desktop/_test_*.ps1
+desktop/integration_*.txt
+
+# Transient git inspection dumps
+git_graph.txt
+git_status.txt
+git_*.txt

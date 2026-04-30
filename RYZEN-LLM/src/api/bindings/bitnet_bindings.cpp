@@ -246,7 +246,6 @@ extern "C"
     {
         try
         {
-            std::cout << "DEBUG: test_quantize_weights_only_scalar called" << std::endl;
             // Create dummy data
             float weights[16] = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f,
                                  9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f};
@@ -255,17 +254,14 @@ extern "C"
             // Call the function but don't use the result
             ryzanstein_llm::bitnet::quantize_weights_ternary_scalar(weights, 4, 4, config);
 
-            std::cout << "DEBUG: quantize_weights_ternary_scalar completed successfully" << std::endl;
             return 1; // Success
         }
         catch (const std::exception &e)
         {
-            std::cout << "DEBUG: Exception in quantize_weights_ternary_scalar: " << e.what() << std::endl;
             return -1; // Failure
         }
         catch (...)
         {
-            std::cout << "DEBUG: Unknown exception in quantize_weights_ternary_scalar" << std::endl;
             return -2; // Failure
         }
     }
@@ -321,7 +317,6 @@ extern "C"
     // Quantization functions
     RYZEN_EXPORT int test_quantize_weights_only(const float *weights, uint32_t rows, uint32_t cols)
     {
-        std::cout << "DEBUG: test_quantize_weights_only called" << std::endl;
         // Just do some basic computation without creating objects
         float sum = 0.0f;
         for (uint32_t i = 0; i < rows * cols; ++i)

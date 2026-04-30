@@ -1,0 +1,169 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║        PHASE 5: LOAD TESTING - QUICK START GUIDE                  ║
+║        Ryzanstein LLM API Performance Validation                  ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+📋 STATUS: Ready for Execution
+⏱️  DURATION: ~3-4 hours (full suite)
+✅ PREREQUISITES: k6 installed + API running
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  VERIFY k6 INSTALLATION
+
+   Check if k6 is installed:
+   > k6 version
+
+   If not found, install via Chocolatey:
+   > choco install k6 -y
+
+   Or download from:
+   https://github.com/grafana/k6/releases/download/v0.50.0/k6-v0.50.0-windows-amd64.zip
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+2️⃣  VERIFY API IS RUNNING
+
+   Terminal 1 - Start port-forward:
+   > kubectl port-forward -n ryzanstein-staging svc/ryzanstein-api 8000:8000
+
+   Terminal 2 - Test API health:
+   > curl http://localhost:8000/health
+
+   Expected: {"status":"healthy","service":"ryzanstein-api"}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3️⃣  RUN LOAD TESTS
+
+   Option A: Run all tests (3-4 hours)
+
+   > cd s:\Ryot
+   > k6 run load_test_smoke.js
+   > k6 run load_test_load.js
+   > k6 run load_test_spike.js
+   > k6 run load_test_stress.js
+   > k6 run load_test_endurance.js
+
+   Option B: Quick validation (6 minutes)
+
+   > cd s:\Ryot
+   > k6 run load_test_smoke.js
+   > k6 run load_test_load.js
+
+   Option C: Save results to file
+
+   > cd s:\Ryot
+   > k6 run load_test_smoke.js --out json=load_test_results/smoke_results.json
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4️⃣  MONITOR DURING TESTS (Optional - Open in Parallel Windows)
+
+   Metrics Dashboard:
+   > kubectl port-forward -n ryzanstein-staging svc/prometheus 9090:9090
+   Open: http://localhost:9090
+
+   Grafana Dashboards:
+   > kubectl port-forward -n ryzanstein-staging svc/grafana 3000:3000
+   Open: http://localhost:3000 (admin/admin)
+
+   Distributed Traces:
+   > kubectl port-forward -n ryzanstein-staging svc/jaeger 16686:16686
+   Open: http://localhost:16686
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+5️⃣  LOAD TEST OVERVIEW
+
+   Test          Duration   Load Pattern        Purpose
+   ─────────────────────────────────────────────────────────────────
+   Smoke         30 sec     1 VU                Sanity check
+   Load          5 min      10→25→50 VU         Normal operation
+   Spike         5 min      10→100→10 VU        Recovery testing
+   Stress        30 min     100→500→1000 VU     Breaking point
+   Endurance     60 min     25 VU constant      Stability & leaks
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+6️⃣  EXPECTED RESULTS (PASS CRITERIA)
+
+   ✅ Smoke Test
+      - All 5 endpoints respond (200 OK)
+      - P95 latency < 500ms
+
+   ✅ Load Test
+      - Error rate < 5%
+      - P99 latency < 2000ms
+      - Throughput > 10 req/s
+
+   ✅ Spike Test
+      - Error rate < 10% during spike
+      - Recovery < 2 minutes
+      - No cascading failures
+
+   ✅ Stress Test
+      - Breaking point identified > 1000 VU
+      - Graceful degradation
+      - Error rate < 15% at extreme load
+
+   ✅ Endurance Test
+      - Latency stable throughout
+      - Error rate < 2%
+      - No memory leak indicators
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+7️⃣  TROUBLESHOOTING
+
+   ❌ k6 not found
+   > where k6
+   If empty, install from: https://github.com/grafana/k6/releases
+
+   ❌ Connection refused (localhost:8000)
+   > kubectl get pods -n ryzanstein-staging  # Check pods running
+   > kubectl port-forward -n ryzanstein-staging svc/ryzanstein-api 8000:8000
+
+   ❌ API timeouts
+   > kubectl logs -n ryzanstein-staging deployment/ryzanstein-api -f
+
+   ❌ High error rate (>10%)
+   > kubectl top pods -n ryzanstein-staging  # Check resource usage
+   > kubectl rollout restart deployment/ryzanstein-api -n ryzanstein-staging
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+8️⃣  NEXT STEPS AFTER TESTING
+
+   1. Review results in load_test_results/ directory
+   2. Verify SLO compliance (all targets met?)
+   3. Check Grafana dashboards for anomalies
+   4. Analyze Jaeger traces for bottlenecks
+   5. Proceed to Phase 6 (Integration Testing)
+
+   Command to proceed:
+   > Review PHASE6_INTEGRATION_TESTING_GUIDE.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DETAILED DOCUMENTATION
+
+   - PHASE5_EXECUTION_MANUAL.md       → Full execution guide
+   - PHASE5_LOAD_TESTING_GUIDE.md     → SLOs & metrics explained
+   - load_test_smoke.js               → Smoke test script
+   - load_test_load.js                → Load test script
+   - load_test_spike.js               → Spike test script
+   - load_test_stress.js              → Stress test script
+   - load_test_endurance.js           → Endurance test script
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 READY? Start with:
+   > k6 run load_test_smoke.js
+
+⏱️  Questions? See PHASE5_EXECUTION_MANUAL.md
+
+╔═══════════════════════════════════════════════════════════════════╗
+║  Phase 5 Status: READY FOR EXECUTION                             ║
+║  All scripts created and validated                               ║
+╚═══════════════════════════════════════════════════════════════════╝

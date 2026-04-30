@@ -1,0 +1,48 @@
+apiVersion: v2
+name: ryzanstein
+description: Ryzanstein LLM — CPU-first Large Language Model inference engine for Kubernetes
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+
+keywords:
+  - llm
+  - inference
+  - bitnet
+  - cpu
+  - amd-ryzen
+  - transformer
+  - openai-compatible
+
+home: https://github.com/iamthegreatdestroyer/Ryzanstein
+sources:
+  - https://github.com/iamthegreatdestroyer/Ryzanstein
+
+maintainers:
+  - name: Ryzanstein Team
+    email: dev@ryzanstein.com
+
+icon: https://github.com/iamthegreatdestroyer/Ryzanstein/raw/main/docs/logo.png
+
+# Chart dependencies (if any)
+dependencies: []
+
+# Annotations for Helm Hub / Artifact Hub
+annotations:
+  category: AI/ML
+  licenses: Apache-2.0
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/recommendations: |
+    - k8s-version: ">=1.24.0"
+    - kubernetes-resource: deployment
+    - kubernetes-resource: statefulset
+    - kubernetes-resource: configmap
+    - kubernetes-resource: secret
+    - kubernetes-resource: persistentvolumeclaim
+  artifacthub.io/changes: |
+    - Added Kubernetes deployment manifests
+    - Added Horizontal Pod Autoscaler (HPA)
+    - Added ConfigMap for model configuration
+    - Added Secret management
+    - Added PersistentVolumeClaim for models
+    - Full production monitoring integration

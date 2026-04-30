@@ -1,0 +1,467 @@
+{{- if .Values.grafana.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-grafana-dashboards
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+data:
+  # =========================================================================
+  # Dashboard 1: Inference Performance (Latency, Throughput, Errors)
+  # =========================================================================
+  inference-performance.json: |
+    {
+      "annotations": {
+        "list": [
+          {
+            "builtIn": 1,
+            "datasource": "-- Grafana --",
+            "enable": true,
+            "hide": true,
+            "iconColor": "rgba(0, 211, 255, 1)",
+            "name": "Annotations & Alerts",
+            "type": "dashboard"
+          }
+        ]
+      },
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "red", "value": 1000}
+                ]
+              },
+              "unit": "ms"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "id": 2,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {"values": false, "calcs": ["lastNotNull"]}
+          },
+          "pluginVersion": "8.0.0",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, rate(http_request_duration_seconds_bucket{job=\"ryzanstein-api\"}[5m]))*1000",
+              "legendFormat": "P99 Latency",
+              "refId": "A"
+            }
+          ],
+          "title": "API P99 Latency (ms)",
+          "type": "gauge"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {"hideFrom": {"tooltip": false, "viz": false, "legend": false}},
+              "color": {"mode": "palette-classic"},
+              "custom": {"axisLabel": "", "axisPlacement": "auto"},
+              "unit": "rps"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "id": 3,
+          "targets": [
+            {
+              "expr": "rate(http_requests_total{job=\"ryzanstein-api\"}[1m])",
+              "legendFormat": "RPS",
+              "refId": "A"
+            }
+          ],
+          "title": "Request Rate (RPS)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "color": {"mode": "palette-classic"},
+              "unit": "percentunit"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "id": 4,
+          "targets": [
+            {
+              "expr": "rate(http_requests_total{job=\"ryzanstein-api\", status=~\"5..\"}[5m]) / rate(http_requests_total{job=\"ryzanstein-api\"}[5m])",
+              "legendFormat": "Error Rate",
+              "refId": "A"
+            }
+          ],
+          "title": "Error Rate (5xx %)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "tok/s"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "id": 5,
+          "targets": [
+            {
+              "expr": "rate(tokens_generated_total{model=\"bitnet-1.58b\"}[1m])",
+              "legendFormat": "Throughput",
+              "refId": "A"
+            }
+          ],
+          "title": "Token Throughput (tok/s)",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "10s",
+      "schemaVersion": 27,
+      "style": "dark",
+      "tags": ["ryzanstein", "inference", "performance"],
+      "templating": {"list": []},
+      "time": {"from": "now-1h", "to": "now"},
+      "timepicker": {},
+      "timezone": "",
+      "title": "Ryzanstein — Inference Performance",
+      "uid": "ryzanstein-inference",
+      "version": 0
+    }
+
+  # =========================================================================
+  # Dashboard 2: Resource Usage (CPU, Memory, Disk)
+  # =========================================================================
+  resource-usage.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "percentunit",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 0.7},
+                  {"color": "red", "value": 0.9}
+                ]
+              }
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "id": 6,
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{pod=~\"ryzanstein-.*\"}[5m])) / sum(container_spec_cpu_quota{pod=~\"ryzanstein-.*\"}/container_spec_cpu_period{pod=~\"ryzanstein-.*\"})",
+              "legendFormat": "CPU Usage",
+              "refId": "A"
+            }
+          ],
+          "title": "CPU Utilization (%)",
+          "type": "gauge"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "percentunit",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 0.8},
+                  {"color": "red", "value": 0.9}
+                ]
+              }
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "id": 7,
+          "targets": [
+            {
+              "expr": "sum(container_memory_usage_bytes{pod=~\"ryzanstein-.*\"}) / sum(container_spec_memory_limit_bytes{pod=~\"ryzanstein-.*\"})",
+              "legendFormat": "Memory Usage",
+              "refId": "A"
+            }
+          ],
+          "title": "Memory Utilization (%)",
+          "type": "gauge"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+          "id": 8,
+          "targets": [
+            {
+              "expr": "container_memory_usage_bytes{pod=~\"ryzanstein-api-.*\"}",
+              "legendFormat": "{{ pod }}",
+              "refId": "A"
+            }
+          ],
+          "title": "Memory Usage by Pod",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "10s",
+      "schemaVersion": 27,
+      "style": "dark",
+      "tags": ["ryzanstein", "resources", "kubernetes"],
+      "templating": {"list": []},
+      "time": {"from": "now-1h", "to": "now"},
+      "timepicker": {},
+      "timezone": "",
+      "title": "Ryzanstein — Resource Usage",
+      "uid": "ryzanstein-resources",
+      "version": 0
+    }
+
+  # =========================================================================
+  # Dashboard 3: System Health (Circuit Breaker, Bulkhead, Resilience)
+  # =========================================================================
+  system-health.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0},
+          "id": 9,
+          "targets": [
+            {
+              "expr": "circuit_breaker_state{state=\"closed\"}",
+              "legendFormat": "Circuit Breaker: {{ state }}",
+              "refId": "A"
+            }
+          ],
+          "title": "Circuit Breaker State",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0},
+          "id": 10,
+          "targets": [
+            {
+              "expr": "bulkhead_active_count",
+              "legendFormat": "Active Requests",
+              "refId": "A"
+            }
+          ],
+          "title": "Bulkhead Active Requests",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0},
+          "id": 11,
+          "targets": [
+            {
+              "expr": "retry_policy_attempts_total",
+              "legendFormat": "Retry Attempts",
+              "refId": "A"
+            }
+          ],
+          "title": "Retry Attempts",
+          "type": "stat"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6},
+          "id": 12,
+          "targets": [
+            {
+              "expr": "rate(circuit_breaker_state_changes_total[5m])",
+              "legendFormat": "State Changes",
+              "refId": "A"
+            }
+          ],
+          "title": "Circuit Breaker State Changes",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "10s",
+      "schemaVersion": 27,
+      "style": "dark",
+      "tags": ["ryzanstein", "resilience", "health"],
+      "templating": {"list": []},
+      "time": {"from": "now-1h", "to": "now"},
+      "timepicker": {},
+      "timezone": "",
+      "title": "Ryzanstein — System Health",
+      "uid": "ryzanstein-health",
+      "version": 0
+    }
+
+  # =========================================================================
+  # Dashboard 4: Model Inference (Latency, Throughput, Accuracy)
+  # =========================================================================
+  model-inference.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "gnetId": null,
+      "graphTooltip": 0,
+      "id": null,
+      "links": [],
+      "panels": [
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "ms"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "id": 13,
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.99, rate(inference_duration_seconds_bucket{model=\"bitnet-1.58b\"}[5m]))*1000",
+              "legendFormat": "P99 Latency",
+              "refId": "A"
+            },
+            {
+              "expr": "histogram_quantile(0.95, rate(inference_duration_seconds_bucket{model=\"bitnet-1.58b\"}[5m]))*1000",
+              "legendFormat": "P95 Latency",
+              "refId": "B"
+            },
+            {
+              "expr": "histogram_quantile(0.50, rate(inference_duration_seconds_bucket{model=\"bitnet-1.58b\"}[5m]))*1000",
+              "legendFormat": "P50 Latency",
+              "refId": "C"
+            }
+          ],
+          "title": "Inference Latency Percentiles",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "tok/s"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "id": 14,
+          "targets": [
+            {
+              "expr": "rate(tokens_generated_total{model=\"bitnet-1.58b\"}[1m])",
+              "legendFormat": "Throughput",
+              "refId": "A"
+            }
+          ],
+          "title": "Token Generation Throughput",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "percentunit"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "id": 15,
+          "targets": [
+            {
+              "expr": "rate(inference_failures_total{model=\"bitnet-1.58b\"}[5m]) / rate(inference_total{model=\"bitnet-1.58b\"}[5m])",
+              "legendFormat": "Failure Rate",
+              "refId": "A"
+            }
+          ],
+          "title": "Inference Failure Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": "Prometheus",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "id": 16,
+          "targets": [
+            {
+              "expr": "inference_total{model=\"bitnet-1.58b\"}",
+              "legendFormat": "Total Inferences",
+              "refId": "A"
+            }
+          ],
+          "title": "Total Inferences (Cumulative)",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "10s",
+      "schemaVersion": 27,
+      "style": "dark",
+      "tags": ["ryzanstein", "inference", "model"],
+      "templating": {"list": []},
+      "time": {"from": "now-1h", "to": "now"},
+      "timepicker": {},
+      "timezone": "",
+      "title": "Ryzanstein — Model Inference",
+      "uid": "ryzanstein-model",
+      "version": 0
+    }
+{{- end }}

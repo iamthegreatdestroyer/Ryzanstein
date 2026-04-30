@@ -1,0 +1,94 @@
+{
+  "folders": [
+    {
+      "name": "Ryot (root)",
+      "path": ".",
+    },
+    {
+      "name": "agentmem",
+      "path": "dependencies/agentmem",
+    },
+    {
+      "name": "ann-hybrid",
+      "path": "dependencies/ann-hybrid",
+    },
+    {
+      "name": "archaeo",
+      "path": "dependencies/archaeo",
+    },
+    {
+      "name": "causedb",
+      "path": "dependencies/causedb",
+    },
+    {
+      "name": "cpu-infer",
+      "path": "dependencies/cpu-infer",
+    },
+    {
+      "name": "dep-bloom",
+      "path": "dependencies/dep-bloom",
+    },
+    {
+      "name": "flowstate",
+      "path": "dependencies/flowstate",
+    },
+    {
+      "name": "intent-spec",
+      "path": "dependencies/intent-spec",
+    },
+    {
+      "name": "mcp-mesh",
+      "path": "dependencies/mcp-mesh",
+    },
+    {
+      "name": "neurectomy-shell",
+      "path": "dependencies/neurectomy-shell",
+    },
+    {
+      "name": "semlog",
+      "path": "dependencies/semlog",
+    },
+    {
+      "name": "sigma-api",
+      "path": "dependencies/sigma-api",
+    },
+    {
+      "name": "sigma-compress",
+      "path": "dependencies/sigma-compress",
+    },
+    {
+      "name": "sigma-diff",
+      "path": "dependencies/sigma-diff",
+    },
+    {
+      "name": "sigma-index",
+      "path": "dependencies/sigma-index",
+    },
+    {
+      "name": "sigma-telemetry",
+      "path": "dependencies/sigma-telemetry",
+    },
+    {
+      "name": "vault-git",
+      "path": "dependencies/vault-git",
+    },
+    {
+      "name": "zkaudit",
+      "path": "dependencies/zkaudit",
+    },
+  ],
+  "settings": {
+    "git.detectSubmodules": true,
+    "git.detectSubmodulesLimit": 25,
+    "git.openRepositoryInParentFolders": "always",
+    "github.copilot.chat.search.semanticTextResults": 5,
+    "powershell.cwd": "Ryot (root)",
+  },
+  "extensions": {
+    "recommendations": [
+      "github.copilot",
+      "github.copilot-chat",
+      "github.vscode-pull-request-github",
+    ],
+  },
+}

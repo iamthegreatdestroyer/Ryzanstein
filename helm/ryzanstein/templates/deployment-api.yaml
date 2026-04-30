@@ -1,0 +1,207 @@
+{{- if .Values.api.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-api
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+    component: api
+  annotations:
+    {{- toYaml .Values.annotations | nindent 4 }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "ryzanstein.selectorLabels" . | nindent 6 }}
+      component: api
+  template:
+    metadata:
+      labels:
+        {{- include "ryzanstein.selectorLabels" . | nindent 8 }}
+        component: api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.api.port | quote }}
+        prometheus.io/path: "/metrics"
+    spec:
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+
+      serviceAccountName: {{ .Values.api.serviceAccount.name }}
+
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # Init containers
+      initContainers:
+        # Wait for dependencies
+        - name: wait-for-dependencies
+          image: busybox:1.35
+          command: ['sh', '-c']
+          args:
+            - |
+              until nc -z qdrant 6333; do
+                echo "Waiting for Qdrant..."
+                sleep 2
+              done
+              echo "Qdrant is ready!"
+
+      containers:
+        - name: api
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.port }}
+              protocol: TCP
+
+          # Environment variables
+          env:
+            {{- range $key, $value := .Values.api.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+
+            # Config from ConfigMap
+            - name: MODEL_CONFIG_PATH
+              value: /app/config/model.yaml
+
+            # Secrets
+            {{- range .Values.api.secrets }}
+            - name: {{ .name }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "ryzanstein.fullname" . }}-config
+                  key: {{ .name | lower }}
+            {{- end }}
+
+            # Pod metadata (downward API)
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+
+          # Resource limits
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+
+          # Security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+            readOnlyRootFilesystem: false
+
+          # Liveness probe
+          {{- with .Values.api.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          # Readiness probe
+          {{- with .Values.api.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+          # Volume mounts
+          volumeMounts:
+            {{- range .Values.api.volumeMounts }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+              {{- if .readOnly }}
+              readOnly: true
+              {{- end }}
+            {{- end }}
+
+            # Model weights (read-only)
+            - name: models
+              mountPath: /app/models
+              readOnly: true
+
+            # Cache (read-write)
+            - name: cache
+              mountPath: /app/cache
+
+            # Logs (read-write)
+            - name: logs
+              mountPath: /app/logs
+
+            # Configuration (read-only)
+            - name: config
+              mountPath: /app/config
+              readOnly: true
+
+      # Volumes
+      volumes:
+        # Models (PersistentVolumeClaim)
+        - name: models
+          persistentVolumeClaim:
+            claimName: {{ .Values.modelStorage.pvc.name }}
+            readOnly: true
+
+        # Cache (EmptyDir or PVC)
+        {{- if .Values.api.persistence.cache.enabled }}
+        - name: cache
+          persistentVolumeClaim:
+            claimName: {{ include "ryzanstein.fullname" . }}-cache
+        {{- else }}
+        - name: cache
+          emptyDir:
+            sizeLimit: 5Gi
+        {{- end }}
+
+        # Logs (EmptyDir or PVC)
+        {{- if .Values.api.persistence.logs.enabled }}
+        - name: logs
+          persistentVolumeClaim:
+            claimName: {{ include "ryzanstein.fullname" . }}-logs
+        {{- else }}
+        - name: logs
+          emptyDir:
+            sizeLimit: 10Gi
+        {{- end }}
+
+        # Configuration (ConfigMap)
+        - name: config
+          configMap:
+            name: {{ include "ryzanstein.fullname" . }}-config
+            defaultMode: 0644
+
+      # Pod Disruption Budget
+      {{- if .Values.api.podDisruptionBudget.enabled }}
+      terminationGracePeriodSeconds: 30
+      {{- end }}
+
+---
+{{- if .Values.api.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-api-pdb
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.api.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "ryzanstein.selectorLabels" . | nindent 6 }}
+      component: api
+{{- end }}
+
+{{- end }}

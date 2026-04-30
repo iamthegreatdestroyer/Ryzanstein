@@ -1,0 +1,180 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║       DOCKER PORT REMEDIATION - QUICK START                        ║
+║       Resolving Cross-Project Port Conflicts                       ║
+║       February 19, 2026                                            ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════
+
+⚠️  CRITICAL FINDINGS
+
+Port Conflicts Detected:
+  ❌ localhost:3000  → Faceless YouTube Dashboard (should be Ryzanstein Grafana)
+  ❌ localhost:9090  → Hyperbox Prometheus (should be Ryzanstein Prometheus)
+  ❌ localhost:16686 → Neurectomy Jaeger (should be Ryzanstein Jaeger)
+  ✅ localhost:9093  → AVAILABLE (Ryzanstein AlertManager ready)
+  ✅ localhost:8000  → AVAILABLE (Ryzanstein API ready)
+
+═══════════════════════════════════════════════════════════════════════
+
+🎯 THREE PROJECTS NEED PORT REASSIGNMENT
+
+1. HYPERBOX
+   Current: Port 9090 (Prometheus)
+   Action:  Move to 40001
+   Impact:  Frees 9090 for Ryzanstein
+
+2. FACELESS YOUTUBE
+   Current: Port 3000 (Dashboard)
+   Action:  Move to 40005
+   Impact:  Frees 3000 for Ryzanstein (BLOCKING Phase 6!)
+
+3. NEURECTOMY ML
+   Current: Port 16686 (Jaeger)
+   Action:  Move to 40010
+   Impact:  Frees 16686 for Ryzanstein
+
+═══════════════════════════════════════════════════════════════════════
+
+📋 PROJECT LOCATIONS (You Own These!)
+
+Find docker-compose.yml files in:
+  ? s:\Hyperbox\docker-compose.yml (or project root)
+  ? s:\FacelessYouTube\docker-compose.yml (or project root)
+  ? s:\NeurectomyML\docker-compose.yml (or project root)
+
+═══════════════════════════════════════════════════════════════════════
+
+⚡ IMMEDIATE ACTION ITEMS
+
+If you own/manage Hyperbox:
+  1. Edit docker-compose.yml
+  2. Change: ports: ["9090:9090"] → ["40001:9090"]
+  3. Run: docker-compose restart prometheus
+
+If you own/manage Faceless YouTube:
+  1. Edit docker-compose.yml
+  2. Change: ports: ["3000:3000"] → ["40005:3000"]
+  3. Run: docker-compose restart dashboard-staging
+
+If you own/manage Neurectomy ML:
+  1. Edit docker-compose.yml
+  2. Change: ports: ["16686:16686"] → ["40010:16686"]
+  3. Run: docker-compose restart neurectomy-jaeger
+
+═══════════════════════════════════════════════════════════════════════
+
+✅ WHAT'S ALREADY ISOLATED (No Changes Needed)
+
+AutoAG:           Using 18500+ range (nginx:18530, postgres:18510, redis:18520)
+Phantom VPN:      Using 24500+ range (multiple services)
+Article Audio:    Port 8080 (isolated)
+Portainer:        Ports 8000, 9443 (monitor, not blocking yet)
+Kubernetes Core:  Internal services (no conflicts)
+
+═══════════════════════════════════════════════════════════════════════
+
+🔍 VERIFY CURRENT STATUS
+
+Check which services are on which ports:
+
+# See all Docker bindings:
+docker ps --format "table {{.Names}}\t{{.Ports}}"
+
+# Check specific conflicting services:
+docker ps | grep -E "hyperbox-prometheus|dashboard-staging|neurectomy-jaeger"
+
+# Test connectivity to current ports:
+curl -s http://localhost:3000     # Currently Faceless YouTube
+curl -s http://localhost:9090     # Currently Hyperbox
+curl -s http://localhost:16686    # Currently Neurectomy
+
+═══════════════════════════════════════════════════════════════════════
+
+📊 NEW PORT ASSIGNMENTS
+
+After remediation, Ryzanstein will use:
+  8000   → API (port-forward from kubectl)
+  40001  → Prometheus (kubectl port-forward)
+  40005  → Grafana (kubectl port-forward)
+  40010  → Jaeger (kubectl port-forward)
+  9093   → AlertManager (kubectl port-forward)
+
+Other projects move to 40000+ range:
+  40001  ← Hyperbox Prometheus (from 9090)
+  40005  ← Faceless YouTube Dashboard (from 3000)
+  40010  ← Neurectomy Jaeger (from 16686)
+
+═══════════════════════════════════════════════════════════════════════
+
+🚀 PHASE 6 TIMELINE
+
+Once ports are freed:
+  1. All 5 Ryzanstein services become accessible on correct ports
+  2. No more cross-project interference
+  3. Can proceed with full Phase 6 integration testing
+  4. Phase 7 final validation can begin
+
+═══════════════════════════════════════════════════════════════════════
+
+📚 DETAILED DOCUMENTATION
+
+Full audit report with all 62 containers analyzed:
+  s:\Ryot\DOCKER_PORT_AUDIT_FEB2026.md
+
+═══════════════════════════════════════════════════════════════════════
+
+💡 KEY POINT
+
+The goal is simple:
+  - Give each project unique port ranges
+  - No more conflicts
+  - Ryzanstein gets the standard monitoring ports it needs
+  - Other projects move to 40000+ unused range
+  - Everything runs cleanly isolated
+
+═══════════════════════════════════════════════════════════════════════
+
+⏱️  ESTIMATED REMEDIATION TIME
+
+  Finding docker-compose files:    10 minutes
+  Editing port mappings:            5 minutes
+  Restarting containers:            5 minutes
+  Verifying new ports work:         5 minutes
+  ─────────────────────────────────────────
+  Total:                           25 minutes
+
+═══════════════════════════════════════════════════════════════════════
+
+❓ WHAT IF YOU DON'T OWN THOSE PROJECTS?
+
+Option 1: Contact the team leaders
+  - Send them this remediation guide
+  - They update their docker-compose files
+  - You verify once ports are freed
+
+Option 2: Update them directly (if you have access)
+  - Apply the port changes yourself
+  - Test to verify they work
+  - Document the changes
+
+Option 3: Force reassign via docker
+  - Use docker update command to reassign ports
+  - Less clean but faster workaround (not recommended)
+
+═══════════════════════════════════════════════════════════════════════
+
+✨ NEXT STEPS
+
+1. Read full audit: DOCKER_PORT_AUDIT_FEB2026.md
+2. Identify who owns Hyperbox, Faceless YouTube, Neurectomy ML
+3. Share remediation guide with them
+4. Once they update, run verification: CHECK_PHASE6_PORTS.bat
+5. Proceed with Phase 6 when all 5 ports show active
+
+═══════════════════════════════════════════════════════════════════════
+
+Status: READY FOR REMEDIATION ✅
+All conflicts identified and solutions documented.
+
+═══════════════════════════════════════════════════════════════════════

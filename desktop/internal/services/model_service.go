@@ -138,7 +138,7 @@ func (ms *ModelService) UnloadModel(ctx context.Context, modelID string) error {
 	ms.mu.Lock()
 
 	// Check if model is loaded
-	model, exists := ms.loadedModels[modelID]
+	_, exists := ms.loadedModels[modelID]
 	if !exists {
 		ms.mu.Unlock()
 		return fmt.Errorf("model not loaded: %s", modelID)

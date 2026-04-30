@@ -1,0 +1,97 @@
+╔═══════════════════════════════════════════════════════════════════╗
+║       PHASE 5: RUN TESTS NOW - 2 SIMPLE OPTIONS                  ║
+║       k6 is Ready at: C:\Users\sgbil\Downloads\...\k6.exe         ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 OPTION 1: BATCH FILE (Easiest - Recommended)
+
+Just double-click this file:
+
+  s:\Ryot\run_k6_tests.bat
+
+This will:
+  1. Find k6.exe automatically
+  2. Ask which tests you want to run
+  3. Execute the selected tests
+  4. Show results in real-time
+
+Menu options:
+  1 = Smoke test only (30 seconds)
+  2 = Quick validation (6 minutes)
+  3 = Full suite (2 hours)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 OPTION 2: POWERSHELL SCRIPT
+
+Open PowerShell and run:
+
+  Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+  s:\Ryot\run_k6_tests.ps1
+
+This will:
+  1. Find k6.exe automatically
+  2. Ask which tests you want to run
+  3. Execute with color-coded output
+  4. Show progress and results
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 OPTION 3: MANUAL COMMAND (cmd.exe)
+
+Open Command Prompt and run:
+
+  cd s:\Ryot
+  "C:\Users\sgbil\Downloads\k6-v0.50.0-windows-amd64\k6-v0.50.0-windows-amd64\k6.exe" run load_test_smoke.js
+
+Then continue with other tests:
+
+  k6.exe run load_test_load.js
+  k6.exe run load_test_spike.js
+  k6.exe run load_test_stress.js
+  k6.exe run load_test_endurance.js
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ RECOMMENDED: Use OPTION 1 (Batch File)
+
+  1. Open File Explorer
+  2. Navigate to: s:\Ryot\
+  3. Double-click: run_k6_tests.bat
+  4. Choose option 3 (Full suite) or 2 (Quick validation)
+  5. Wait for tests to complete
+  6. Review results
+
+Total Time:
+  - Quick validation: ~6 minutes
+  - Full suite: ~2 hours
+
+Expected Results:
+  ✅ Smoke test: All endpoints respond
+  ✅ Load test: P99 < 2000ms, Error < 5%
+  ✅ Spike test: Recovery < 2 minutes
+  ✅ Stress test: Breaking point identified
+  ✅ Endurance test: No memory leaks
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 BEFORE RUNNING TESTS:
+
+Make sure port-forward is active!
+
+  kubectl port-forward -n ryzanstein-staging svc/ryzanstein-api 8000:8000
+
+Verify API is running:
+
+  curl http://localhost:8000/health
+  # Expected: {"status":"healthy","service":"ryzanstein-api"}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 START HERE:
+
+  Double-click: s:\Ryot\run_k6_tests.bat
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

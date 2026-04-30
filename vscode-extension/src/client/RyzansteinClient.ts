@@ -29,7 +29,7 @@ export class RyzansteinClient {
 
   async chat(
     message: string,
-    agentId: string = "default"
+    agentId: string = "default",
   ): Promise<ChatResponse> {
     try {
       const response = await this.client.post("/chat", {
@@ -41,7 +41,7 @@ export class RyzansteinClient {
       throw new Error(
         `Chat request failed: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
       );
     }
   }
@@ -73,7 +73,7 @@ export class RyzansteinClient {
       throw new Error(
         `Failed to load model: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
       );
     }
   }
@@ -89,7 +89,25 @@ export class RyzansteinClient {
       throw new Error(
         `Code generation failed: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`
+        }`,
+      );
+    }
+  }
+
+  async infer(prompt: string, modelId?: string): Promise<string> {
+    try {
+      const response = await this.client.post("/v1/completions", {
+        prompt,
+        model: modelId ?? "default",
+        max_tokens: 512,
+        temperature: 0.7,
+      });
+      return response.data?.choices?.[0]?.text ?? "";
+    } catch (error) {
+      throw new Error(
+        `Inference failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
       );
     }
   }

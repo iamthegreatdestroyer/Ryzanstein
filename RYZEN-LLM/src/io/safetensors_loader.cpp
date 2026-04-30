@@ -66,10 +66,10 @@ namespace ryzanstein_llm
             auto start_time = std::chrono::high_resolution_clock::now();
             last_stats_ = LoaderStats();
 
-            if (verbose_)
-            {
-                std::cerr << "Loading SafeTensors file: " << filename << "\n";
-            }
+            // if (verbose_)
+            // {
+            //     std::cerr << "Loading SafeTensors file: " << filename << "\n";
+            // }
 
             std::ifstream file(filename, std::ios::binary);
             if (!file.is_open())
@@ -90,17 +90,17 @@ namespace ryzanstein_llm
                 // Load each tensor
                 for (const auto &[name, meta] : metadata)
                 {
-                    if (verbose_)
-                    {
-                        std::cerr << "Loading tensor: " << name << " [";
-                        for (size_t i = 0; i < meta.shape.size(); ++i)
-                        {
-                            if (i > 0)
-                                std::cerr << ", ";
-                            std::cerr << meta.shape[i];
-                        }
-                        std::cerr << "]\n";
-                    }
+                    // if (verbose_)
+                    // {
+                    //     std::cerr << "Loading tensor: " << name << " [";
+                    //     for (size_t i = 0; i < meta.shape.size(); ++i)
+                    //     {
+                    //         if (i > 0)
+                    //             std::cerr << ", ";
+                    //         std::cerr << meta.shape[i];
+                    //     }
+                    //     std::cerr << "]\n";
+                    // }
 
                     // Read tensor data
                     auto data = load_tensor_data_(file, meta.data_offset, meta.data_length);
@@ -122,10 +122,10 @@ namespace ryzanstein_llm
                 last_stats_.total_bytes = byte_count;
                 last_stats_.load_time_seconds = elapsed.count();
 
-                if (verbose_)
-                {
-                    std::cerr << last_stats_.report();
-                }
+                // if (verbose_)
+                // {
+                //     std::cerr << last_stats_.report();
+                // }
 
                 return tensors;
             }
@@ -154,10 +154,10 @@ namespace ryzanstein_llm
             {
                 if (tensor.dtype == DataType::FLOAT32)
                 {
-                    if (verbose_)
-                    {
-                        std::cerr << "Quantizing " << name << " to int8\n";
-                    }
+                    // if (verbose_)
+                    // {
+                    //     std::cerr << "Quantizing " << name << " to int8\n";
+                    // }
 
                     // Compute scale factor from max absolute value
                     auto *data = tensor.data_ptr<float>();

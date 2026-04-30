@@ -1,0 +1,165 @@
+# Development Kubernetes Deployment Values
+# [REF:TASK4.2] - Single replica, minimal resources, no persistence
+#
+# Usage:
+#   helm install ryzanstein ./helm/ryzanstein -f values-dev.yaml
+#   minikube start
+#   helm install ryzanstein ./helm/ryzanstein -f values-dev.yaml
+
+global:
+  environment: development
+  namespace: default
+  imagePullPolicy: IfNotPresent
+
+# ============================================================================
+# API Server (Development)
+# ============================================================================
+api:
+  enabled: true
+  replicaCount: 1  # Single replica for dev
+
+  image:
+    repository: ryzanstein
+    tag: latest
+    pullPolicy: Always
+
+  port: 8000
+
+  service:
+    type: NodePort  # Easier access in minikube
+    port: 8000
+
+  ingress:
+    enabled: false
+
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+
+  autoscaling:
+    enabled: false  # No autoscaling in dev
+
+  podDisruptionBudget:
+    enabled: false
+
+  persistence:
+    cache:
+      enabled: false  # Use emptyDir
+    logs:
+      enabled: false  # Use emptyDir
+
+# ============================================================================
+# MCP Server (Development)
+# ============================================================================
+mcp:
+  enabled: true
+  replicaCount: 1
+
+  resources:
+    requests:
+      cpu: 0.5
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+  autoscaling:
+    enabled: false
+
+# ============================================================================
+# Model Storage (Development)
+# ============================================================================
+modelStorage:
+  enabled: true
+  pvc:
+    size: 10Gi
+    storageClass: standard
+
+# ============================================================================
+# Prometheus (Development)
+# ============================================================================
+prometheus:
+  enabled: true
+  persistence:
+    enabled: false  # Use emptyDir in dev
+  retention: 7d  # 7 days only
+
+# ============================================================================
+# Grafana (Development)
+# ============================================================================
+grafana:
+  enabled: true
+  adminPassword: admin123
+  persistence:
+    enabled: false  # Use emptyDir in dev
+
+# ============================================================================
+# Jaeger (Development)
+# ============================================================================
+jaeger:
+  enabled: true
+  memory:
+    maxTraces: 1000
+
+# ============================================================================
+# AlertManager (Development)
+# ============================================================================
+alertmanager:
+  enabled: true
+
+# ============================================================================
+# Secrets (Development)
+# ============================================================================
+secrets:
+  apiKeys:
+    enabled: true
+    create: true
+  database:
+    enabled: true
+    password: development
+
+# ============================================================================
+# RBAC (Development)
+# ============================================================================
+rbac:
+  enabled: false  # Simplify for local dev
+
+# ============================================================================
+# Network Policy (Development)
+# ============================================================================
+networkPolicy:
+  enabled: false
+
+# ============================================================================
+# Pod Security (Development)
+# ============================================================================
+podSecurityStandards:
+  enforce: baseline
+
+# ============================================================================
+# Feature Flags (Development)
+# ============================================================================
+features:
+  enableMetrics: true
+  enableTracing: true
+  enableAlerts: false
+  enableMonitoring: true
+  enableAutoscaling: false
+  enablePersistence: false
+  enableNetworkPolicy: false
+  enableSecurityPolicy: false
+
+labels:
+  environment: development
+
+# ============================================================================
+# Debug (Enabled in Development)
+# ============================================================================
+debug:
+  enabled: true
+  logLevel: DEBUG
+  traceEnabled: true

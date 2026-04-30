@@ -1,272 +1,167 @@
-# 🎯 NEXT STEPS MASTER ACTION PLAN - RYZANSTEIN PHASE 3
+# NEXT STEPS MASTER ACTION PLAN
 
-> **Created**: December 31, 2025  
-> **Purpose**: Single source of truth for all remaining work going forward  
-> **Branch**: `phase3/distributed-serving`  
-> **This replaces all previous action plans and sprint references**
+## Ryzanstein Desktop AI Platform — Post-Sprint 6 Forward Roadmap
 
----
-
-## 📍 CURRENT STATE (AS OF NOW)
-
-### ✅ COMPLETED WORK
-
-| Sprint/Work Item       | Description                               | Tests  | Status   |
-| ---------------------- | ----------------------------------------- | ------ | -------- |
-| Multi-GPU Optimization | Distributed inference, tensor parallelism | 55+ ✅ | **DONE** |
-| Speculative Decoding   | Draft model acceleration                  | 30+ ✅ | **DONE** |
-| Sprint 3.1: Monitoring | Metrics, alerts, Prometheus/Grafana       | 31 ✅  | **DONE** |
-
-**Total Tests in Project**: 226
-
-### 📁 WHAT EXISTS NOW
-
-```
-PHASE2_DEVELOPMENT/src/
-├── api/                    ✅ REST, gRPC, Authentication
-├── batching/               ✅ Token Batcher
-├── cache/                  ✅ Advanced Caching (8+ files)
-├── distributed/            ✅ Multi-GPU, Pipeline/Tensor Parallelism
-├── inference/              ✅ Multimodal Inference
-├── monitoring/             ✅ Metrics, Alerts, Aggregator, Exporter
-├── serving/                ✅ Model Orchestrator, vLLM, Triton
-├── speculative/            ✅ Speculative Decoder
-├── tracing/                ❌ DOES NOT EXIST
-├── logging/                ❌ DOES NOT EXIST
-├── resilience/             ❌ DOES NOT EXIST
-├── optimization/           ❌ DOES NOT EXIST
-└── scheduling/             ❌ DOES NOT EXIST
-```
+**Branch:** `sprint6/api-integration` @ `595465d`
+**Status:** Weeks 1–4 + Sprints 5 & 6 committed; working tree dirty.
 
 ---
 
-## 🚀 REMAINING WORK (IN EXACT ORDER)
+## 1. Executive Review (Completed Work)
 
-### **STEP 1: Distributed Tracing & Logging**
-
-_(This is Sprint 3.2 from PHASE_3_SPRINT_PLAN.md)_
-
-| Attribute      | Value             |
-| -------------- | ----------------- |
-| **Effort**     | 1-2 weeks         |
-| **Priority**   | HIGH              |
-| **Depends On** | Monitoring (DONE) |
-
-**Files to Create:**
-
-```
-src/tracing/
-├── __init__.py
-├── tracer.py              # OpenTelemetry integration
-├── context.py             # Trace context propagation
-└── span_processor.py      # Span processing & export
-
-src/logging/
-├── __init__.py
-├── structured_logger.py   # JSON structured logging
-└── log_aggregator.py      # Centralized collection
-
-configs/
-├── jaeger_config.yaml     # Jaeger tracing config
-└── elk_config.yaml        # ELK stack config
-
-tests/
-├── test_tracing.py
-└── test_logging.py
-```
-
-**Definition of Done:**
-
-- [ ] All requests have trace IDs
-- [ ] Spans created for each operation
-- [ ] Logs include trace context
-- [ ] Jaeger shows distributed traces
-- [ ] All tests pass
+| Phase          | Commit    | Deliverable                                      |
+| -------------- | --------- | ------------------------------------------------ |
+| Sprint 1.1     | `002a5a1` | Streaming API contract docs                      |
+| Sprint 1.2     | `80a63cd` | Dead code removal, div-by-zero fixes, LogService |
+| Sprint 1.3     | `0668dc2` | Circuit breaker Wails binding                    |
+| Sprint 1.4     | `95df508` | Build fix, GetRecentLogs                         |
+| Week 2         | `8a66ada` | Retry/timeout matrix                             |
+| Week 3         | `b99aa3b` | IPC router                                       |
+| Sprint 3.1     | `7226a6c` | IPC JSON router refinement                       |
+| Sprint 3.2     | `9588d61` | VS Code extension fixes                          |
+| Week 4         | `1763b20` | agent-memory ADR, Go memory client               |
+| Sprint 4.1     | `a83e53c` | InvokeAgentChat + RyzansteinClient               |
+| Sprint 4.2–4.4 | `595465d` | ADR-042, ADR-043, agentmem persistence           |
+| Sprint 5       | `fdbf148` | Streaming decompression client                   |
+| Sprint 6       | `e673298` | Integration Orchestrator                         |
 
 ---
 
-### **STEP 2: Resilience & Fault Tolerance**
+## 2. Current State Assessment
 
-_(This is Sprint 3.3 from PHASE_3_SPRINT_PLAN.md)_
-
-| Attribute      | Value            |
-| -------------- | ---------------- |
-| **Effort**     | 1-2 weeks        |
-| **Priority**   | HIGH             |
-| **Depends On** | Step 1 (Tracing) |
-
-**Files to Create:**
-
-```
-src/resilience/
-├── __init__.py
-├── circuit_breaker.py     # Circuit breaker pattern
-├── retry_policy.py        # Retry with backoff
-├── fallback.py            # Fallback strategies
-├── bulkhead.py            # Isolation pattern
-└── health_check.py        # Health endpoints
-
-tests/
-├── test_resilience.py
-└── test_chaos.py
-```
-
-**Definition of Done:**
-
-- [ ] Circuit breaker opens on failures
-- [ ] Retry works with exponential backoff
-- [ ] Fallback activates when primary fails
-- [ ] Health check endpoint responds
-- [ ] All tests pass
+- **HEAD:** `595465d` on `sprint6/api-integration`, in sync with `origin`.
+- **⚠️ Ancestry concern:** Sprints 5 (`fdbf148`) and 6 (`e673298`) appear in reflog but may not be ancestors of HEAD. Verify with `git log --oneline --all --graph --decorate` before merging to main.
+- **Dirty working tree:**
+  - Modified: `desktop/frontend/wailsjs/go/main/App.{d.ts,js}` (regenerated bindings)
+  - Modified: `docs/adr/ADR-042-agent-memory-architecture.md`, `ADR-043-compression-strategy.md`
+  - Modified: `vscode-extension/src/client/RyzansteinClient.ts`, `src/commands/CommandHandler.ts`
+  - Modified submodules: `sigma-compress`, `sigma-diff`, `sigma-index`
+  - Untracked submodule dirs: `agentmem`, `ann-hybrid`, `causedb`, `cpu-infer`, `dep-bloom`, `mcp-mesh`, `semlog`
 
 ---
 
-### **STEP 3: Batch Processing Engine**
+## 3. Known Gaps & Technical Debt
 
-_(This is Sprint 4.1 from PHASE_3_SPRINT_PLAN.md)_
+### P0 — Blocking
 
-| Attribute      | Value               |
-| -------------- | ------------------- |
-| **Effort**     | 1-2 weeks           |
-| **Priority**   | MEDIUM              |
-| **Depends On** | Step 2 (Resilience) |
+1. **Verify HEAD ancestry** of Sprint 5/6 commits; cherry-pick or merge if orphaned.
+2. **Reconcile uncommitted wailsjs bindings** — regenerate via `wails generate` and commit deterministically.
+3. **Reconcile uncommitted ADR-042/043 edits** — review diffs, finalize, commit.
+4. **Submodule hygiene** — pin `sigma-*` submodule SHAs, register untracked submodule dirs in `.gitmodules`.
 
-**Files to Create:**
+### P1 — Quality
 
-```
-src/inference/
-├── batch_engine.py        # Dynamic batching
-├── batch_optimizer.py     # Size optimization
-├── request_queue.py       # Request queuing
-└── batch_scheduler.py     # Scheduling logic
+5. VS Code extension uncommitted changes (`RyzansteinClient.ts`, `CommandHandler.ts`) need review + test.
+6. No E2E test suite covering Desktop ↔ Ryzanstein streaming pipeline end-to-end.
+7. No CI gating on `wails build` or `go test ./...` for `desktop/`.
 
-tests/
-└── test_batch_engine.py
-```
+### P2 — Hardening
 
-**Definition of Done:**
-
-- [ ] Dynamic batch size based on load
-- [ ] Priority queue for requests
-- [ ] Latency SLA enforcement
-- [ ] All tests pass
+8. Telemetry pipeline (`sigma-telemetry`) not wired into Desktop runtime.
+9. Audit log integration (`zkaudit`, `vault-git`) deferred.
+10. No code-signing / notarization story for Windows / macOS releases.
 
 ---
 
-### **STEP 4: Model Optimization & Quantization**
+## 4. Phase 2 Sprint Roadmap (Weeks 6+)
 
-_(This is Sprint 4.2 from PHASE_3_SPRINT_PLAN.md)_
+### Sprint 7 — Working Tree Reconciliation (1–2 days)
 
-| Attribute      | Value                 |
-| -------------- | --------------------- |
-| **Effort**     | 1-2 weeks             |
-| **Priority**   | MEDIUM                |
-| **Depends On** | Step 3 (Batch Engine) |
+- Verify git ancestry; rebase/cherry-pick orphaned Sprint 5/6 commits if needed.
+- Regenerate Wails bindings cleanly; commit.
+- Finalize ADR-042/043; commit.
+- Fix submodule registration; commit `.gitmodules`.
+- Open PR `sprint6/api-integration` → `main`.
 
-**Files to Create:**
+### Sprint 8 — End-to-End QA
 
-```
-src/optimization/
-├── __init__.py
-├── quantizer.py           # INT8/INT4 quantization
-├── compressor.py          # Model compression
-├── pruner.py              # Weight pruning
-└── calibrator.py          # Calibration
+- Wire Playwright/WebDriver against built Wails binary.
+- Cover: agent invoke → memory persist → streaming decompress → UI render.
+- Add `go test ./desktop/...` to CI.
 
-tests/
-└── test_optimization.py
-```
+### Sprint 9 — Performance & Observability
 
-**Definition of Done:**
+- Integrate `sigma-telemetry` exporter into Desktop runtime.
+- Profile streaming decompression hot path (`cpu-infer`, `sigma-compress`).
+- Establish P50/P95/P99 latency baselines per IPC route.
 
-- [ ] INT8 quantization working
-- [ ] Model size reduced 2-4x
-- [ ] Accuracy loss <1%
-- [ ] All tests pass
+### Sprint 10 — Security Hardening
 
----
+- Wire `zkaudit` Merkle audit chain for agent invocations.
+- Wire `vault-git` for secret material.
+- Threat model + STRIDE review on IPC surface.
 
-### **STEP 5: Advanced Scheduling & Resource Management**
+### Sprint 11 — Packaging & Release
 
-_(This is Sprint 4.3 from PHASE_3_SPRINT_PLAN.md)_
+- Code-signing pipeline (Windows Authenticode, macOS notarization).
+- Auto-update channel.
+- Installer for Windows (MSIX), macOS (DMG), Linux (AppImage).
 
-| Attribute      | Value                 |
-| -------------- | --------------------- |
-| **Effort**     | 1-2 weeks             |
-| **Priority**   | MEDIUM                |
-| **Depends On** | Step 4 (Optimization) |
+### Sprint 12 — Advanced Agent Memory
 
-**Files to Create:**
-
-```
-src/scheduling/
-├── __init__.py
-├── gpu_memory_manager.py  # GPU memory allocation
-├── batch_scheduler.py     # Advanced scheduling
-├── resource_allocator.py  # Resource allocation
-└── priority_queue.py      # Priority queuing
-
-tests/
-└── test_scheduling.py
-```
-
-**Definition of Done:**
-
-- [ ] GPU memory utilization >80%
-- [ ] Priority scheduling working
-- [ ] Resource isolation
-- [ ] All tests pass
+- Hybrid ANN (`ann-hybrid`) integration with `agentmem`.
+- Causal graph queries (`causedb`) exposed to agent context.
+- Memory eviction & summarization policies.
 
 ---
 
-## 📊 VISUAL ROADMAP
+## 5. Priority Matrix
 
-```
-NOW ──▶ STEP 1 ──▶ STEP 2 ──▶ STEP 3 ──▶ STEP 4 ──▶ STEP 5 ──▶ PHASE 3 COMPLETE
-       Tracing    Resilience  Batching   Quantize   Scheduling
-       & Logging  & Faults    Engine     Optimize   Resources
-
-       ~2 weeks   ~2 weeks    ~2 weeks   ~2 weeks   ~2 weeks   = ~10 weeks total
-```
-
----
-
-## ✅ OVERALL COMPLETION CHECKLIST
-
-- [x] Multi-GPU Optimization - **COMPLETED**
-- [x] Speculative Decoding - **COMPLETED**
-- [x] Sprint 3.1: Monitoring - **COMPLETED**
-- [ ] **STEP 1**: Tracing & Logging - **👈 START HERE**
-- [ ] STEP 2: Resilience & Faults
-- [ ] STEP 3: Batch Processing
-- [ ] STEP 4: Model Optimization
-- [ ] STEP 5: Scheduling & Resources
+| Priority | Sprint                        | Risk if Deferred                                 |
+| -------- | ----------------------------- | ------------------------------------------------ |
+| **P0**   | Sprint 7 (reconciliation)     | Cannot merge to main; blocks all downstream work |
+| **P0**   | Sprint 8 (E2E QA)             | Regressions ship undetected                      |
+| **P1**   | Sprint 9 (perf/observability) | No production visibility                         |
+| **P1**   | Sprint 11 (packaging)         | Cannot distribute                                |
+| **P2**   | Sprint 10 (security)          | Acceptable for alpha, blocker for v1.0           |
+| **P2**   | Sprint 12 (advanced memory)   | Feature, not blocker                             |
 
 ---
 
-## 🔥 IMMEDIATE NEXT ACTION
+## 6. Branch Strategy
 
-**Run this command to start Step 1:**
+- **Now:** `sprint6/api-integration` → land Sprint 7 reconciliation commits.
+- **Then:** Open PR → `main`. Squash-merge after CI green + 1 review.
+- **Going forward:** trunk-based with short-lived `sprintN/*` branches; each merges to `main` weekly.
+- **Tags:** `v0.1.0-alpha` after Sprint 8; `v0.5.0-beta` after Sprint 11; `v1.0.0` after Sprint 12.
+
+---
+
+## 7. Testing Strategy
+
+| Layer         | Tool                | Owner                                                                |
+| ------------- | ------------------- | -------------------------------------------------------------------- |
+| Unit (Go)     | `go test ./...`     | desktop/, mcp-mesh/, neurectomy-shell/, vault-git/                   |
+| Unit (Rust)   | `cargo test`        | sigma-\*, ann-hybrid, causedb, cpu-infer, dep-bloom, semlog, zkaudit |
+| Unit (TS)     | `vitest` / `jest`   | flowstate/, intent-spec/, vscode-extension/                          |
+| Unit (Python) | `pytest`            | agentmem/, archaeo/                                                  |
+| Integration   | custom harness      | IPC router, streaming pipeline                                       |
+| E2E           | Playwright on Wails | full Desktop UX                                                      |
+| CI            | GitHub Actions      | matrix: windows-latest, macos-latest, ubuntu-latest                  |
+
+**Coverage target:** 80% lines on critical paths (IPC router, streaming codec, agent memory).
+
+---
+
+## 8. Release Milestones
+
+| Milestone        | Gate                                      | Target          |
+| ---------------- | ----------------------------------------- | --------------- |
+| **v0.1.0-alpha** | Sprint 8 complete; E2E green              | After Sprint 8  |
+| **v0.2.0**       | Sprint 9 complete; telemetry live         | After Sprint 9  |
+| **v0.5.0-beta**  | Sprints 10–11 complete; signed installers | After Sprint 11 |
+| **v1.0.0**       | Sprint 12 complete; advanced memory GA    | After Sprint 12 |
+
+---
+
+## Immediate Next Action (Sprint 7, Day 1)
 
 ```powershell
-cd c:\Users\sgbil\Ryot\PHASE2_DEVELOPMENT
-New-Item -ItemType Directory -Force -Path src/tracing, src/logging
-New-Item -ItemType File -Force -Path src/tracing/__init__.py, src/logging/__init__.py
+cd S:\Ryot
+git log --oneline --all --graph --decorate | Select-Object -First 30
+git status
+# Reconcile working tree per Section 3 P0 items, then:
+git checkout -b sprint7/reconciliation
 ```
 
-**First file to implement**: `src/tracing/tracer.py`
-
----
-
-## 📝 NOTES
-
-1. This document supersedes all previous action plans
-2. Each "Step" corresponds to a sprint in PHASE_3_SPRINT_PLAN.md
-3. Sprint 3.2-3.3 and 4.1-4.3 are now called Step 1-5 for clarity
-4. When asked "what's next?", always refer to this document
-5. Update the checkboxes in this document as work completes
-
----
-
-**Document Version**: 1.0  
-**Last Updated**: December 31, 2025
+**End of plan.**

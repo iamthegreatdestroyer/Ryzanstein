@@ -226,8 +226,8 @@ func TestLoadTimeout(t *testing.T) {
 	}
 }
 
-// TestContextCancellation verifies context cancellation
-func TestContextCancellation(t *testing.T) {
+// TestAsyncManagerContextCancellation verifies context cancellation
+func TestAsyncManagerContextCancellation(t *testing.T) {
 	manager := NewAsyncModelManager(4)
 	defer manager.Shutdown(context.Background())
 

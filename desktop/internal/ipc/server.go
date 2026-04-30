@@ -1,11 +1,24 @@
 package ipc
 
 import (
+	"bufio"
+	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"sync"
+
+	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/agents"
+	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/client"
+	"github.com/iamthegreatdestroyer/Ryzanstein/desktop/internal/models"
 )
+
+// IPCCommand represents an incoming JSON command from VS Code
+type IPCCommand struct {
+	Command string                 `json:"command"`
+	Params  map[string]interface{} `json:"params,omitempty"`
+}
 
 // Server handles IPC communication between desktop and VS Code
 type Server struct {
@@ -13,12 +26,18 @@ type Server struct {
 	clients   map[string]net.Conn
 	mu        sync.RWMutex
 	isRunning bool
+	agents    *agents.Service
+	models    *models.Service
+	apiClient *client.RyzansteinClient
 }
 
-// NewServer creates a new IPC server
-func NewServer() *Server {
+// NewServer creates a new IPC server with injected services
+func NewServer(agentsSvc *agents.Service, modelsSvc *models.Service, apiClient *client.RyzansteinClient) *Server {
 	return &Server{
-		clients: make(map[string]net.Conn),
+		clients:   make(map[string]net.Conn),
+		agents:    agentsSvc,
+		models:    modelsSvc,
+		apiClient: apiClient,
 	}
 }
 
@@ -63,7 +82,7 @@ func (s *Server) acceptConnections() {
 	}
 }
 
-// handleClient handles a client connection
+// handleClient handles a client connection with JSON command dispatch
 func (s *Server) handleClient(clientID string, conn net.Conn) {
 	defer func() {
 		conn.Close()
@@ -73,22 +92,106 @@ func (s *Server) handleClient(clientID string, conn net.Conn) {
 		log.Printf("[IPC] Client disconnected: %s\n", clientID)
 	}()
 
-	// Read from client
-	buf := make([]byte, 1024)
-	for {
-		n, err := conn.Read(buf)
-		if err != nil {
-			return
+	scanner := bufio.NewScanner(conn)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024) // 1MB buffer
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		log.Printf("[IPC] Received from %s: %s\n", clientID, line)
+
+		var cmd IPCCommand
+		if err := json.Unmarshal([]byte(line), &cmd); err != nil {
+			s.sendResponse(conn, IPCResponse{Status: "error", Error: fmt.Sprintf("invalid JSON: %v", err)})
+			continue
 		}
 
-		message := string(buf[:n])
-		log.Printf("[IPC] Received from %s: %s\n", clientID, message)
+		resp := s.dispatchCommand(cmd)
+		s.sendResponse(conn, resp)
+	}
+}
 
-		// Echo response (will be replaced with actual logic)
-		response := fmt.Sprintf("ACK: %s", message)
-		if _, err := conn.Write([]byte(response)); err != nil {
-			return
-		}
+// dispatchCommand routes an IPCCommand to the appropriate handler
+func (s *Server) dispatchCommand(cmd IPCCommand) IPCResponse {
+	log.Printf("[IPC] Dispatching command: %s\n", cmd.Command)
+
+	switch cmd.Command {
+	case "health":
+		return IPCResponse{Status: "ok", Data: map[string]interface{}{"status": "ok", "version": "1.0.0"}}
+
+	case "infer":
+		return s.handleInfer(cmd.Params)
+
+	case "list_agents":
+		return s.handleListAgents()
+
+	case "list_models":
+		return s.handleListModels()
+
+	default:
+		return IPCResponse{Status: "error", Error: fmt.Sprintf("unknown command: %s", cmd.Command)}
+	}
+}
+
+// handleInfer sends an inference request via the Ryzanstein API client
+func (s *Server) handleInfer(params map[string]interface{}) IPCResponse {
+	prompt, _ := params["prompt"].(string)
+	if prompt == "" {
+		return IPCResponse{Status: "error", Error: "missing required param: prompt"}
+	}
+
+	model, _ := params["model"].(string)
+	if model == "" {
+		model = "default"
+	}
+
+	req := &client.InferenceRequest{
+		Prompt: prompt,
+		Model:  model,
+	}
+
+	resp, err := s.apiClient.Infer(context.Background(), req)
+	if err != nil {
+		return IPCResponse{Status: "error", Error: fmt.Sprintf("inference failed: %v", err)}
+	}
+
+	responseText := ""
+	if len(resp.Choices) > 0 {
+		responseText = resp.Choices[0].Text
+	}
+
+	return IPCResponse{Status: "ok", Data: map[string]interface{}{
+		"response": responseText,
+		"model":    resp.Model,
+		"usage": map[string]interface{}{
+			"prompt_tokens":     resp.Usage.PromptTokens,
+			"completion_tokens": resp.Usage.CompletionTokens,
+			"total_tokens":      resp.Usage.TotalTokens,
+		},
+	}}
+}
+
+// handleListAgents returns registered agents
+func (s *Server) handleListAgents() IPCResponse {
+	agentList := s.agents.ListAgents()
+	return IPCResponse{Status: "ok", Data: agentList}
+}
+
+// handleListModels returns available models
+func (s *Server) handleListModels() IPCResponse {
+	modelList := s.models.ListModels()
+	return IPCResponse{Status: "ok", Data: modelList}
+}
+
+// sendResponse marshals and writes a response to the connection
+func (s *Server) sendResponse(conn net.Conn, resp IPCResponse) {
+	data, err := json.Marshal(resp)
+	if err != nil {
+		log.Printf("[IPC] Error marshaling response: %v\n", err)
+		return
+	}
+	data = append(data, '\n')
+	if _, err := conn.Write(data); err != nil {
+		log.Printf("[IPC] Error writing response: %v\n", err)
 	}
 }
 

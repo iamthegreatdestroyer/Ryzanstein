@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -124,7 +125,7 @@ func (ms *MockServer) Stop() error {
 	ms.mu.Unlock()
 
 	if ms.server != nil {
-		ctx, cancel := time.WithTimeout(time.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		return ms.server.Shutdown(ctx)
 	}

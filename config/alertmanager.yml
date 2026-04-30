@@ -1,0 +1,168 @@
+# AlertManager Configuration
+# [REF:TASK4.1] - Alert routing and notification
+
+global:
+  resolve_timeout: 5m
+  slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'  # SET THIS
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+# Alerting templates
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree
+route:
+  # Default receiver for all alerts
+  receiver: 'default'
+
+  # Group alerts by these labels
+  group_by: ['alertname', 'cluster', 'service']
+
+  # Wait time before sending first notification (avoid alert storms)
+  group_wait: 30s
+
+  # Time between consecutive notifications
+  group_interval: 5m
+
+  # Resend alert if not resolved
+  repeat_interval: 1h
+
+  # Sub-routes for specific alert types
+  routes:
+    # Critical alerts → PagerDuty (immediate)
+    - match:
+        severity: 'critical'
+      receiver: 'pagerduty'
+      group_wait: 10s           # Send immediately
+      repeat_interval: 15m      # Resend every 15 min
+      continue: true            # Also send to default
+
+    # Warning alerts → Slack
+    - match:
+        severity: 'warning'
+      receiver: 'slack-warnings'
+      group_wait: 1m
+      repeat_interval: 1h
+
+    # Info alerts → Slack (separate channel)
+    - match:
+        severity: 'info'
+      receiver: 'slack-info'
+      group_wait: 5m
+      repeat_interval: 1d
+
+    # API-specific alerts
+    - match:
+        component: 'api'
+      receiver: 'slack-api'
+      group_wait: 30s
+      repeat_interval: 2h
+
+    # Database alerts
+    - match:
+        component: 'database'
+      receiver: 'pagerduty'
+      group_wait: 10s
+      repeat_interval: 30m
+
+# Receivers (notification channels)
+receivers:
+  # Default receiver (Slack #alerts)
+  - name: 'default'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#alerts'
+        title: 'Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alerts:* {{ .Alerts.Firing | len }}
+          *Status:* {{ .Status }}
+          {{ range .Alerts }}
+            - *{{ .Labels.severity }}*: {{ .Labels.alertname }} on {{ .Labels.instance }}
+              Description: {{ .Annotations.description }}
+              Value: {{ .Annotations.value }}
+          {{ end }}
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+
+  # PagerDuty for critical alerts
+  - name: 'pagerduty'
+    pagerduty_configs:
+      - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+        description: '{{ .GroupLabels.alertname }}'
+        details:
+          status: '{{ .Status }}'
+          firing: '{{ .Alerts.Firing | len }}'
+          resolved: '{{ .Alerts.Resolved | len }}'
+          alerts: '{{ range .Alerts }}{{ .Labels.alertname }} on {{ .Labels.instance }}; {{ end }}'
+
+  # Slack #api-alerts channel
+  - name: 'slack-api'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#api-alerts'
+        title: 'API Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Instance:* {{ .GroupLabels.instance }}
+          *Severity:* {{ .GroupLabels.severity }}
+          {{ range .Alerts }}
+            - {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+  # Slack #warnings channel (low priority)
+  - name: 'slack-warnings'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#warnings'
+        title: 'Warning: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+
+  # Slack #info channel (very low priority)
+  - name: 'slack-info'
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#info'
+        title: 'Info: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: false  # Don't spam with resolved notifications
+
+  # Email receiver (optional)
+  - name: 'email'
+    email_configs:
+      - to: 'devops@company.com'
+        from: 'alertmanager@company.com'
+        smarthost: 'smtp.gmail.com:587'
+        auth_username: 'alertmanager@company.com'
+        auth_password: 'YOUR_EMAIL_PASSWORD'
+        headers:
+          Subject: 'Alert: {{ .GroupLabels.alertname }}'
+
+  # Webhook for custom integration
+  - name: 'webhook'
+    webhook_configs:
+      - url: 'http://localhost:5001/alerts'
+        send_resolved: true
+
+# Inhibition rules (suppress certain alerts under conditions)
+inhibit_rules:
+  # Suppress warning/info if critical alert exists for same instance
+  - source_match:
+      severity: 'critical'
+    target_match_re:
+      severity: 'warning|info'
+    equal: ['instance', 'alertname']
+
+  # Suppress info if warning exists
+  - source_match:
+      severity: 'warning'
+    target_match:
+      severity: 'info'
+    equal: ['instance', 'alertname']
+
+  # Don't suppress resolved alerts
+  - source_match:
+      status: 'resolved'
+    target_match_re:
+      severity: '.+'
+    equal: ['alertname', 'instance']

@@ -28,6 +28,7 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 #include <sstream>
 #include <chrono>
 #ifdef _OPENMP
@@ -98,14 +99,14 @@ namespace ryzanstein_llm
         void MatmulStats::record_call(uint32_t M, uint32_t N, uint32_t K, double time_ms)
         {
             total_calls++;
-            // FLOPS = 2*M*N*K (one multiply-add per element)
             uint64_t flops = 2ULL * M * N * K;
             total_flops += flops;
             total_time_ms += time_ms;
-
-            // GFLOPS = FLOPS / (time_ms / 1000.0) / 1e9
-            double gflops = (flops / (time_ms / 1000.0)) / 1e9;
-            peak_gflops = std::max(peak_gflops, gflops);
+            if (time_ms > 0.0)
+            {
+                double gflops = (flops / (time_ms / 1000.0)) / 1e9;
+                if (gflops > peak_gflops) peak_gflops = gflops;
+            }
         }
 
         double MatmulStats::get_avg_gflops() const
@@ -317,16 +318,6 @@ namespace ryzanstein_llm
             uint32_t K)
         {
             static CPUFeatures features;
-            static bool logged = false;
-
-            if (!logged)
-            {
-                std::cout << "[SIMD] dispatch_ternary_matvec: " << features.to_string() << std::endl;
-                std::cout << "[SIMD] Optimized matvec: "
-                          << (features.has_avx512f ? "YES (AVX-512)" : "NO (OpenMP scalar)")
-                          << std::endl;
-                logged = true;
-            }
 
             auto start = std::chrono::high_resolution_clock::now();
 
@@ -337,22 +328,30 @@ namespace ryzanstein_llm
             }
             else
             {
+                // Bounds check (safety guard)
+                if (weights.values.size() < static_cast<size_t>(M) * K) {
+                    std::fill(output, output + M, 0.0f);
+                    return;
+                }
+                if (input.values.size() < K) {
+                    std::fill(output, output + M, 0.0f);
+                    return;
+                }
+                
                 // OpenMP-parallelized scalar fallback — one thread per output row
                 const float act_scale = input.scale;
                 const int8_t act_zp   = input.zero_point;
 
-#ifdef _OPENMP
-#pragma omp parallel for schedule(static)
-#endif
                 for (int32_t m = 0; m < static_cast<int32_t>(M); ++m)
                 {
                     float local_sum = 0.0f;
                     for (uint32_t k = 0; k < K; ++k)
                     {
-                        const int8_t ternary_w = weights.values[static_cast<uint32_t>(m) * K + k];
+                        const size_t widx = static_cast<size_t>(m) * K + k;
+                        const int8_t ternary_w = weights.values[widx];
                         if (ternary_w == 0) continue;
                         const float weight_scale =
-                            weights.get_scale(static_cast<uint32_t>(m) * K + k);
+                            weights.get_scale(static_cast<uint32_t>(widx));
                         const int8_t quantized_x = input.values[k];
                         const float dequantized_x =
                             (static_cast<float>(quantized_x) - act_zp) * act_scale;
@@ -366,7 +365,14 @@ namespace ryzanstein_llm
             double time_ms = std::chrono::duration<double, std::milli>(end - start).count();
 
             // Record performance statistics (treat as M×1 output)
-            g_matmul_stats.record_call(M, 1, K, time_ms);
+            g_matmul_stats.total_calls++;
+            g_matmul_stats.total_flops += 2ULL * M * K;
+            g_matmul_stats.total_time_ms += time_ms;
+            if (time_ms > 0.0)
+            {
+                double gflops = (static_cast<double>(2ULL * M * K) / (time_ms / 1000.0)) / 1e9;
+                if (gflops > g_matmul_stats.peak_gflops) g_matmul_stats.peak_gflops = gflops;
+            }
         }
 
     } // namespace avx512

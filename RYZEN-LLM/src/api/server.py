@@ -161,6 +161,37 @@ def simple_detokenize(tokens: List[int]) -> str:
     return " ".join([f"token_{token}" for token in tokens])
 
 
+# Fractal Mycelium — non-linear token exploration before inference
+try:
+    from ..recycler.fractal_mycelium import FractalMycelium
+except ImportError:
+    from recycler.fractal_mycelium import FractalMycelium
+
+_mycelium = FractalMycelium()
+print("✓ Fractal Mycelium (Ryzanstein) initialized")
+
+# Initialize resilience layer (Sprint 3.3) — non-blocking, graceful fallback
+try:
+    from .resilience_integration import (
+        get_health_checker, get_inference_circuit_breaker, get_inference_bulkhead,
+        run_protected_inference, ResilienceMiddleware, initialize_resilience,
+        CircuitOpenError, BulkheadFullError,
+    )
+    _RESILIENCE_AVAILABLE = True
+except ImportError:
+    try:
+        from resilience_integration import (
+            get_health_checker, get_inference_circuit_breaker, get_inference_bulkhead,
+            run_protected_inference, ResilienceMiddleware, initialize_resilience,
+            CircuitOpenError, BulkheadFullError,
+        )
+        _RESILIENCE_AVAILABLE = True
+    except ImportError:
+        _RESILIENCE_AVAILABLE = False
+        class CircuitOpenError(Exception): pass
+        class BulkheadFullError(Exception): pass
+
+
 # Initialize tracing (Sprint 3.2) — non-blocking, graceful fallback
 try:
     from .tracing_integration import (
@@ -203,6 +234,21 @@ if _TRACING_AVAILABLE:
     except Exception as _te:
         print(f"Warning: Tracing middleware setup failed ({_te}) — continuing without tracing")
 
+# Wire resilience middleware (Sprint 3.3)
+if _RESILIENCE_AVAILABLE:
+    try:
+        app.add_middleware(ResilienceMiddleware)
+        # Register engine health check (engine may still be None — registered after init)
+        import asyncio as _asyncio
+        _loop = None
+        try:
+            _loop = _asyncio.get_event_loop()
+        except RuntimeError:
+            pass
+        print("✓ Resilience layer (Sprint 3.3) initialized (circuit breaker, bulkhead, retry)")
+    except Exception as _re:
+        print(f"Warning: Resilience middleware setup failed ({_re}) — continuing without resilience")
+
 
 @app.get("/")
 async def root():
@@ -210,28 +256,84 @@ async def root():
     return {
         "message": "Ryzanstein LLM API Server",
         "version": "0.1.0",
-        "endpoints": ["/v1/chat/completions", "/v1/embeddings", "/v1/models", "/health"]
+        "endpoints": ["/v1/chat/completions", "/v1/embeddings", "/v1/models",
+                      "/health", "/health/live", "/health/ready"]
     }
 
 
 @app.get("/health")
 async def health_check():
     """
-    Health check endpoint for service monitoring.
-    
+    Health check endpoint for service monitoring (backward-compatible).
+
     Returns:
-        Health status with engine state
+        Health status with engine state and resilience metrics
     """
     import time
-    return {
+    response = {
         "status": "healthy",
         "engine_loaded": engine is not None,
         "engine_type": engine_type,
         "bindings_available": BINDINGS_AVAILABLE,
         "using_mock": USING_MOCK if 'USING_MOCK' in dir() else False,
         "model_path": "models/bitnet",
-        "timestamp": int(time.time())
+        "timestamp": int(time.time()),
     }
+    # Attach resilience stats if available
+    if _RESILIENCE_AVAILABLE:
+        try:
+            cb = get_inference_circuit_breaker()
+            bh = get_inference_bulkhead()
+            response["circuit_breaker"] = cb.get_stats()
+            response["bulkhead"] = bh.get_stats()
+        except Exception:
+            pass
+    return response
+
+
+@app.get("/health/live")
+async def liveness_probe():
+    """
+    Kubernetes liveness probe — is the process alive?
+    Returns 200 as long as the event loop is running.
+    """
+    if _RESILIENCE_AVAILABLE:
+        checker = get_health_checker()
+        report = await checker.check_liveness()
+        status_code = 200 if report.is_healthy else 503
+        return report.to_dict()
+    return {"status": "alive"}
+
+
+@app.get("/health/ready")
+async def readiness_probe():
+    """
+    Kubernetes readiness probe — is the service ready to accept traffic?
+    Checks engine initialization and circuit breaker state.
+    """
+    from fastapi.responses import JSONResponse
+    if _RESILIENCE_AVAILABLE:
+        try:
+            # Register engine health lazily on first readiness check
+            checker = get_health_checker()
+            if engine is not None:
+                from .resilience_integration import register_engine_health
+                register_engine_health(engine, engine_type)
+        except Exception:
+            pass
+        checker = get_health_checker()
+        report = await checker.check_readiness()
+        status_code = 200 if report.is_ready else 503
+        return JSONResponse(content=report.to_dict(), status_code=status_code)
+
+    # Fallback readiness without resilience library
+    from fastapi.responses import JSONResponse
+    if engine is None:
+        return JSONResponse(
+            content={"status": "not_ready", "reason": "engine not initialized"},
+            status_code=503
+        )
+    return JSONResponse(content={"status": "ready"}, status_code=200)
 
 
 class ModelListResponse(BaseModel):
@@ -317,6 +419,9 @@ async def chat_completions(
                 input_tokens = simple_tokenize(user_input)
                 if not input_tokens:
                     raise HTTPException(status_code=400, detail="Failed to tokenize input")
+
+                # Fractal Mycelium: grow 1000+ parallel sub-thought paths, collapse to richest
+                input_tokens = _mycelium.grow(input_tokens)
 
                 # Create generation config
                 gen_config = rlb.GenerationConfig()

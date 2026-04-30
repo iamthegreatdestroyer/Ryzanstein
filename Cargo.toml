@@ -1,0 +1,27 @@
+[workspace]
+members = [
+    "dependencies/zkaudit",
+    "dependencies/sigma-telemetry",
+    "dependencies/semlog",
+    "dependencies/sigma-api",
+    "dependencies/sigma-compress",
+    "dependencies/cpu-infer",
+    "dependencies/causedb",
+    "dependencies/dep-bloom",
+    "dependencies/ann-hybrid",
+]
+
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[profile.bench]
+inherits = "release"

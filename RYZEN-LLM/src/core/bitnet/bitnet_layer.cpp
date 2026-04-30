@@ -49,11 +49,6 @@ namespace ryzanstein_llm
             {
                 throw std::invalid_argument("GEMM engine cannot be null");
             }
-
-            std::cout << "Initialized BitNet layer\n";
-            std::cout << "  Hidden dim: " << params_.attn.hidden_dim << "\n";
-            std::cout << "  Num heads: " << params_.attn.num_heads << "\n";
-            std::cout << "  FFN dim: " << params_.ffn.ffn_dim << "\n";
         }
 
         size_t BitNetLayer::get_workspace_size(uint32_t batch_size, uint32_t seq_len) const

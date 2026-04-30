@@ -1,6 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { SendMessage, GetHistory } from "../../wailsjs/go/main/App";
+  import {
+    SendMessage,
+    SendMessageStream,
+    GetHistory,
+    ClearHistory,
+    CheckAPIHealth,
+  } from "../../wailsjs/go/main/App";
   import { EventsOn } from "../../wailsjs/runtime/runtime";
 
   export let config = null;
@@ -10,44 +16,123 @@
   let selectedModel = config?.defaultModel || "ryzanstein-7b";
   let selectedAgent = config?.defaultAgent || "@APEX";
   let isLoading = false;
+  let isStreaming = false;
+  let streamingContent = "";
+  let useStreaming = true;
+  let apiHealthy: boolean | null = null;
   let messageContainer;
 
   onMount(async () => {
     // Load chat history
     try {
-      messages = await GetHistory(50);
+      const history = await GetHistory(50);
+      if (history) messages = history;
     } catch (error) {
       console.error("Error loading history:", error);
     }
 
-    // Listen for incoming messages
+    // Check API health
+    try {
+      apiHealthy = await CheckAPIHealth();
+    } catch {
+      apiHealthy = false;
+    }
+
+    // Listen for non-streaming messages
     EventsOn("chat:message", (message) => {
-      messages = [...messages, message];
-      scrollToBottom();
+      if (!isStreaming) {
+        messages = [...messages, message];
+        scrollToBottom();
+      }
     });
 
     EventsOn("chat:response", (message) => {
-      messages = [...messages, message];
+      if (!isStreaming) {
+        messages = [...messages, message];
+        isLoading = false;
+        scrollToBottom();
+      }
+    });
+
+    // Listen for streaming events
+    EventsOn("chat:streamStart", () => {
+      isStreaming = true;
+      streamingContent = "";
       scrollToBottom();
+    });
+
+    EventsOn("chat:streamToken", (token: string) => {
+      streamingContent += token;
+      scrollToBottom();
+    });
+
+    EventsOn("chat:streamEnd", (message) => {
+      messages = [...messages, message];
+      isStreaming = false;
+      isLoading = false;
+      streamingContent = "";
+      scrollToBottom();
+    });
+
+    EventsOn("chat:streamError", (error: string) => {
+      console.error("Stream error:", error);
+      if (streamingContent) {
+        messages = [
+          ...messages,
+          {
+            id: `msg_${Date.now()}`,
+            role: "assistant",
+            content: streamingContent || `[Stream Error] ${error}`,
+            timestamp: Date.now() / 1000,
+          },
+        ];
+      }
+      isStreaming = false;
+      isLoading = false;
+      streamingContent = "";
     });
   });
 
   const scrollToBottom = () => {
-    if (messageContainer) {
-      messageContainer.scrollTop = messageContainer.scrollHeight;
-    }
+    setTimeout(() => {
+      if (messageContainer) {
+        messageContainer.scrollTop = messageContainer.scrollHeight;
+      }
+    }, 10);
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isLoading) return;
 
     const message = inputValue;
     inputValue = "";
     isLoading = true;
 
+    // Add user message to display immediately
+    messages = [
+      ...messages,
+      {
+        id: `msg_${Date.now()}`,
+        role: "user",
+        content: message,
+        timestamp: Date.now() / 1000,
+      },
+    ];
+    scrollToBottom();
+
     try {
-      const response = await SendMessage(message, selectedModel, selectedAgent);
-      console.log("Response:", response);
+      if (useStreaming) {
+        await SendMessageStream(message, selectedModel, selectedAgent);
+        // Response comes via events
+      } else {
+        const response = await SendMessage(
+          message,
+          selectedModel,
+          selectedAgent
+        );
+        // Response is added via events from the backend
+        isLoading = false;
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       messages = [
@@ -59,9 +144,7 @@
           timestamp: Date.now() / 1000,
         },
       ];
-    } finally {
       isLoading = false;
-      scrollToBottom();
     }
   };
 
@@ -69,6 +152,15 @@
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleClearHistory = async () => {
+    try {
+      await ClearHistory();
+      messages = [];
+    } catch (error) {
+      console.error("Failed to clear history:", error);
     }
   };
 </script>

@@ -1,0 +1,238 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-config
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+data:
+  # =========================================================================
+  # Environment Configuration
+  # =========================================================================
+  API_HOST: "0.0.0.0"
+  API_PORT: {{ .Values.api.port | quote }}
+  LOG_LEVEL: "INFO"
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+  # =========================================================================
+  # Observability Configuration
+  # =========================================================================
+  JAEGER_AGENT_HOST: "jaeger"
+  JAEGER_AGENT_PORT: "6831"
+  PROMETHEUS_PUSHGATEWAY: "prometheus-pushgateway:9091"
+
+  # =========================================================================
+  # Model Configuration (YAML)
+  # =========================================================================
+  model.yaml: |
+    # BitNet 1.58b configuration
+    model_name: bitnet-1.58b
+    model_type: bitnet
+    vocab_size: {{ .Values.modelConfig.vocab_size }}
+    hidden_size: {{ .Values.modelConfig.hidden_size }}
+    intermediate_size: {{ .Values.modelConfig.intermediate_size }}
+    num_layers: {{ .Values.modelConfig.num_layers }}
+    num_heads: {{ .Values.modelConfig.num_heads }}
+    head_dim: {{ .Values.modelConfig.head_dim }}
+    max_seq_length: {{ .Values.modelConfig.max_seq_length }}
+
+    # Inference settings
+    temperature: {{ .Values.modelConfig.temperature }}
+    top_p: {{ .Values.modelConfig.top_p }}
+    max_tokens: {{ .Values.modelConfig.max_tokens }}
+
+    # Optimization flags
+    use_tmac: {{ .Values.modelConfig.use_tmac }}
+    use_speculative_decoding: {{ .Values.modelConfig.use_speculative_decoding }}
+    use_kv_cache: {{ .Values.modelConfig.use_kv_cache }}
+
+    # Quantization
+    quantization: int8
+    use_avx512: true
+    use_openmp: true
+
+    # Cache configuration
+    kv_cache_size_mb: 2048
+    enable_kv_cache_quantization: false
+
+  # =========================================================================
+  # Prometheus Configuration
+  # =========================================================================
+  prometheus.yaml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: kubernetes
+        environment: {{ .Values.global.environment }}
+
+    scrape_configs:
+      - job_name: ryzanstein-api
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - {{ .Release.Namespace }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: ryzanstein-api
+          - source_labels: [__meta_kubernetes_pod_ip]
+            action: replace
+            target_label: __address__
+            replacement: $1:8000
+
+      - job_name: ryzanstein-mcp
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - {{ .Release.Namespace }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: ryzanstein-mcp
+
+      - job_name: prometheus
+        static_configs:
+          - targets: [localhost:9090]
+
+      - job_name: qdrant
+        kubernetes_sd_configs:
+          - role: service
+            namespaces:
+              names:
+                - {{ .Release.Namespace }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: .*qdrant.*
+
+  # =========================================================================
+  # API Configuration
+  # =========================================================================
+  api.yaml: |
+    server:
+      host: 0.0.0.0
+      port: 8000
+      workers: auto
+      timeout: 30
+      request_size_limit: 100mb
+
+    models:
+      bitnet-1.58b:
+        path: /app/models/bitnet-1.58b/model.safetensors
+        format: safetensors
+        quantization: int8
+        enabled: true
+
+    inference:
+      batch_size: 32
+      max_batch_wait_ms: 100
+      num_threads: auto
+      use_speculative_decoding: true
+
+    cache:
+      type: memory
+      max_size_mb: 2048
+      ttl_seconds: 3600
+
+    auth:
+      enabled: false
+      secret_key: "changeme"
+      algorithm: HS256
+
+    cors:
+      enabled: true
+      origins: ["*"]
+      methods: ["GET", "POST", "OPTIONS"]
+
+    logging:
+      level: INFO
+      format: json
+      output: stdout
+
+  # =========================================================================
+  # MCP Configuration
+  # =========================================================================
+  mcp.yaml: |
+    server:
+      host: 0.0.0.0
+      ports:
+        inference: 8001
+        registry: 8002
+        training: 8003
+
+    agents:
+      count: 40
+      max_concurrent: 16
+      timeout_seconds: 300
+
+    inference:
+      max_tokens: 4096
+      num_threads: auto
+      use_gpu: false
+
+    logging:
+      level: INFO
+      format: json
+
+---
+# Model configuration (BitNet 1.58b specifics)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-model-config
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+data:
+  # Model metadata
+  model_name: "bitnet-1.58b"
+  model_size: "1.58B"
+  model_type: "bitnet"
+  quantization: "int8"
+  compression_ratio: "4.5x"
+
+  # Performance expectations
+  throughput_tok_per_sec: "25"  # On Ryzen 7730U
+  latency_ms_p99: "500"
+  memory_peak_mb: "2048"
+
+  # Download URL (for init container)
+  model_url: "https://huggingface.co/1bitLLM/bitnet_b1_58-large/resolve/main/model.safetensors"
+
+---
+# Application configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ryzanstein.fullname" . }}-app-config
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "ryzanstein.labels" . | nindent 4 }}
+data:
+  # Kubernetes-specific settings
+  k8s.enabled: "true"
+  k8s.namespace: {{ .Release.Namespace | quote }}
+  k8s.cluster_name: "kubernetes"
+
+  # Service discovery
+  service.api.endpoint: "{{ include "ryzanstein.fullname" . }}-api:8000"
+  service.mcp.endpoint: "{{ include "ryzanstein.fullname" . }}-mcp:8001"
+  service.qdrant.endpoint: "{{ include "ryzanstein.fullname" . }}-qdrant:6333"
+  service.prometheus.endpoint: "prometheus:9090"
+  service.grafana.endpoint: "grafana:3000"
+  service.jaeger.endpoint: "jaeger:16686"
+
+  # Feature flags
+  features.metrics: "true"
+  features.tracing: "true"
+  features.alerts: "true"
+  features.autoscaling: "true"
+  features.persistence: "true"
+
+  # Debug settings
+  debug.enabled: "false"
+  debug.log_level: "INFO"

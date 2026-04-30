@@ -82,6 +82,22 @@ func NewConnectionPool(config *PoolConfig) *ConnectionPool {
 	if config == nil {
 		config = DefaultPoolConfig()
 	}
+	// Ensure max >= min so channel buffer is large enough for initialization.
+	if config.HTTPMinPoolSize > config.HTTPMaxPoolSize {
+		config.HTTPMaxPoolSize = config.HTTPMinPoolSize
+	}
+	if config.GRPCMinPoolSize > config.GRPCMaxPoolSize {
+		config.GRPCMaxPoolSize = config.GRPCMinPoolSize
+	}
+	if config.HealthCheckInterval == 0 {
+		config.HealthCheckInterval = 30 * time.Second
+	}
+	if config.IdleTimeout == 0 {
+		config.IdleTimeout = 5 * time.Minute
+	}
+	if config.MaxConnAge == 0 {
+		config.MaxConnAge = 10 * time.Minute
+	}
 
 	metrics := &PoolMetrics{}
 
@@ -174,7 +190,7 @@ func (cp *ConnectionPool) GetHTTPClient() *http.Client {
 		return client
 	default:
 		// Pool empty, create new if under max
-		currentSize := atomic.LoadInt32(&cp.metrics.CurrentSize)
+		currentSize := atomic.LoadInt32(&cp.httpPool.createdCount)
 		if currentSize < int32(cp.config.HTTPMaxPoolSize) {
 			client := &http.Client{
 				Timeout: 30 * time.Second,
