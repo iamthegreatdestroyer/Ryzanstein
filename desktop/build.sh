@@ -13,7 +13,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 APP_NAME="Ryzanstein"
-VERSION=$(grep -m 1 'version' package.json | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+VERSION=$(grep -m 1 '"version"' wails.json 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || echo "0.1.0")
 BUILD_DIR="build"
 DIST_DIR="dist"
 

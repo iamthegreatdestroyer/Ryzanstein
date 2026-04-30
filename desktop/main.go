@@ -60,7 +60,7 @@ func (a *App) Startup(ctx context.Context) {
 	a.config, err = config.NewManager()
 	if err != nil {
 		log.Printf("[Desktop] Failed to load config: %v\n", err)
-		runtime.MessageDialog(ctx, runtime.MessageDialogOptions{
+		runtime.MessageDialog(ctx, runtime.MessageDialogOptions{ //nolint:errcheck // #nosec G104
 			Type:    runtime.ErrorDialog,
 			Title:   "Startup Error",
 			Message: fmt.Sprintf("Failed to load config: %v", err),
@@ -103,7 +103,7 @@ func (a *App) Shutdown(ctx context.Context) {
 	a.isRunning = false
 
 	a.chat.Close()
-	a.ipc.Close()
+	a.ipc.Close() //nolint:errcheck // #nosec G104
 
 	log.Println("[Desktop] Application shutdown complete")
 }
@@ -602,9 +602,9 @@ func main() {
 		existing := os.Getenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
 		debugFlag := fmt.Sprintf("--remote-debugging-port=%s", port)
 		if existing != "" {
-			os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", existing+" "+debugFlag)
+			os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", existing+" "+debugFlag) //nolint:errcheck // #nosec G104
 		} else {
-			os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", debugFlag)
+			os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", debugFlag) //nolint:errcheck // #nosec G104
 		}
 		log.Printf("[Desktop] CDP debug port enabled: %s", port)
 	}
