@@ -596,6 +596,19 @@ func (a *App) startIPCServer() {
 func main() {
 	app := NewApp()
 
+	// If RYZANSTEIN_DEBUG_PORT is set, forward it as WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS
+	// so Playwright's CDP harness can connect. This must be set before wails.Run.
+	if port := os.Getenv("RYZANSTEIN_DEBUG_PORT"); port != "" {
+		existing := os.Getenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
+		debugFlag := fmt.Sprintf("--remote-debugging-port=%s", port)
+		if existing != "" {
+			os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", existing+" "+debugFlag)
+		} else {
+			os.Setenv("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS", debugFlag)
+		}
+		log.Printf("[Desktop] CDP debug port enabled: %s", port)
+	}
+
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:      "Ryzanstein",

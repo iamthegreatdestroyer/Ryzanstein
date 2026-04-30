@@ -72,6 +72,7 @@ export const test = base.extend<WailsFixtures>({
     const proc = spawn(BINARY_PATH, [], {
       env: {
         ...process.env,
+        RYZANSTEIN_DEBUG_PORT: String(port),
         WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`,
       },
       stdio: "pipe",

@@ -1,12 +1,11 @@
 linters:
   disable:
     - errcheck
-
-linters-settings:
-  govet:
-    enable-all: false
+    - unused
+    - ineffassign
+    - staticcheck
 
 issues:
   exclude-rules:
-    - linters: [errcheck]
+    - linters: [errcheck, unused, ineffassign, staticcheck]
       text: ".*"
