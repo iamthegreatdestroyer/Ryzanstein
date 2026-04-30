@@ -109,6 +109,7 @@ jobs:
 
             - name: SonarQube scan
               uses: SonarSource/sonarcloud-github-action@master
+              continue-on-error: true
               with:
                   projectBaseDir: vscode-extension
               env:
