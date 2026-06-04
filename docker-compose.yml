@@ -1,3 +1,4 @@
+# Port range: 19xxx (Ryzanstein reserved)
 # Ryzanstein LLM — Production Docker Compose Stack
 # [REF:TASK4.1] - Multi-service orchestration with monitoring & observability
 #
@@ -31,7 +32,7 @@ services:
     container_name: ryzanstein-api
     image: ryzanstein:latest
     ports:
-      - "8000:8000"     # FastAPI OpenAI-compatible endpoints
+      - "19100:8000"    # FastAPI OpenAI-compatible endpoints
     environment:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=INFO
@@ -85,9 +86,9 @@ services:
     entrypoint: /app/mcp_server
     command: --host 0.0.0.0 --port 8001 --registry-port 8002 --training-port 8003
     ports:
-      - "8001:8001"     # Inference client gRPC
-      - "8002:8002"     # Agent registry gRPC
-      - "8003:8003"     # Training server gRPC
+      - "19101:8001"    # Inference client gRPC
+      - "19102:8002"    # Agent registry gRPC
+      - "19103:8003"    # Training server gRPC
     environment:
       - LOG_LEVEL=INFO
       - MCP_SERVER_HOST=0.0.0.0
@@ -125,8 +126,8 @@ services:
     image: qdrant/qdrant:v1.7.0
     container_name: qdrant
     ports:
-      - "6333:6333"     # REST API
-      - "6334:6334"     # gRPC API
+      - "19333:6333"    # REST API
+      - "19334:6334"    # gRPC API
     environment:
       - LOG_LEVEL=info
     volumes:
@@ -160,7 +161,7 @@ services:
     image: prom/prometheus:v2.48.0
     container_name: prometheus
     ports:
-      - "9090:9090"
+      - "19090:9090"
     volumes:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -194,7 +195,7 @@ services:
     image: grafana/grafana:10.2.0
     container_name: grafana
     ports:
-      - "3000:3000"
+      - "19000:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=changeme
@@ -229,10 +230,10 @@ services:
     image: jaegertracing/all-in-one:v1.50
     container_name: jaeger
     ports:
-      - "6831:6831/udp"  # Jaeger agent (UDP/compact)
-      - "6832:6832/udp"  # Jaeger agent (UDP/thrift)
-      - "16686:16686"    # Jaeger UI
-      - "14268:14268"    # Jaeger collector (HTTP)
+      - "19831:6831/udp"  # Jaeger agent (UDP/compact)
+      - "19832:6832/udp"  # Jaeger agent (UDP/thrift)
+      - "19686:16686"     # Jaeger UI
+      - "19268:14268"     # Jaeger collector (HTTP)
     environment:
       - COLLECTOR_ZIPKIN_HTTP_PORT=9411
       - MEMORY_MAX_TRACES=10000
@@ -266,7 +267,7 @@ services:
     image: prom/alertmanager:v0.26.0
     container_name: alertmanager
     ports:
-      - "9093:9093"
+      - "19093:9093"
     volumes:
       - ./config/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
       - alertmanager_data:/alertmanager
@@ -298,7 +299,7 @@ services:
     image: prom/pushgateway:v1.7.0
     container_name: prometheus-pushgateway
     ports:
-      - "9091:9091"
+      - "19091:9091"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9091/-/healthy"]
       interval: 30s
@@ -358,11 +359,11 @@ networks:
 #    docker-compose up -d
 #
 # 4. Access services:
-#    - API: http://localhost:8000 (OpenAI-compatible)
-#    - Grafana: http://localhost:3000 (admin/changeme)
-#    - Jaeger: http://localhost:16686 (tracing UI)
-#    - Prometheus: http://localhost:9090 (metrics)
-#    - Qdrant: http://localhost:6333 (vector DB)
+#    - API: http://localhost:19100 (OpenAI-compatible)
+#    - Grafana: http://localhost:19000 (admin/changeme)
+#    - Jaeger: http://localhost:19686 (tracing UI)
+#    - Prometheus: http://localhost:19090 (metrics)
+#    - Qdrant: http://localhost:19333 (vector DB)
 #
 # 5. Monitor logs:
 #    docker-compose logs -f ryzanstein-api
