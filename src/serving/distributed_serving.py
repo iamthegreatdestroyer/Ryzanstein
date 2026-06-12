@@ -477,15 +477,15 @@ class HealthMonitor:
     async def check_gpu_health(self, gpu_id: int) -> bool:
         """
         Check if GPU is healthy.
-        
+
         Returns:
             True if GPU is healthy
         """
-        async with self.lock:
+        async with self.gpu_locks[gpu_id]:
             # Check error count (too many errors = unhealthy)
             if self.error_counts[gpu_id] > 10:
                 return False
-            
+
             # In real implementation, check temperature, memory, etc.
             return True
     
@@ -532,7 +532,7 @@ class MetricsCollector:
     
     async def record_request(self, response: InferenceResponse):
         """Record request metrics."""
-        async with self.lock:
+        async with self.record_lock:
             self.request_latencies.append(response.total_time_ms)
             
             if response.total_time_ms > 0:
@@ -666,7 +666,7 @@ class DistributedServingEngine:
         while self.running:
             try:
                 # Dequeue requests
-                requests = await self.request_queue.dequeue(count=self.max_batch_size)
+                requests = await self.request_queue.dequeue(count=self.batcher.max_batch_size)
                 
                 if not requests:
                     await asyncio.sleep(0.01)

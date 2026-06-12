@@ -7,6 +7,7 @@ processing to eliminate logging contention in high-throughput scenarios.
 
 import asyncio
 import logging
+import queue
 import sys
 import threading
 import time
@@ -46,8 +47,8 @@ class LockFreeLogger:
         self.max_queue_size = max_queue_size
         self.batch_size = batch_size
 
-        # Lock-free queue for log messages
-        self.log_queue = asyncio.Queue(maxsize=max_queue_size)
+        # Thread-safe queue for log messages (safe to use from background OS threads)
+        self.log_queue = queue.Queue(maxsize=max_queue_size)
 
         # Background processing
         self.running = False
@@ -96,12 +97,9 @@ class LockFreeLogger:
         }
 
         try:
-            # Non-blocking put - if queue is full, message is dropped
-            await asyncio.wait_for(
-                self.log_queue.put(log_entry),
-                timeout=0.001  # 1ms timeout
-            )
-        except asyncio.TimeoutError:
+            # Non-blocking put — drops message if queue is full
+            self.log_queue.put_nowait(log_entry)
+        except queue.Full:
             # Queue is full, increment dropped counter
             self.dropped_messages += 1
 
@@ -158,11 +156,11 @@ class LockFreeLogger:
                     # Try to get one message with timeout
                     while len(batch) < self.batch_size:
                         try:
-                            # This is a blocking call in the background thread
+                            # Thread-safe non-blocking get from queue.Queue
                             log_entry = self.log_queue.get_nowait()
                             batch.append(log_entry)
                             self.processed_messages += 1
-                        except asyncio.QueueEmpty:
+                        except queue.Empty:
                             break
                 except Exception as e:
                     # If we can't get messages, continue
