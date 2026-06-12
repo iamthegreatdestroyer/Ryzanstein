@@ -95,21 +95,44 @@ class MCPBridge:
     ) -> Dict[str, Any]:
         """
         Handle an MCP protocol request.
-        
-        Args:
-            message: MCP request message
-            
-        Returns:
-            MCP response message
+
+        Supported methods:
+          - tools/list      → list registered tools
+          - tools/call      → call a tool by name with arguments
+          - ping            → liveness check
         """
-        # TODO: Implement request handling
-        # 1. Parse MCP message
-        # 2. Validate request
-        # 3. Route to appropriate handler
-        # 4. Execute tool
-        # 5. Format response
-        raise NotImplementedError("MCP request handling not yet implemented")
-    
+        method = message.get("method", "")
+        msg_id = message.get("id")
+        params = message.get("params", {})
+
+        def ok(result: Any) -> Dict[str, Any]:
+            return {"jsonrpc": "2.0", "id": msg_id, "result": result}
+
+        def err(code: int, msg: str) -> Dict[str, Any]:
+            return {"jsonrpc": "2.0", "id": msg_id, "error": {"code": code, "message": msg}}
+
+        if method == "ping":
+            return ok({"status": "pong"})
+
+        if method == "tools/list":
+            return ok({"tools": self.list_tools()})
+
+        if method == "tools/call":
+            tool_name = params.get("name")
+            arguments = params.get("arguments", {})
+            session_id = params.get("session_id")
+            if not tool_name:
+                return err(-32602, "Missing required param: name")
+            try:
+                result = await self.call_tool(tool_name, arguments, session_id)
+                return ok({"content": [{"type": "text", "text": json.dumps(result)}]})
+            except ValueError as exc:
+                return err(-32601, str(exc))
+            except Exception as exc:
+                return err(-32603, f"Tool execution error: {exc}")
+
+        return err(-32601, f"Method not found: {method}")
+
     async def call_tool(
         self,
         tool_name: str,
@@ -117,40 +140,33 @@ class MCPBridge:
         session_id: Optional[str] = None
     ) -> Any:
         """
-        Call a registered tool.
-        
-        Args:
-            tool_name: Name of tool to call
-            arguments: Tool arguments
-            session_id: Optional session identifier
-            
-        Returns:
-            Tool execution result
+        Call a registered tool by name.
+
+        Appends to session tool_history if session_id is provided.
+        Raises ValueError if the tool does not exist.
         """
-        # TODO: Implement tool calling
-        # 1. Validate tool exists
-        # 2. Validate arguments
-        # 3. Call handler
-        # 4. Handle errors
         if tool_name not in self.tools:
             raise ValueError(f"Unknown tool: {tool_name}")
-        
+
         tool = self.tools[tool_name]
-        # TODO: Execute tool.handler(arguments)
-        raise NotImplementedError("Tool calling not yet implemented")
-    
+
+        if session_id and session_id in self.sessions:
+            self.sessions[session_id]["tool_history"].append({
+                "tool": tool_name,
+                "arguments": arguments,
+            })
+
+        import inspect as _inspect
+        if _inspect.iscoroutinefunction(tool.handler):
+            return await tool.handler(arguments)
+        return tool.handler(arguments)
+
     def create_session(self, session_id: str) -> None:
-        """
-        Create a new MCP session.
-        
-        Args:
-            session_id: Unique session identifier
-        """
-        # TODO: Initialize session state
+        """Create a new MCP session."""
         self.sessions[session_id] = {
-            "created_at": None,  # TODO: timestamp
+            "created_at": int(__import__("time").time()),
             "context": {},
-            "tool_history": []
+            "tool_history": [],
         }
     
     def cleanup_session(self, session_id: str) -> None:

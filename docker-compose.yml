@@ -44,6 +44,14 @@ services:
       - JAEGER_AGENT_HOST=jaeger
       - JAEGER_AGENT_PORT=6831
       - PROMETHEUS_PUSHGATEWAY=prometheus:9091
+      # Auth (Sprint 5): set API_KEYS to comma-separated bearer tokens.
+      # Inject via Docker secrets or external vault in production.
+      - API_KEYS=${RYZANSTEIN_API_KEYS:-}
+      - API_KEYS_FILE=${RYZANSTEIN_API_KEYS_FILE:-}
+      - AUTH_DISABLED=${AUTH_DISABLED:-0}
+      # Rate limiting (Sprint 5)
+      - RATE_LIMIT_REQUESTS=${RATE_LIMIT_REQUESTS:-60}
+      - RATE_LIMIT_WINDOW_S=${RATE_LIMIT_WINDOW_S:-60}
     volumes:
       - ./RYZEN-LLM/models:/app/models:ro              # Read-only model weights
       - ./cache:/app/cache:rw                          # Persistent cache

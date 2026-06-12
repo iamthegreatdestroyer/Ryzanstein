@@ -14,7 +14,7 @@ Key Features:
 """
 
 from typing import List, Optional, Dict, Any, AsyncIterator
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, Security
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 import asyncio
@@ -160,6 +160,16 @@ def simple_detokenize(tokens: List[int]) -> str:
     # Placeholder - real implementation needs proper vocabulary
     return " ".join([f"token_{token}" for token in tokens])
 
+
+# Auth + rate limiting (Sprint 5)
+try:
+    from .auth import verify_api_key
+    from .rate_limiter import check_rate_limit
+    _AUTH_AVAILABLE = True
+except ImportError:
+    from auth import verify_api_key
+    from rate_limiter import check_rate_limit
+    _AUTH_AVAILABLE = True
 
 # Initialize resilience layer (Sprint 3.3) — non-blocking, graceful fallback
 try:
@@ -334,7 +344,7 @@ class ModelListResponse(BaseModel):
 
 
 @app.get("/v1/models")
-async def list_models() -> ModelListResponse:
+async def list_models(api_key: str = Depends(verify_api_key)) -> ModelListResponse:
     """
     List available models.
 
@@ -358,7 +368,8 @@ async def list_models() -> ModelListResponse:
 
 @app.post("/v1/chat/completions")
 async def chat_completions(
-    request: ChatCompletionRequest
+    request: ChatCompletionRequest,
+    api_key: str = Depends(verify_api_key),
 ):
     """
     Generate chat completions.
@@ -374,6 +385,9 @@ async def chat_completions(
             status_code=503,
             detail="Engine not available. Please check server logs."
         )
+
+    # Rate limiting — checked per API key
+    await check_rate_limit(api_key)
 
     # For now, implement non-streaming only
     if request.stream:
@@ -460,7 +474,10 @@ async def chat_completions(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
 @app.post("/v1/embeddings")
-async def create_embeddings(request: EmbeddingRequest):
+async def create_embeddings(
+    request: EmbeddingRequest,
+    api_key: str = Depends(verify_api_key),
+):
     """
     Generate embeddings for text.
 
@@ -521,6 +538,107 @@ async def generate_stream(
     # 2. Yield tokens as they're generated
     # 3. Format as SSE
     yield "data: [DONE]\n\n"
+
+
+# ---------------------------------------------------------------------------
+# Sprint 6 — ZK audit integration + MCP endpoint
+# ---------------------------------------------------------------------------
+
+try:
+    from .audit_trail import AuditManager, ZkProof
+    from .mcp_bridge import MCPBridge
+    _AUDIT_AVAILABLE = True
+except ImportError:
+    from audit_trail import AuditManager, ZkProof
+    from mcp_bridge import MCPBridge
+    _AUDIT_AVAILABLE = True
+
+# MCP bridge singleton with built-in tools
+_mcp = MCPBridge()
+
+
+def _register_builtin_tools() -> None:
+    """Register built-in inference tools on the MCP bridge."""
+    def _health_tool(_args: dict) -> dict:
+        return {"status": "healthy", "engine": engine_type}
+
+    def _models_tool(_args: dict) -> dict:
+        return {"models": [engine_type] if engine is not None else []}
+
+    _mcp.register_tool(
+        name="health",
+        description="Check server and engine health",
+        parameters={"type": "object", "properties": {}},
+        handler=_health_tool,
+    )
+    _mcp.register_tool(
+        name="list_models",
+        description="List available inference models",
+        parameters={"type": "object", "properties": {}},
+        handler=_models_tool,
+    )
+
+
+_register_builtin_tools()
+
+
+class AuditRequest(BaseModel):
+    """Request body for the ZK audit endpoint."""
+    request_id: str = Field(..., description="Inference request ID to audit")
+    model: str = Field(default="unknown")
+    prompt_tokens: int = Field(default=0, ge=0)
+    output_tokens: int = Field(default=0, ge=0)
+
+
+@app.post("/v1/audit")
+async def generate_audit_proof(
+    request: AuditRequest,
+    api_key: str = Depends(verify_api_key),
+) -> dict:
+    """
+    Generate a Schnorr ZK proof of inference audit trail.
+
+    Returns a Merkle root over the audit entries and a ZK proof
+    binding the root to the request ID, without revealing entry contents.
+    Protocol: RFC 3526 Group 5 prime, Fiat-Shamir heuristic.
+    """
+    await check_rate_limit(api_key)
+    manager = AuditManager(
+        request_id=request.request_id,
+        api_key_prefix=api_key[:8],
+    )
+    manager.record_inference(
+        model=request.model,
+        prompt_tokens=request.prompt_tokens,
+        output_tokens=request.output_tokens,
+    )
+    return manager.seal()
+
+
+class MCPRequest(BaseModel):
+    """JSON-RPC 2.0 MCP request."""
+    jsonrpc: str = Field(default="2.0")
+    id: Optional[int] = None
+    method: str
+    params: dict = Field(default_factory=dict)
+
+
+@app.post("/mcp")
+async def mcp_endpoint(
+    request: MCPRequest,
+    api_key: str = Depends(verify_api_key),
+) -> dict:
+    """
+    MCP (Model Context Protocol) JSON-RPC endpoint.
+
+    Supported methods:
+      ping          — liveness check
+      tools/list    — list available tools
+      tools/call    — invoke a tool by name
+    """
+    await check_rate_limit(api_key)
+    message = request.model_dump()
+    return await _mcp.handle_request(message)
 
 
 if __name__ == "__main__":
