@@ -161,15 +161,6 @@ def simple_detokenize(tokens: List[int]) -> str:
     return " ".join([f"token_{token}" for token in tokens])
 
 
-# Fractal Mycelium — non-linear token exploration before inference
-try:
-    from ..recycler.fractal_mycelium import FractalMycelium
-except ImportError:
-    from recycler.fractal_mycelium import FractalMycelium
-
-_mycelium = FractalMycelium()
-print("✓ Fractal Mycelium (Ryzanstein) initialized")
-
 # Initialize resilience layer (Sprint 3.3) — non-blocking, graceful fallback
 try:
     from .resilience_integration import (
@@ -419,9 +410,6 @@ async def chat_completions(
                 input_tokens = simple_tokenize(user_input)
                 if not input_tokens:
                     raise HTTPException(status_code=400, detail="Failed to tokenize input")
-
-                # Fractal Mycelium: grow 1000+ parallel sub-thought paths, collapse to richest
-                input_tokens = _mycelium.grow(input_tokens)
 
                 # Create generation config
                 gen_config = rlb.GenerationConfig()
