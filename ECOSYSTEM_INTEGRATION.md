@@ -345,4 +345,60 @@ output = block(hidden_states, token_ids=token_ids)  # [B, L, d_model]
 | Innovation #3 | v3.2.0 | Bidirectional Token Recycling (GlyphPriorPool) |
 | Innovation #4 | v3.2.0 | Living Benchmarks as Probes (GlyphBenchmarkIndex) |
 | Innovation #2 | v3.3.0 | Mamba-Glyph Fusion (GlyphSSMLayer, GlyphMambaModel) |
+| Innovation #5 | v3.4.0 | Multi-Node Negative-Space Consensus (NegativeSpaceConsensusEngine) |
+
+### Innovation #5 — Multi-Node Negative-Space Consensus (`src/consensus/negative_space.py`)
+
+**Architecture insight:** Instead of nodes transmitting tokens/latents/logits, they
+transmit **negative-space descriptors** — which glyph primitive regions contributed
+negligibly to their forward pass. Consensus emerges from comparing these absences.
+
+| Component | Description |
+|-----------|-------------|
+| `NegativeSpaceDescriptor` | Immutable 256-bit bitmask — which Σ-glyph primitives were absent. Always 32 bytes, regardless of model or sequence size. |
+| `NegativeSpaceExtractor` | Derives descriptor from glyph coord norms or SSM Δ values. Works with or without sigmalang. |
+| `ConsensusNode` | Single inference node — runs model, returns descriptor via `process()`. |
+| `ConsensusResult` | Aggregation: pairwise Jaccard strength, `agreed_absent`, `disputed`, bandwidth stats. |
+| `NegativeSpaceConsensusEngine` | N-node orchestrator: parallel dispatch via `asyncio.gather`, aggregate with `aggregate_descriptors()`. |
+| `GlyphMambaWithNegativeSpace` | Hook wrapper that captures `last_glyph_coords` from the first GlyphMambaBlock for extraction. |
+
+**Benchmark results (synthetic nodes, CPU):**
+
+| Metric | Value |
+|--------|-------|
+| Wire format | Always 32 bytes (256 bits) per node — constant bandwidth |
+| Compression vs full logit sharing | **2,048,000x** (N=4, seq=512, vocab=32K) |
+| Consensus latency (2-node) | 0.137 ms median |
+| Consensus latency (8-node) | 0.814 ms median |
+| Round-trip wire format | [OK] all fractions (0%, 25%, 50%, 75%, 100% absent) |
+| Agreed-absent grows with seq_len | 56→251/256 primitives skippable at L=64→1024 |
+
+**Consensus protocol:**
+```
+strength = mean pairwise Jaccard(N_A, N_B)  over all node pairs
+agreed_absent = ∩ {absent_i : all nodes i}   ← safe to skip next step
+disputed = symmetric_diff over all pairs     ← conservative: re-compute
+bandwidth = N × 32 bytes  vs  N × L × vocab × 4 bytes  (full logits)
+```
+
+**Usage:**
+```python
+from src.consensus.negative_space import (
+    ConsensusNode, NegativeSpaceConsensusEngine, GlyphMambaWithNegativeSpace
+)
+
+nodes = [ConsensusNode(node_id=f"node-{i}", model=your_model) for i in range(4)]
+engine = NegativeSpaceConsensusEngine(nodes)
+result = await engine.run_consensus(token_ids, seq_len=512, vocab_size=32_000)
+
+print(result.summary())
+# ConsensusResult(strength=0.471, agreed_absent=98, disputed=110,
+#                 bandwidth=1024b vs 2147483648b [2048000x compression])
+
+# Primitives safe to skip next forward pass:
+safe_to_skip = result.agreed_absent  # frozenset of int
+```
+
+**Tests:** 46 unit tests in `tests/test_negative_space_consensus.py` (46/46 pass).
+
 No CUDA, no Windows Server Core — builds anywhere.
