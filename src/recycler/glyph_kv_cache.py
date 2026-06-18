@@ -35,6 +35,7 @@ except ImportError:
     _SIGMALANG_AVAILABLE = False
 
 from .semantic_kv_cache import SemanticKVCache, KVCacheEntry, CHUNK_SIZE
+from .glyph_prior_pool import GlyphPriorPool
 
 
 # ---------------------------------------------------------------------------
@@ -224,11 +225,30 @@ class HybridKVCache:
       2. Glyph-semantic (GlyphKVCache) — semantic deduplication
 
     Stores always go to both caches so future lookups hit either path.
+
+    Innovation #3 — Bidirectional Token Recycling:
+      Every store() call accumulates a glyph residue in the GlyphPriorPool.
+      lookup_with_prior() returns the pool's current prior alongside the KV,
+      so the serving engine can add it to logits and steer generation toward
+      glyphs that appeared in similar past contexts.
     """
 
-    def __init__(self, max_entries: int = 512, chunk_size: int = CHUNK_SIZE):
+    def __init__(
+        self,
+        max_entries: int = 512,
+        chunk_size: int = CHUNK_SIZE,
+        prior_strength: float = 0.15,
+        prior_decay: float = 0.95,
+        vocab_size: int = 32_000,
+    ):
         self.token_cache = SemanticKVCache(max_entries=max_entries, chunk_size=chunk_size)
         self.glyph_cache = GlyphKVCache(max_entries=max_entries, chunk_size=chunk_size)
+        self.prior_pool  = GlyphPriorPool(
+            vocab_size=vocab_size,
+            decay_factor=prior_decay,
+            prior_strength=prior_strength,
+        )
+        self._store_count: int = 0
 
     def lookup(self, token_ids: List[int]) -> Tuple[list, int]:
         kv, length = self.token_cache.lookup(token_ids)
@@ -236,16 +256,41 @@ class HybridKVCache:
             return kv, length
         return self.glyph_cache.lookup(token_ids)
 
+    def lookup_with_prior(self, token_ids: List[int], vocab_size: Optional[int] = None):
+        """
+        Extended lookup that also returns the current glyph prior.
+
+        Returns:
+            (kv_tensors, prefix_length, prior_logits)
+
+            prior_logits is a List[float] of length vocab_size.
+            The caller adds it to model logits to apply bidirectional recycling.
+            If sigmalang is absent or the pool is empty, prior_logits is all zeros.
+        """
+        kv, length = self.lookup(token_ids)
+        prior = self.prior_pool.prior_logits(vocab_size)
+        return kv, length, prior
+
     def store(self, token_ids: List[int], kv_tensors: list) -> None:
+        """Store KV tensors and accumulate glyph residue in the prior pool."""
         self.token_cache.store(token_ids, kv_tensors)
         self.glyph_cache.store(token_ids, kv_tensors)
+        # Bidirectional recycling: leave a residue so future lookups benefit
+        self.prior_pool.accumulate(token_ids)
+        self._store_count += 1
+        # Decay every 32 stores to keep residues fresh
+        if self._store_count % 32 == 0:
+            self.prior_pool.decay()
 
     def invalidate(self, prefix_hash: Optional[str] = None) -> None:
         self.token_cache.invalidate(prefix_hash)
         self.glyph_cache.invalidate(prefix_hash)
+        if prefix_hash is None:
+            self.prior_pool.reset()
 
     def stats(self) -> dict:
         return {
             "token_cache": self.token_cache.stats(),
             "glyph_cache": self.glyph_cache.stats(),
+            "prior_pool":  self.prior_pool.stats(),
         }

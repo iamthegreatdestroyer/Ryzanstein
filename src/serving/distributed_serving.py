@@ -35,6 +35,7 @@ import torch
 import torch.nn as nn
 
 from ..recycler.glyph_kv_cache import HybridKVCache
+from ..recycler.glyph_benchmark_index import GlyphBenchmarkIndex
 
 logger = logging.getLogger(__name__)
 
@@ -603,13 +604,20 @@ class DistributedServingEngine:
         self.health_monitor = HealthMonitor(num_gpus)
         self.metrics = MetricsCollector()
 
-        # Glyph-native KV cache (Sprint 1)
-        # HybridKVCache tries token-exact lookup first, then glyph-semantic.
-        # Requests whose prompt prefix matches a cached entry skip the full
-        # model forward pass for that prefix (prefix reuse).
-        self.kv_cache = HybridKVCache(max_entries=512)
+        # Glyph-native KV cache (Sprint 1) + Bidirectional Prior (Innovation #3)
+        # HybridKVCache: token-exact lookup first, then glyph-semantic fallback.
+        # Prior pool accumulates glyph residues across requests and feeds them
+        # back into logits so past contexts nudge future generation coherently.
+        self.kv_cache = HybridKVCache(max_entries=512, prior_strength=0.15)
         self._cache_hits = 0
         self._cache_misses = 0
+        self._prior_vocab_size = 32_000   # must match model's actual vocab_size
+
+        # Innovation #4: Living Benchmarks as Probes
+        # Records (token_context, {latency_ms, cache_hit_rate, batch_size}) after
+        # every batch. suggest_params() queries nearest historical workloads and
+        # returns auto-tuning hints for draft size, chunk size, etc.
+        self.benchmark_index = GlyphBenchmarkIndex(max_entries=2_000)
 
         # State
         self.running = False
@@ -704,18 +712,23 @@ class DistributedServingEngine:
 
             # ------------------------------------------------------------------
             # Sprint 1: KV cache prefix lookup per request.
-            # Requests that share a cached prefix only need to forward the
-            # uncached suffix through the model. We record the cached_prefix_len
-            # so downstream code (future sprint) can pass it to the model's
-            # KV-state initialisation. For now it drives the hit/miss counters.
+            # Innovation #3: lookup_with_prior() also returns the glyph residue
+            # prior accumulated from past generations. This prior is applied to
+            # logits BEFORE argmax, steering the model toward glyphs that
+            # appeared frequently in recent similar contexts (bidirectional
+            # token recycling).
             # ------------------------------------------------------------------
             prefix_lengths: List[int] = []
+            prior_logits_list: List[List[float]] = []
             for i in range(batch.tokens.shape[0]):
                 token_list = batch.tokens[i].tolist()
                 # Strip padding zeros from the right before lookup
                 token_list = [t for t in token_list if t != 0] or token_list
-                _, cached_len = self.kv_cache.lookup(token_list)
+                _, cached_len, prior = self.kv_cache.lookup_with_prior(
+                    token_list, vocab_size=self._prior_vocab_size
+                )
                 prefix_lengths.append(cached_len)
+                prior_logits_list.append(prior)
                 if cached_len > 0:
                     self._cache_hits += 1
                 else:
@@ -728,15 +741,27 @@ class DistributedServingEngine:
             exec_start = time.time()
             with torch.no_grad():
                 logits = self.model(batch.tokens)
+
+            # Apply glyph prior (bidirectional recycling) — add residue bias
+            # Only applied when at least one non-zero prior exists (avoids
+            # tensor construction cost on cold starts)
+            if any(any(p > 0.0 for p in pv) for pv in prior_logits_list):
+                import torch as _torch
+                prior_tensor = _torch.tensor(
+                    prior_logits_list, dtype=logits.dtype, device=logits.device
+                )  # [batch, vocab_or_prior_dim]
+                v = min(prior_tensor.shape[-1], logits.shape[-1])
+                logits[:, :v] = logits[:, :v] + prior_tensor[:, :v]
+
             batch.execution_time_ms = (time.time() - exec_start) * 1000
 
-            # Store KV for each sequence so future requests benefit
+            # Store KV + accumulate glyph residue so future requests benefit
             for i in range(batch.tokens.shape[0]):
                 token_list = batch.tokens[i].cpu().tolist()
                 token_list = [t for t in token_list if t != 0] or token_list
                 # kv_tensors: logits slice as proxy until real KV states wired in
-                kv_proxy = [logits[i].cpu().tolist()]
-                self.kv_cache.store(token_list, kv_proxy)
+                kv_proxy = [logits[i].detach().cpu().tolist()]
+                self.kv_cache.store(token_list, kv_proxy)  # store() calls prior_pool.accumulate()
 
             # Generate responses
             for i, request_id in enumerate(batch.request_ids):
@@ -754,6 +779,18 @@ class DistributedServingEngine:
                     self.processed_requests[request_id] = response
 
                 await self.metrics.record_request(response)
+
+            # Innovation #4: record batch performance in the living benchmark index
+            total_reqs = self._cache_hits + self._cache_misses
+            hit_rate = self._cache_hits / total_reqs if total_reqs else 0.0
+            for i in range(batch.tokens.shape[0]):
+                token_list = batch.tokens[i].cpu().tolist()
+                token_list = [t for t in token_list if t != 0] or token_list
+                self.benchmark_index.record(token_list, {
+                    "latency_ms":     batch.execution_time_ms,
+                    "cache_hit_rate": hit_rate,
+                    "batch_size":     float(batch.tokens.shape[0]),
+                })
 
             # Reset GPU errors on success
             await self.health_monitor.reset_errors(gpu_id)
@@ -783,7 +820,9 @@ class DistributedServingEngine:
                 "engine_cache_hits": self._cache_hits,
                 "engine_cache_misses": self._cache_misses,
                 "engine_hit_rate": round(self._cache_hits / total, 4) if total else 0.0,
+                "prior_pool": self.kv_cache.prior_pool.stats(),
             },
+            "benchmark_index": self.benchmark_index.stats(),
         }
     
     async def shutdown(self):
