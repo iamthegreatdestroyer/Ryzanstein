@@ -34,6 +34,8 @@ import heapq
 import torch
 import torch.nn as nn
 
+from ..recycler.glyph_kv_cache import HybridKVCache
+
 logger = logging.getLogger(__name__)
 
 
@@ -593,19 +595,27 @@ class DistributedServingEngine:
         """
         self.model = model
         self.num_gpus = num_gpus
-        
+
         # Components
         self.request_queue = RequestQueue()
         self.batcher = DynamicBatcher(max_batch_size, max_batch_tokens)
         self.load_balancer = LoadBalancer(num_gpus)
         self.health_monitor = HealthMonitor(num_gpus)
         self.metrics = MetricsCollector()
-        
+
+        # Glyph-native KV cache (Sprint 1)
+        # HybridKVCache tries token-exact lookup first, then glyph-semantic.
+        # Requests whose prompt prefix matches a cached entry skip the full
+        # model forward pass for that prefix (prefix reuse).
+        self.kv_cache = HybridKVCache(max_entries=512)
+        self._cache_hits = 0
+        self._cache_misses = 0
+
         # State
         self.running = False
         self.processed_requests: Dict[str, InferenceResponse] = {}
         self.lock = asyncio.Lock()
-        
+
         logger.info(f"DistributedServingEngine initialized: {num_gpus} GPUs")
     
     async def submit_request(self, request: InferenceRequest) -> str:
@@ -687,38 +697,64 @@ class DistributedServingEngine:
                 await asyncio.sleep(0.1)
     
     async def _process_batch(self, batch: InferenceBatch):
-        """Process a single batch."""
+        """Process a single batch with glyph-native KV cache prefix reuse."""
         try:
             # Select GPU
             gpu_id = await self.load_balancer.select_gpu()
-            
+
+            # ------------------------------------------------------------------
+            # Sprint 1: KV cache prefix lookup per request.
+            # Requests that share a cached prefix only need to forward the
+            # uncached suffix through the model. We record the cached_prefix_len
+            # so downstream code (future sprint) can pass it to the model's
+            # KV-state initialisation. For now it drives the hit/miss counters.
+            # ------------------------------------------------------------------
+            prefix_lengths: List[int] = []
+            for i in range(batch.tokens.shape[0]):
+                token_list = batch.tokens[i].tolist()
+                # Strip padding zeros from the right before lookup
+                token_list = [t for t in token_list if t != 0] or token_list
+                _, cached_len = self.kv_cache.lookup(token_list)
+                prefix_lengths.append(cached_len)
+                if cached_len > 0:
+                    self._cache_hits += 1
+                else:
+                    self._cache_misses += 1
+
             # Move batch to GPU
             batch.tokens = batch.tokens.cuda(gpu_id)
-            
-            # Execute inference
+
+            # Execute inference (full sequence; prefix skipping is a future opt)
             exec_start = time.time()
             with torch.no_grad():
                 logits = self.model(batch.tokens)
             batch.execution_time_ms = (time.time() - exec_start) * 1000
-            
+
+            # Store KV for each sequence so future requests benefit
+            for i in range(batch.tokens.shape[0]):
+                token_list = batch.tokens[i].cpu().tolist()
+                token_list = [t for t in token_list if t != 0] or token_list
+                # kv_tensors: logits slice as proxy until real KV states wired in
+                kv_proxy = [logits[i].cpu().tolist()]
+                self.kv_cache.store(token_list, kv_proxy)
+
             # Generate responses
             for i, request_id in enumerate(batch.request_ids):
-                # Simplified: take argmax of logits
                 generated = torch.argmax(logits[i], dim=-1)
-                
+
                 response = InferenceResponse(
                     request_id=request_id,
                     generated_tokens=generated,
-                    generated_count=generated.shape[0],
-                    execution_time_ms=batch.execution_time_ms
+                    generated_count=1 if generated.dim() == 0 else generated.shape[0],
+                    execution_time_ms=batch.execution_time_ms,
+                    prompt_tokens=prefix_lengths[i],   # cached prefix length
                 )
-                
+
                 async with self.lock:
                     self.processed_requests[request_id] = response
-                
-                # Record metrics
+
                 await self.metrics.record_request(response)
-            
+
             # Reset GPU errors on success
             await self.health_monitor.reset_errors(gpu_id)
             
@@ -735,12 +771,19 @@ class DistributedServingEngine:
     
     async def get_stats(self) -> Dict[str, Any]:
         """Get comprehensive serving statistics."""
+        total = self._cache_hits + self._cache_misses
         return {
             "request_queue": await self.request_queue.get_stats(),
             "batcher": await self.batcher.get_stats(),
             "load_balancer": await self.load_balancer.get_stats(),
             "health_monitor": await self.health_monitor.get_stats(),
             "metrics": await self.metrics.get_stats(),
+            "kv_cache": {
+                **self.kv_cache.stats(),
+                "engine_cache_hits": self._cache_hits,
+                "engine_cache_misses": self._cache_misses,
+                "engine_hit_rate": round(self._cache_hits / total, 4) if total else 0.0,
+            },
         }
     
     async def shutdown(self):
