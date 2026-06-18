@@ -220,3 +220,72 @@ Source: arxiv:2410.16144v1 — confirmed by 2-of-3 adversarial verification.
 | S4 | AVX-512 VNNI + BitNet 2-bit ternary kernels | ✅ |
 | S5 | Bearer auth + sliding-window rate limiter + Docker | ✅ |
 | S6 | ZK audit trail + MCP endpoint + this document | ✅ |
+| Sprint 1 (v3.1) | Glyph-native KV cache (HybridKVCache + GlyphKVCache), `/v1/glyphs` API | ✅ |
+| Sprint 2 (v3.1) | `/v1/embeddings` (1024-dim, L2-norm, last hidden state), `src/api/server.py` | ✅ |
+| Sprint 3 (v3.1) | `/mcp/tools` manifest + `/mcp/tools/call` dispatcher, Linux Dockerfile | ✅ |
+
+---
+
+## Sprint 2–3 (v3.1) — Detailed Reference
+
+### `/v1/embeddings` — Embedding Vectors
+
+Generates 1024-dim float vectors from the model's mean-pooled last hidden state.
+Vectors are L2-normalised so that `dot(a, b) == cosine_similarity(a, b)`.
+
+**Request:**
+```json
+{"input": "code or text", "model": "ryzanstein-bitnet-7b"}
+```
+
+Batch form:
+```json
+{"input": ["doc one", "doc two"]}
+```
+
+**Response:**
+```json
+{
+  "object": "list",
+  "model": "ryzanstein-bitnet-7b",
+  "data": [{"object": "embedding", "index": 0, "embedding": [...1024 floats]}],
+  "usage": {"prompt_tokens": 12, "total_tokens": 12}
+}
+```
+
+**Sigma consumers and their call patterns:**
+
+| Repo | What it does | Endpoint |
+|------|-------------|----------|
+| `sigma-compress` | Semantic dedup before compression | `POST /v1/embeddings` |
+| `sigma-index` | Feed HNSW index (ChromaDB) | `POST /v1/embeddings` |
+| `sigma-diff` | Cosine similarity scoring | `POST /v1/embeddings` (pair) |
+
+### `/mcp/tools` — Tool Manifest
+
+Returns the MCP-compatible tool manifest for mcp-mesh auto-registration.
+
+```
+GET /mcp/tools      → {schema_version, server_name, server_version, tools: [...]}
+POST /mcp/tools/call → {name, input} → tool-specific response
+```
+
+**Available tools:**
+
+| Tool | Input | Output |
+|------|-------|--------|
+| `generate` | `{prompt, max_tokens, temperature}` | `{text, tokens_generated}` |
+| `embed` | `{text}` | `{embedding, dim}` |
+| `encode_glyphs` | `{tokens: [int]}` | `{glyph_hex, compression_ratio, glyph_count}` |
+
+### Docker (Linux, Sprint 3)
+
+The Dockerfile was rewritten as a clean Linux multi-stage build.
+
+```bash
+docker build --target runtime -t ryzanstein-llm:latest .
+docker run -p 8000:8000 ryzanstein-llm:latest
+```
+
+Runtime image: Python 3.11-slim + CPU-only torch ≈ 1.6 GB.
+No CUDA, no Windows Server Core — builds anywhere.
