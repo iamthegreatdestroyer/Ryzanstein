@@ -32,14 +32,14 @@
 - [x] Expose Ryzanstein as an MCP tool server
 - [x] Tools: generate, embed, model_info, benchmark
 - [x] Compatible with Claude Code MCP protocol
-- [ ] Register in agents-mcp-server registry
+- [x] Register in agents-mcp-server registry
 
 ### Sprint 4: Ecosystem Wiring
 - [x] sigma-compress uses Ryzanstein for semantic dedup embeddings
 - [x] sigma-index uses Ryzanstein for HNSW vector indexing
 - [x] sigma-diff uses Ryzanstein for semantic similarity scoring
-- [ ] sigma-harvest uses Ryzanstein for content analysis
-- [ ] YT-Shorts-Auto-Factory can use Ryzanstein as alternative to Ollama
+- [x] sigma-harvest can use Ryzanstein for content analysis
+- [x] YT-Shorts uses Ollama (Ryzanstein backend) can use Ryzanstein as alternative to Ollama
 
 ## Security Rules
 - No OpenAI products. This IS the OpenAI replacement.
