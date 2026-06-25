@@ -1,59 +1,60 @@
-# Ryot (Ryzanstein LLM) — Autonomous Session Brief
+# Ryot (Ryzanstein LLM) — v4.0 Upgrade Brief
 
 ## Project Identity
-- **Repo:** `iamthegreatdestroyer/Ryot`
-- **Local path:** `S:\Ryot`
+- **Repo:** iamthegreatdestroyer/Ryot
 - **Language:** Python + C++ (T-MAC kernels)
-- **Castle Layer:** Layer 4 — Storage & Inference (Core LLM Engine)
-- **Status:** ✅ LIVE — v2.0.0, BitNet 1.58b + T-MAC + AVX-512 @ 55 tok/s
-- **Mission:** CPU-First LLM inference engine for AMD Ryzanstein processors
+- **Castle Layer:** Layer 4 — Storage & Inference
+- **Current:** v3.1.0 (BitNet 1.58b + T-MAC + AVX-512 @ 55 tok/s)
+- **Target:** v4.0.0 — Add vllm-rs Rust backend + MCP integration
+- **Mission:** CPU-First LLM inference, no GPU required, no cloud dependency
 
-## This Session's Goal
-Ryot is already live. This session: **integration hardening + ecosystem wiring**.
+## What Already Works
+- BitNet 1.58b ternary model inference
+- T-MAC C++ kernels for AVX-512 optimization
+- OpenAI-compatible API server (/v1/chat/completions, /v1/embeddings)
+- 55 tok/s on AMD Ryzen, ~2 tok/s on AMD A9-9425
 
-### Sprint 1 — Verify Inference Still Works (Hour 1)
-```
-@APEX start the API server: python -m uvicorn src.api.server:app --host 0.0.0.0 --port 8000
-Test: curl http://localhost:8000/v1/chat/completions -d '{"model":"bitnet-7b","messages":[{"role":"user","content":"hi"}]}'
-Verify: response received, tokens/sec logged.
-If server fails to start: read logs, fix startup error.
-```
+## v4.0 Sprint Plan
 
-### Sprint 2 — /v1/embeddings Endpoint (Hours 1–2)
-```
-@APEX verify POST /v1/embeddings exists and returns embedding vectors.
-This endpoint is called by: sigma-compress (semantic dedup), sigma-index (HNSW), sigma-diff (scoring).
-If missing: implement it using the loaded model's last hidden state as embedding.
-Input: {"input": "code snippet", "model": "bitnet-7b"}
-Output: {"data": [{"embedding": [...1024 floats], "index": 0}]}
-Test: curl the endpoint and verify vector dimension.
-```
+### Sprint 1: Verify Current State
+- [x] Start API server: `python3 -m uvicorn src.api.server:app --host 0.0.0.0 --port 8000`
+- [x] Test /v1/chat/completions endpoint
+- [x] Test /v1/embeddings endpoint
+- [x] Document what works and what is broken
 
-### Sprint 3 — MCP Protocol Support (Hour 3)
-```
-@APEX verify the MCP tool_use endpoint: GET /mcp/tools → list available tools
-If missing: wire MCP adapter that exposes inference as a "generate" tool.
-Test with mcp-mesh: the mesh should be able to register Ryot as an agent.
-```
+### Sprint 2: Add vllm-rs Backend Option
+- [x] Add configuration for vllm-rs as alternative backend
+- [x] vllm-rs provides: OpenAI-compatible API, MCP tool calling, 175 tok/s on GPU
+- [x] Keep BitNet/T-MAC as the CPU-optimized path
+- [x] Add backend selector in config: bitnet | vllm-rs | ollama-proxy
 
-### Sprint 4 — Docker Image + Documentation (Hour 4)
-```
-@FORGE run: docker build --target runtime -t ryzanstein-llm:latest .
-Verify: docker run -p 8000:8000 ryzanstein-llm:latest → server starts.
+### Sprint 3: MCP Server Integration
+- [x] Expose Ryzanstein as an MCP tool server
+- [x] Tools: generate, embed, model_info, benchmark
+- [x] Compatible with Claude Code MCP protocol
+- [ ] Register in agents-mcp-server registry
 
-@SCRIBE write ECOSYSTEM_INTEGRATION.md:
-  - /v1/embeddings API reference (for sigma-compress, sigma-index, sigma-diff)
-  - /v1/chat/completions reference (for agent use)
-  - MCP integration guide (for mcp-mesh registration)
-  - Required env vars: MODEL_PATH, RYZANSTEIN_PORT (default 8000)
-```
+### Sprint 4: Ecosystem Wiring
+- [x] sigma-compress uses Ryzanstein for semantic dedup embeddings
+- [x] sigma-index uses Ryzanstein for HNSW vector indexing
+- [x] sigma-diff uses Ryzanstein for semantic similarity scoring
+- [ ] sigma-harvest uses Ryzanstein for content analysis
+- [ ] YT-Shorts-Auto-Factory can use Ryzanstein as alternative to Ollama
 
-## Done Criteria
-- [ ] API server starts and responds to inference requests
-- [ ] `/v1/embeddings` returns 1024-dim float vectors
-- [ ] `docker build` succeeds
-- [ ] `ECOSYSTEM_INTEGRATION.md` written with API reference
-- [ ] MCP tools endpoint accessible
+## Security Rules
+- No OpenAI products. This IS the OpenAI replacement.
+- Model weights stored locally only
+- API keys for rate limiting, not cloud auth
+
+## Build Commands
+```bash
+cd /opt/sigmavault/repos/Layer-4-Storage-Ryot
+pip install -e ".[dev]"
+python -m uvicorn src.api.server:app --host 0.0.0.0 --port 8000
+pytest tests/
+```
 
 ## Completion Signal
-Commit "chore: ecosystem wiring for v2.0.0" and push.
+```bash
+git tag v4.0.0
+```
