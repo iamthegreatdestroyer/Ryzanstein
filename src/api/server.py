@@ -45,6 +45,9 @@ logger = logging.getLogger(__name__)
 MODEL_NAME = os.getenv("MODEL_NAME", "ryzanstein-bitnet-7b")
 MODEL_PATH = os.getenv("MODEL_PATH", "")
 EMBED_DIM  = int(os.getenv("EMBED_DIM", "1024"))
+BACKEND    = os.getenv("RYZANSTEIN_BACKEND", "stub")  # stub | ollama
+OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwythos-9b")
 _MODEL_CREATED_TS = 1_700_000_000   # stable epoch for /v1/models
 
 # ---------------------------------------------------------------------------
@@ -107,6 +110,38 @@ def _tokenize(text: str, max_len: int = 512) -> List[int]:
 
 
 # ---------------------------------------------------------------------------
+# Ollama proxy backend
+# ---------------------------------------------------------------------------
+
+async def _ollama_chat(messages: list, model: str, max_tokens: int,
+                       temperature: float, top_p: float, stream: bool) -> dict:
+    """Forward chat completion to Ollama's OpenAI-compat endpoint."""
+    import httpx
+    payload = {
+        "model": model,
+        "messages": [{"role": m.role, "content": m.content} for m in messages],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "top_p": top_p,
+        "stream": False,
+    }
+    async with httpx.AsyncClient(timeout=300.0) as client:
+        resp = await client.post(f"{OLLAMA_URL}/v1/chat/completions", json=payload)
+        resp.raise_for_status()
+        return resp.json()
+
+
+async def _ollama_embed(texts: List[str], model: str) -> dict:
+    """Forward embedding request to Ollama's OpenAI-compat endpoint."""
+    import httpx
+    payload = {"model": model, "input": texts}
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        resp = await client.post(f"{OLLAMA_URL}/v1/embeddings", json=payload)
+        resp.raise_for_status()
+        return resp.json()
+
+
+# ---------------------------------------------------------------------------
 # Request / Response models
 # ---------------------------------------------------------------------------
 
@@ -162,8 +197,9 @@ async def health():
     return {
         "status": "ok",
         "uptime_s": round(time.time() - _start_time, 1),
-        "model": MODEL_NAME,
-        "stub_mode": MODEL_PATH == "" or not os.path.exists(MODEL_PATH),
+        "model": OLLAMA_MODEL if BACKEND == "ollama" else MODEL_NAME,
+        "backend": BACKEND,
+        "stub_mode": BACKEND == "stub" and (MODEL_PATH == "" or not os.path.exists(MODEL_PATH)),
     }
 
 
@@ -291,7 +327,14 @@ async def _stream_completion(
 async def chat_completions(request: ChatCompletionRequest):
     req_id = uuid.uuid4().hex[:12]
 
-    # Build flat prompt from messages
+    if BACKEND == "ollama":
+        result = await _ollama_chat(
+            request.messages, OLLAMA_MODEL, request.max_tokens,
+            request.temperature, request.top_p, request.stream,
+        )
+        return JSONResponse(result)
+
+    # Stub/local backend: build flat prompt from messages
     prompt_parts = []
     for msg in request.messages:
         prefix = {"system": "<<SYS>>", "user": "User:", "assistant": "Asst:"}.get(msg.role, "")
@@ -323,7 +366,7 @@ async def create_embeddings(request: EmbeddingRequest):
     """
     Generate embedding vectors from input text(s).
 
-    Returns 1024-dim float vectors derived from the model's last hidden state
+    Returns embedding vectors derived from the model's last hidden state
     (mean-pool over token positions). This is the interface consumed by:
       - sigma-compress  (semantic deduplication)
       - sigma-index     (HNSW approximate search)
@@ -333,10 +376,14 @@ async def create_embeddings(request: EmbeddingRequest):
         {"input": "text" | ["text1", "text2", ...], "model": "ryzanstein-bitnet-7b"}
 
     Output:
-        {"object": "list", "data": [{"embedding": [...1024 floats], "index": 0}], ...}
+        {"object": "list", "data": [{"embedding": [...floats], "index": 0}], ...}
     """
-    model = _get_model()
     inputs: List[str] = [request.input] if isinstance(request.input, str) else list(request.input)
+
+    if BACKEND == "ollama":
+        return JSONResponse(await _ollama_embed(inputs, OLLAMA_MODEL))
+
+    model = _get_model()
 
     if not inputs:
         raise HTTPException(status_code=400, detail="'input' must be a non-empty string or list")
@@ -551,3 +598,45 @@ if __name__ == "__main__":
     host = os.getenv("RYZANSTEIN_HOST", "0.0.0.0")
     port = int(os.getenv("RYZANSTEIN_PORT", "8000"))
     uvicorn.run("src.api.server:app", host=host, port=port, reload=False)
+
+
+# === Ollama-compatible gateway passthrough (Tier 0.1, 2026-07-01) =============
+# Transparently reverse-proxies Ollama's native /api/* to the real ollama daemon
+# so Ryzanstein :8000 is the single LLM entry point every consumer routes through
+# (superset of ollama's API plus this server's /v1). Streaming preserved; adds an
+# X-Served-By header so we can confirm Ryzanstein is on the hot path.
+import os as _gw_os
+import httpx as _gw_httpx
+from fastapi import Request as _GwRequest
+from fastapi.responses import StreamingResponse as _GwStreaming
+from starlette.background import BackgroundTask as _GwBg
+
+_GW_OLLAMA_URL = _gw_os.getenv(
+    "GATEWAY_OLLAMA_URL", _gw_os.getenv("OLLAMA_URL", "http://localhost:11434")
+)
+
+
+@app.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE"])
+async def _ollama_api_gateway(path: str, request: _GwRequest):
+    target = f"{_GW_OLLAMA_URL}/api/{path}"
+    body = await request.body()
+    fwd = {k: v for k, v in request.headers.items()
+           if k.lower() not in ("host", "content-length", "connection")}
+    client = _gw_httpx.AsyncClient(timeout=None)
+    upstream = await client.send(
+        client.build_request(request.method, target, content=body, headers=fwd,
+                             params=dict(request.query_params)),
+        stream=True,
+    )
+    out = {k: v for k, v in upstream.headers.items()
+           if k.lower() not in ("content-length", "transfer-encoding",
+                                "content-encoding", "connection")}
+    out["X-Served-By"] = "ryzanstein-gateway"
+
+    async def _cleanup():
+        await upstream.aclose()
+        await client.aclose()
+
+    return _GwStreaming(upstream.aiter_raw(), status_code=upstream.status_code,
+                        media_type=upstream.headers.get("content-type"),
+                        headers=out, background=_GwBg(_cleanup))
