@@ -2,31 +2,31 @@
 Token Recycling System Package
 [REF:TR-006] - Token Recycling System
 
-This package implements the novel token recycling system that compresses
-and stores semantic representations (RSUs) for efficient context reuse.
+Answer-level semantic caching, activated 2026-07-01 against Qdrant (see
+semantic_compress.py, vector_bank.py, selective_retrieve.py). density_analyzer
+and context_injector remain unimplemented — they require real model attention
+weights, unavailable while Ryzanstein proxies Ollama rather than running its
+own forward pass. See each module's docstring for when to revisit.
 
 Modules:
-    density_analyzer: Token density scoring and selection
-    semantic_compress: RSU compression and embedding
-    vector_bank: RSU storage and retrieval with Qdrant
-    context_injector: Context reconstruction from RSUs
-    selective_retrieve: Query-aware RSU retrieval
+    density_analyzer: Token density scoring and selection (DEFERRED)
+    semantic_compress: RSU compression and embedding (ACTIVE)
+    vector_bank: RSU storage and retrieval with Qdrant (ACTIVE)
+    context_injector: Context reconstruction from RSUs (DEFERRED)
+    selective_retrieve: Query-aware RSU retrieval (ACTIVE)
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __author__ = "Ryzanstein LLM Project"
 
-# TODO: Export main classes
-# from .density_analyzer import DensityAnalyzer
-# from .semantic_compress import SemanticCompressor
-# from .vector_bank import VectorBank
-# from .context_injector import ContextInjector
-# from .selective_retrieve import SelectiveRetriever
+from .semantic_compress import SemanticCompressor, RSU
+from .vector_bank import VectorBank
+from .selective_retrieve import SelectiveRetriever, RetrievalResult
 
 __all__ = [
-    # "DensityAnalyzer",
-    # "SemanticCompressor",
-    # "VectorBank",
-    # "ContextInjector",
-    # "SelectiveRetriever",
+    "SemanticCompressor",
+    "RSU",
+    "VectorBank",
+    "SelectiveRetriever",
+    "RetrievalResult",
 ]

@@ -2,142 +2,59 @@
 Selective RSU Retrieval
 [REF:TR-006e] - Token Recycling System: Query-Aware Retrieval
 
-This module implements intelligent RSU retrieval based on query analysis,
-selecting the most relevant semantic units for the current task.
-
-Key Features:
-    - Query embedding generation
-    - Relevance scoring
-    - Multi-stage retrieval
-    - Diversity-aware selection
+SCOPE NOTE (2026-07-01): implements single-best-match retrieval for the
+answer-cache tier (semantic_compress + vector_bank). multi_stage_retrieve and
+diversity/MMR ranking apply to multi-RSU context assembly for the token/KV
+-cache tier — deferred alongside density_analyzer.py / context_injector.py
+until a real forward-pass engine makes that tier meaningful. Relevance
+scoring is not re-implemented here since Qdrant's search already returns a
+cosine score per hit.
 """
 
-from typing import List, Dict, Any, Optional, Tuple
-import numpy as np
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
-
-# TODO: Add imports
-# from .vector_bank import VectorBank
-# from .semantic_compress import RSU
 
 
 @dataclass
 class RetrievalResult:
-    """Result of RSU retrieval with metadata."""
-    rsu: Any  # RSU object
+    """A single retrieved RSU with its similarity score."""
+    rsu_id: str
+    prompt: str
+    answer: str
+    model: str
     score: float
-    relevance: float
-    diversity_score: float
+    metadata: Dict[str, Any]
 
 
 class SelectiveRetriever:
-    """
-    Intelligently retrieves RSUs based on query context and relevance.
-    """
-    
-    def __init__(
-        self,
-        vector_bank: Any,  # VectorBank
-        top_k: int = 10,
-        diversity_weight: float = 0.3
-    ):
-        """
-        Initialize the selective retriever.
-        
-        Args:
-            vector_bank: VectorBank instance for storage
-            top_k: Number of RSUs to retrieve
-            diversity_weight: Weight for diversity in ranking
-        """
+    """Retrieves the best-matching RSU for a query embedding."""
+
+    def __init__(self, vector_bank: Any, top_k: int = 1):
         self.vector_bank = vector_bank
         self.top_k = top_k
-        self.diversity_weight = diversity_weight
-        
-    def retrieve(
+
+    async def retrieve(
         self,
-        query: str,
-        query_embedding: Optional[np.ndarray] = None,
-        filters: Optional[Dict[str, Any]] = None
-    ) -> List[RetrievalResult]:
-        """
-        Retrieve relevant RSUs for a query.
-        
-        Args:
-            query: Query text
-            query_embedding: Pre-computed query embedding (optional)
-            filters: Metadata filters for retrieval
-            
-        Returns:
-            List of retrieval results with scores
-        """
-        # TODO: Implement retrieval
-        # 1. Generate query embedding if needed
-        # 2. Retrieve candidates from vector bank
-        # 3. Apply relevance scoring
-        # 4. Apply diversity filtering
-        # 5. Rank and return top-k
-        raise NotImplementedError("Selective retrieval not yet implemented")
-    
-    def multi_stage_retrieve(
-        self,
-        query: str,
-        stages: List[Dict[str, Any]]
-    ) -> List[RetrievalResult]:
-        """
-        Perform multi-stage retrieval with refinement.
-        
-        Args:
-            query: Query text
-            stages: List of stage configurations
-            
-        Returns:
-            Refined list of retrieval results
-        """
-        # TODO: Implement multi-stage retrieval
-        # Stage 1: Broad recall
-        # Stage 2: Precision filtering
-        # Stage 3: Re-ranking
-        raise NotImplementedError("Multi-stage retrieval not yet implemented")
-    
-    def compute_relevance(
-        self,
-        query_embedding: np.ndarray,
-        rsu_embedding: np.ndarray,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> float:
-        """
-        Compute relevance score between query and RSU.
-        
-        Args:
-            query_embedding: Query vector
-            rsu_embedding: RSU vector
-            metadata: Optional metadata for scoring
-            
-        Returns:
-            Relevance score [0, 1]
-        """
-        # TODO: Implement relevance scoring
-        # - Cosine similarity
-        # - Metadata boosting
-        # - Recency weighting
-        raise NotImplementedError("Relevance scoring not yet implemented")
-    
-    def ensure_diversity(
-        self,
-        candidates: List[RetrievalResult],
-        threshold: float = 0.8
-    ) -> List[RetrievalResult]:
-        """
-        Ensure diversity in retrieved RSUs.
-        
-        Args:
-            candidates: Initial candidate list
-            threshold: Similarity threshold for filtering
-            
-        Returns:
-            Diversified list of results
-        """
-        # TODO: Implement diversity filtering
-        # - Maximal Marginal Relevance (MMR)
-        # - Remove near-duplicates
-        raise NotImplementedError("Diversity filtering not yet implemented")
+        query_embedding: List[float],
+        score_threshold: float = 0.95,
+        filter_dict: Optional[Dict[str, Any]] = None,
+    ) -> Optional[RetrievalResult]:
+        hits = await self.vector_bank.retrieve(
+            query_embedding,
+            limit=self.top_k,
+            score_threshold=score_threshold,
+            filter_dict=filter_dict,
+        )
+        if not hits:
+            return None
+        top = hits[0]
+        payload = top.get("payload", {}) or {}
+        known = ("prompt", "answer", "model", "created_at")
+        return RetrievalResult(
+            rsu_id=top["id"],
+            prompt=payload.get("prompt", ""),
+            answer=payload.get("answer", ""),
+            model=payload.get("model", ""),
+            score=top.get("score", 0.0),
+            metadata={k: v for k, v in payload.items() if k not in known},
+        )

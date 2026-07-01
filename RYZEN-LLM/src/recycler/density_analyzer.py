@@ -10,6 +10,14 @@ Key Features:
     - Semantic similarity clustering
     - Token importance scoring
     - Adaptive threshold selection
+
+DEFERRED (2026-07-01): this module operates on real model attention
+weights / KV-cache internals, which do not exist while Ryzanstein proxies
+Ollama rather than running its own forward pass. Revisit once the
+from-scratch inference engine (RYZEN-LLM C++ kernels / glyph_mamba) is
+live and can supply those internals. The answer-level cache tier
+(semantic_compress.py + vector_bank.py + selective_retrieve.py) is what
+is active today.
 """
 
 from typing import List, Tuple, Optional
