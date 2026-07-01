@@ -639,6 +639,10 @@ _RECYCLER_EMBED_MODEL = _gw_os.getenv("RECYCLER_EMBED_MODEL", "nomic-embed-text"
 _RECYCLER_THRESHOLD = float(_gw_os.getenv("RECYCLER_THRESHOLD", "0.97"))
 _RECYCLER_TTL = int(_gw_os.getenv("RECYCLER_TTL_SECONDS", "86400"))
 _QDRANT_URL = _gw_os.getenv("QDRANT_URL", "http://localhost:6333")
+_SIGMA_INDEX_URL = _gw_os.getenv("SIGMA_INDEX_URL", "http://localhost:8200")
+_SIGMA_INDEX_DUALWRITE = _gw_os.getenv("SIGMA_INDEX_DUALWRITE", "true").lower() not in (
+    "0", "false", "no"
+)
 
 
 def _gw_parse_host_port(url: str, default_port: int):
@@ -691,6 +695,24 @@ class _TokenRecyclerCache:
             await self.bank.store(rsu)
         except Exception as e:
             logger.warning(f"Token Recycler store failed (ignored): {e}")
+            return
+        # Shadow dual-write: sigma-index is being built up in parallel as a
+        # future Qdrant replacement (see Tier 0.2 plan). Best-effort, fail-open
+        # -- never let sigma-index affect the primary cache path.
+        if _SIGMA_INDEX_DUALWRITE:
+            try:
+                async with _gw_httpx.AsyncClient(timeout=5.0) as client:
+                    await client.post(
+                        f"{_SIGMA_INDEX_URL}/add",
+                        json={
+                            "namespace": "token_recycler",
+                            "id": rsu.id,
+                            "vector": rsu.embedding,
+                            "text": rsu.prompt,
+                        },
+                    )
+            except Exception as e:
+                logger.debug(f"sigma-index shadow dual-write failed (ignored): {e}")
 
 
 _recycler_cache = None
