@@ -600,31 +600,178 @@ if __name__ == "__main__":
     uvicorn.run("src.api.server:app", host=host, port=port, reload=False)
 
 
-# === Ollama-compatible gateway passthrough (Tier 0.1, 2026-07-01) =============
-# Transparently reverse-proxies Ollama's native /api/* to the real ollama daemon
-# so Ryzanstein :8000 is the single LLM entry point every consumer routes through
-# (superset of ollama's API plus this server's /v1). Streaming preserved; adds an
-# X-Served-By header so we can confirm Ryzanstein is on the hot path.
+
+# === Ollama-compatible gateway + Token Recycler answer cache (Tier 0.1/0.2, 2026-07-01) =====
+# Transparently reverse-proxies Ollama's native /api/* to the real ollama daemon so
+# Ryzanstein :8000 is the single LLM entry point every consumer routes through (superset
+# of ollama's API plus this server's /v1). For POST /api/generate and /api/chat with
+# stream=false, checks Ryot's own Token Recycling System [REF:TR-006] (RSU semantic
+# cache over Qdrant, RYZEN-LLM/src/recycler) before forwarding, and stores the answer
+# on a miss. Streaming requests pass through uncached in this MVP.
 import os as _gw_os
+import sys as _gw_sys
+import json as _gw_json
+import time as _gw_time
 import httpx as _gw_httpx
+from urllib.parse import urlparse as _gw_urlparse
 from fastapi import Request as _GwRequest
-from fastapi.responses import StreamingResponse as _GwStreaming
+from fastapi.responses import StreamingResponse as _GwStreaming, JSONResponse as _GwJSON
 from starlette.background import BackgroundTask as _GwBg
 
 _GW_OLLAMA_URL = _gw_os.getenv(
     "GATEWAY_OLLAMA_URL", _gw_os.getenv("OLLAMA_URL", "http://localhost:11434")
 )
 
+# --- wire in Ryot's own Token Recycling System (RYZEN-LLM/src/recycler) ---
+_RYZEN_LLM_SRC = _gw_os.path.abspath(
+    _gw_os.path.join(_gw_os.path.dirname(__file__), "..", "..", "RYZEN-LLM", "src")
+)
+if _RYZEN_LLM_SRC not in _gw_sys.path:
+    _gw_sys.path.insert(0, _RYZEN_LLM_SRC)
+try:
+    from recycler import SemanticCompressor, VectorBank, SelectiveRetriever
+    _RECYCLER_IMPORT_ERROR = None
+except Exception as _e:  # pragma: no cover - fail-open if the package can't load
+    _RECYCLER_IMPORT_ERROR = str(_e)
+
+_RECYCLER_ENABLED = _gw_os.getenv("RECYCLER_ENABLED", "true").lower() not in ("0", "false", "no")
+_RECYCLER_EMBED_MODEL = _gw_os.getenv("RECYCLER_EMBED_MODEL", "nomic-embed-text")
+_RECYCLER_THRESHOLD = float(_gw_os.getenv("RECYCLER_THRESHOLD", "0.97"))
+_RECYCLER_TTL = int(_gw_os.getenv("RECYCLER_TTL_SECONDS", "86400"))
+_QDRANT_URL = _gw_os.getenv("QDRANT_URL", "http://localhost:6333")
+
+
+def _gw_parse_host_port(url: str, default_port: int):
+    u = _gw_urlparse(url)
+    return u.hostname or "localhost", u.port or default_port
+
+
+class _TokenRecyclerCache:
+    """Glues SemanticCompressor + VectorBank + SelectiveRetriever into the
+    answer-level cache the Ryzanstein gateway checks on generate/chat calls."""
+
+    def __init__(self):
+        qhost, qport = _gw_parse_host_port(_QDRANT_URL, default_port=6333)
+        self.bank = VectorBank(host=qhost, port=qport, collection_name="rsu_bank", vector_size=768)
+        self.retriever = SelectiveRetriever(self.bank, top_k=1)
+        self.compressor = SemanticCompressor(embed_fn=self._embed)
+        self.hits = 0
+        self.misses = 0
+
+    async def _embed(self, text: str):
+        result = await _ollama_embed([text], _RECYCLER_EMBED_MODEL)
+        return result["data"][0]["embedding"]
+
+    async def lookup(self, prompt: str, model: str):
+        try:
+            query_vec = await self.compressor.embed_query(prompt)
+            hit = await self.retriever.retrieve(
+                query_vec,
+                score_threshold=_RECYCLER_THRESHOLD,
+                filter_dict={"must": [{"key": "model", "match": {"value": model}}]},
+            )
+        except Exception as e:
+            logger.warning(f"Token Recycler lookup failed (degrading to miss): {e}")
+            return None
+        if hit is None:
+            self.misses += 1
+            return None
+        created_ts = hit.metadata.get("_created_ts", 0) or 0
+        if (_gw_time.time() - created_ts) > _RECYCLER_TTL:
+            self.misses += 1
+            return None
+        self.hits += 1
+        return hit.answer
+
+    async def store(self, prompt: str, model: str, answer: str) -> None:
+        try:
+            rsu = await self.compressor.compress(
+                prompt, answer, model, metadata={"_created_ts": _gw_time.time()}
+            )
+            await self.bank.store(rsu)
+        except Exception as e:
+            logger.warning(f"Token Recycler store failed (ignored): {e}")
+
+
+_recycler_cache = None
+
+
+def _get_recycler():
+    global _recycler_cache
+    if not _RECYCLER_ENABLED or _RECYCLER_IMPORT_ERROR:
+        return None
+    if _recycler_cache is None:
+        _recycler_cache = _TokenRecyclerCache()
+    return _recycler_cache
+
+
+def _gw_extract_prompt(path: str, body: dict) -> str:
+    if path == "generate":
+        return body.get("prompt", "") or ""
+    if path == "chat":
+        return "\n".join(
+            f"{m.get('role', '')}: {m.get('content', '')}" for m in body.get("messages", [])
+        )
+    return ""
+
+
+def _gw_extract_answer(path: str, resp_json: dict) -> str:
+    if path == "generate":
+        return resp_json.get("response", "") or ""
+    if path == "chat":
+        return (resp_json.get("message") or {}).get("content", "") or ""
+    return ""
+
+
+def _gw_wrap_cached_answer(path: str, model: str, answer: str) -> dict:
+    base = {"model": model, "done": True, "done_reason": "stop"}
+    if path == "generate":
+        base["response"] = answer
+    else:
+        base["message"] = {"role": "assistant", "content": answer}
+    return base
+
 
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE"])
 async def _ollama_api_gateway(path: str, request: _GwRequest):
+    body_bytes = await request.body()
+
+    # Cache-aware handling for non-streaming generate/chat (the Token Recycler)
+    if path in ("generate", "chat") and request.method == "POST":
+        try:
+            body = _gw_json.loads(body_bytes) if body_bytes else {}
+        except ValueError:
+            body = {}
+        if isinstance(body, dict) and not body.get("stream", True):
+            recycler = _get_recycler()
+            prompt_text = _gw_extract_prompt(path, body)
+            model = body.get("model", "")
+            if recycler is not None and prompt_text:
+                cached = await recycler.lookup(prompt_text, model)
+                if cached is not None:
+                    return _GwJSON(
+                        _gw_wrap_cached_answer(path, model, cached),
+                        headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit"},
+                    )
+                async with _gw_httpx.AsyncClient(timeout=300.0) as client:
+                    upstream = await client.post(f"{_GW_OLLAMA_URL}/api/{path}", content=body_bytes)
+                    upstream.raise_for_status()
+                    resp_json = upstream.json()
+                answer_text = _gw_extract_answer(path, resp_json)
+                if answer_text:
+                    await recycler.store(prompt_text, model, answer_text)
+                return _GwJSON(
+                    resp_json,
+                    headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "miss"},
+                )
+
+    # Generic transparent passthrough for everything else (tags, embed, ps, pull, streaming, ...)
     target = f"{_GW_OLLAMA_URL}/api/{path}"
-    body = await request.body()
     fwd = {k: v for k, v in request.headers.items()
            if k.lower() not in ("host", "content-length", "connection")}
     client = _gw_httpx.AsyncClient(timeout=None)
     upstream = await client.send(
-        client.build_request(request.method, target, content=body, headers=fwd,
+        client.build_request(request.method, target, content=body_bytes, headers=fwd,
                              params=dict(request.query_params)),
         stream=True,
     )
@@ -640,3 +787,22 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
     return _GwStreaming(upstream.aiter_raw(), status_code=upstream.status_code,
                         media_type=upstream.headers.get("content-type"),
                         headers=out, background=_GwBg(_cleanup))
+
+
+@app.get("/v1/recycler/stats")
+async def _recycler_stats():
+    recycler = _get_recycler()
+    if recycler is None:
+        return {"enabled": False, "reason": _RECYCLER_IMPORT_ERROR or "disabled via env"}
+    total = recycler.hits + recycler.misses
+    qdrant_count = await recycler.bank.count()
+    return {
+        "enabled": True,
+        "hits": recycler.hits,
+        "misses": recycler.misses,
+        "hit_rate": round(recycler.hits / total, 3) if total else 0.0,
+        "rsu_count": qdrant_count,
+        "threshold": _RECYCLER_THRESHOLD,
+        "ttl_seconds": _RECYCLER_TTL,
+        "embed_model": _RECYCLER_EMBED_MODEL,
+    }
