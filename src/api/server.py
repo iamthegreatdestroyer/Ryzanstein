@@ -828,3 +828,37 @@ async def _recycler_stats():
         "ttl_seconds": _RECYCLER_TTL,
         "embed_model": _RECYCLER_EMBED_MODEL,
     }
+
+
+@app.get("/metrics")
+async def _prometheus_metrics():
+    # Hand-rolled Prometheus text exposition (no prometheus_client dependency --
+    # the box's system Python is externally-managed; avoids a new pip package).
+    # Achieves sigma-telemetry's intended purpose (Grafana-scraped observability
+    # for Ryzanstein) without the PyO3/HTTP-wrapper work needed to link that Rust
+    # crate directly into this Python service -- see memory notes, 2026-07-02.
+    from fastapi.responses import PlainTextResponse
+
+    recycler = _get_recycler()
+    lines = [
+        "# HELP ryzanstein_up Whether the Ryzanstein gateway is serving requests.",
+        "# TYPE ryzanstein_up gauge",
+        "ryzanstein_up 1",
+        "# HELP ryzanstein_recycler_enabled Whether the Token Recycler cache is enabled.",
+        "# TYPE ryzanstein_recycler_enabled gauge",
+        f"ryzanstein_recycler_enabled {1 if recycler is not None else 0}",
+    ]
+    if recycler is not None:
+        rsu_count = await recycler.bank.count()
+        lines += [
+            "# HELP ryzanstein_recycler_hits_total Token Recycler cache hits.",
+            "# TYPE ryzanstein_recycler_hits_total counter",
+            f"ryzanstein_recycler_hits_total {recycler.hits}",
+            "# HELP ryzanstein_recycler_misses_total Token Recycler cache misses.",
+            "# TYPE ryzanstein_recycler_misses_total counter",
+            f"ryzanstein_recycler_misses_total {recycler.misses}",
+            "# HELP ryzanstein_recycler_rsu_count Recyclable Semantic Units stored in Qdrant.",
+            "# TYPE ryzanstein_recycler_rsu_count gauge",
+            f"ryzanstein_recycler_rsu_count {rsu_count}",
+        ]
+    return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
