@@ -2,6 +2,9 @@
 Selective RSU Retrieval
 [REF:TR-006e] - Token Recycling System: Query-Aware Retrieval
 
+Migrated 2026-07-02: consumes sigma_core Hit objects from VectorBank.retrieve
+(which now delegates to sigma_core.QdrantStore.asearch) instead of raw dicts.
+
 SCOPE NOTE (2026-07-01): implements single-best-match retrieval for the
 answer-cache tier (semantic_compress + vector_bank). multi_stage_retrieve and
 diversity/MMR ranking apply to multi-RSU context assembly for the token/KV
@@ -48,13 +51,13 @@ class SelectiveRetriever:
         if not hits:
             return None
         top = hits[0]
-        payload = top.get("payload", {}) or {}
+        payload = top.payload or {}
         known = ("prompt", "answer", "model", "created_at")
         return RetrievalResult(
-            rsu_id=top["id"],
+            rsu_id=top.id,
             prompt=payload.get("prompt", ""),
             answer=payload.get("answer", ""),
             model=payload.get("model", ""),
-            score=top.get("score", 0.0),
+            score=top.score,
             metadata={k: v for k, v in payload.items() if k not in known},
         )
