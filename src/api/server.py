@@ -630,6 +630,7 @@ if _RYZEN_LLM_SRC not in _gw_sys.path:
     _gw_sys.path.insert(0, _RYZEN_LLM_SRC)
 try:
     from recycler import SemanticCompressor, VectorBank, SelectiveRetriever
+    from sigma_core import SigmalangClient
     _RECYCLER_IMPORT_ERROR = None
 except Exception as _e:  # pragma: no cover - fail-open if the package can't load
     _RECYCLER_IMPORT_ERROR = str(_e)
@@ -638,6 +639,15 @@ _RECYCLER_ENABLED = _gw_os.getenv("RECYCLER_ENABLED", "true").lower() not in ("0
 _RECYCLER_EMBED_MODEL = _gw_os.getenv("RECYCLER_EMBED_MODEL", "nomic-embed-text")
 _RECYCLER_THRESHOLD = float(_gw_os.getenv("RECYCLER_THRESHOLD", "0.97"))
 _RECYCLER_TTL = int(_gw_os.getenv("RECYCLER_TTL_SECONDS", "86400"))
+# sigmalang: an ADDITIONAL similarity signal, checked only AFTER the primary
+# embedding threshold above already accepted a hit. Deliberately permissive
+# default -- see sigma_core.sigmalang's docstring for the calibration that set
+# 0.4 (its cosine doesn't reliably discriminate topic at this dimension; the
+# goal here is structural readiness + a logged score, not a strict filter).
+# Fails open: if the sigmalang service is unreachable, the gate is skipped and
+# the primary signal's decision stands unchanged.
+_SIGMALANG_ENABLED = _gw_os.getenv("SIGMALANG_GATE_ENABLED", "true").lower() not in ("0", "false", "no")
+_SIGMALANG_THRESHOLD = float(_gw_os.getenv("SIGMALANG_THRESHOLD", "0.4"))
 _QDRANT_URL = _gw_os.getenv("QDRANT_URL", "http://localhost:6333")
 _SIGMA_INDEX_URL = _gw_os.getenv("SIGMA_INDEX_URL", "http://localhost:8200")
 _SIGMA_INDEX_DUALWRITE = _gw_os.getenv("SIGMA_INDEX_DUALWRITE", "true").lower() not in (
@@ -659,8 +669,11 @@ class _TokenRecyclerCache:
         self.bank = VectorBank(host=qhost, port=qport, collection_name="rsu_bank", vector_size=768)
         self.retriever = SelectiveRetriever(self.bank, top_k=1)
         self.compressor = SemanticCompressor(embed_fn=self._embed)
+        self.sigmalang = SigmalangClient()
         self.hits = 0
         self.misses = 0
+        self.sigmalang_rejected = 0
+        self.sigmalang_last_score = None
 
     async def _embed(self, text: str):
         result = await _ollama_embed([text], _RECYCLER_EMBED_MODEL)
@@ -684,6 +697,20 @@ class _TokenRecyclerCache:
         if (_gw_time.time() - created_ts) > _RECYCLER_TTL:
             self.misses += 1
             return None
+        # sigmalang: an ADDITIONAL signal checked only after the primary
+        # embedding threshold above already accepted this candidate. Fails
+        # open -- a sigmalang outage/error never turns an accepted hit into a
+        # miss; it only skips the extra check and logs why.
+        if _SIGMALANG_ENABLED:
+            try:
+                sig_score = await self.sigmalang.asimilarity(prompt, hit.prompt)
+                self.sigmalang_last_score = sig_score
+                if sig_score < _SIGMALANG_THRESHOLD:
+                    self.sigmalang_rejected += 1
+                    self.misses += 1
+                    return None
+            except Exception as e:
+                logger.debug(f"sigmalang gate check failed (failing open, hit stands): {e}")
         self.hits += 1
         return hit.answer
 
@@ -827,6 +854,10 @@ async def _recycler_stats():
         "threshold": _RECYCLER_THRESHOLD,
         "ttl_seconds": _RECYCLER_TTL,
         "embed_model": _RECYCLER_EMBED_MODEL,
+        "sigmalang_gate_enabled": _SIGMALANG_ENABLED,
+        "sigmalang_threshold": _SIGMALANG_THRESHOLD,
+        "sigmalang_rejected": recycler.sigmalang_rejected,
+        "sigmalang_last_score": recycler.sigmalang_last_score,
     }
 
 
