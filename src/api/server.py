@@ -48,6 +48,13 @@ EMBED_DIM  = int(os.getenv("EMBED_DIM", "1024"))
 BACKEND    = os.getenv("RYZANSTEIN_BACKEND", "stub")  # stub | ollama
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwythos-9b")
+# Separate from OLLAMA_MODEL: chat models (qwythos-9b, phi4-mini, ...) are not
+# embedding-capable, and Ollama's /v1/embeddings 501s if asked to embed with
+# one. This was the actual reason every /v1/embeddings caller (sigma-compress,
+# sigma-index, sigma-diff) always fell back to a local/non-semantic path --
+# not that Ryzanstein was unreachable, but that every real call it forwarded
+# errored upstream. nomic-embed-text is already pulled on this box.
+OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 _MODEL_CREATED_TS = 1_700_000_000   # stable epoch for /v1/models
 
 # ---------------------------------------------------------------------------
@@ -381,7 +388,7 @@ async def create_embeddings(request: EmbeddingRequest):
     inputs: List[str] = [request.input] if isinstance(request.input, str) else list(request.input)
 
     if BACKEND == "ollama":
-        return JSONResponse(await _ollama_embed(inputs, OLLAMA_MODEL))
+        return JSONResponse(await _ollama_embed(inputs, OLLAMA_EMBED_MODEL))
 
     model = _get_model()
 

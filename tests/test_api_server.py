@@ -163,6 +163,35 @@ def test_embeddings_usage_populated():
     assert usage["total_tokens"] == usage["prompt_tokens"]
 
 
+def test_embeddings_ollama_backend_uses_embed_model_not_chat_model(monkeypatch):
+    """OLLAMA_MODEL (qwythos-9b / phi4-mini / ...) is a chat model and is not
+    embedding-capable -- Ollama's /v1/embeddings 501s if asked to embed with
+    one. This was the actual reason every real /v1/embeddings caller
+    (sigma-compress, sigma-index, sigma-diff) always fell back to a
+    local/non-semantic path: not that Ryzanstein was unreachable, but that
+    every real call it forwarded errored upstream. Confirms the ollama
+    backend path forwards with OLLAMA_EMBED_MODEL, never OLLAMA_MODEL."""
+    import src.api.server as server
+
+    monkeypatch.setattr(server, "BACKEND", "ollama")
+
+    captured = {}
+
+    async def fake_ollama_embed(texts, model):
+        captured["model"] = model
+        return {
+            "object": "list",
+            "data": [{"object": "embedding", "index": 0, "embedding": [0.0]}],
+        }
+
+    monkeypatch.setattr(server, "_ollama_embed", fake_ollama_embed)
+
+    r = client.post("/v1/embeddings", json={"input": "route me correctly"})
+    assert r.status_code == 200
+    assert captured["model"] == server.OLLAMA_EMBED_MODEL
+    assert captured["model"] != server.OLLAMA_MODEL
+
+
 # ---------------------------------------------------------------------------
 # /mcp/tools
 # ---------------------------------------------------------------------------
