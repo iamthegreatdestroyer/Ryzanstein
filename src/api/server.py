@@ -122,7 +122,14 @@ def _tokenize(text: str, max_len: int = 512) -> List[int]:
 
 async def _ollama_chat(messages: list, model: str, max_tokens: int,
                        temperature: float, top_p: float, stream: bool) -> dict:
-    """Forward chat completion to Ollama's OpenAI-compat endpoint."""
+    """Forward a non-streaming chat completion to Ollama's OpenAI-compat endpoint.
+
+    NOTE: this always requests stream=False from Ollama regardless of the
+    `stream` parameter -- by design, callers that want a real stream must use
+    _ollama_chat_stream() below instead. (Previously this function silently
+    ignored `stream` entirely and always hit the non-streaming path even when
+    a caller asked for streaming; see chat_completions() for the fix.)
+    """
     import httpx
     payload = {
         "model": model,
@@ -136,6 +143,40 @@ async def _ollama_chat(messages: list, model: str, max_tokens: int,
         resp = await client.post(f"{OLLAMA_URL}/v1/chat/completions", json=payload)
         resp.raise_for_status()
         return resp.json()
+
+
+async def _ollama_chat_stream(messages: list, model: str, max_tokens: int,
+                              temperature: float, top_p: float):
+    """Forward a streaming chat completion to Ollama's OpenAI-compat endpoint.
+
+    Yields each SSE "data: ..." line from Ollama's response as it arrives
+    (stripped of trailing newlines -- caller re-adds framing). Purely a
+    passthrough generator; it does not itself accumulate or cache anything.
+    See _gw_stream_and_tee_to_cache() for the wrapper that re-frames these
+    lines for the client AND accumulates the answer text in the background so
+    it can be stored into the Token Recycler once the stream completes,
+    without buffering or delaying the client's real-time stream.
+    """
+    import httpx
+
+    payload = {
+        "model": model,
+        "messages": [{"role": m.role, "content": m.content} for m in messages],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "top_p": top_p,
+        "stream": True,
+    }
+    # _GW_UPSTREAM_TIMEOUT is defined later in this module (gateway section) but
+    # resolved at call time, not def time, so this is safe: by the time any
+    # request reaches here the module has finished importing.
+    async with httpx.AsyncClient(timeout=_GW_UPSTREAM_TIMEOUT) as client:
+        async with client.stream("POST", f"{OLLAMA_URL}/v1/chat/completions", json=payload) as resp:
+            resp.raise_for_status()
+            async for line in resp.aiter_lines():
+                if not line:
+                    continue
+                yield line
 
 
 async def _ollama_embed(texts: List[str], model: str) -> dict:
@@ -335,11 +376,7 @@ async def chat_completions(request: ChatCompletionRequest):
     req_id = uuid.uuid4().hex[:12]
 
     if BACKEND == "ollama":
-        result = await _ollama_chat(
-            request.messages, OLLAMA_MODEL, request.max_tokens,
-            request.temperature, request.top_p, request.stream,
-        )
-        return JSONResponse(result)
+        return await _gw_openai_chat_completions(req_id, request)
 
     # Stub/local backend: build flat prompt from messages
     prompt_parts = []
@@ -675,6 +712,20 @@ def _gw_parse_host_port(url: str, default_port: int):
     return u.hostname or "localhost", u.port or default_port
 
 
+# Hand-rolled counters (module-level dict, same rationale as /metrics below:
+# no prometheus_client dependency). Previously store() had no observability at
+# all beyond a couple of log lines at warning/debug level -- a failing cache
+# write was otherwise invisible. These three counters are surfaced via both
+# /metrics (Prometheus text exposition) and /v1/recycler/stats (JSON).
+_GW_METRICS = {
+    "stores_total": 0,          # successful recycler.store() calls (RSU + embed OK)
+    "store_failures_total": 0,  # recycler.store() calls where compress/embed/Qdrant write failed
+    "passthrough_total": 0,     # /v1/chat/completions requests handled by the ollama backend
+                                # (cache hit or miss, streaming or not) -- i.e. traffic that went
+                                # through the Token Recycler-aware path at all.
+}
+
+
 class _TokenRecyclerCache:
     """Glues SemanticCompressor + VectorBank + SelectiveRetriever into the
     answer-level cache the Ryzanstein gateway checks on generate/chat calls."""
@@ -736,15 +787,27 @@ class _TokenRecyclerCache:
             )
             await self.bank.store(rsu)
         except Exception as e:
-            logger.warning(f"Token Recycler store failed (ignored): {e}")
+            # Previously this was the only trace of a failed cache write: a
+            # single warning log, no counter. A failing store here means every
+            # future semantically-identical request re-runs full inference
+            # instead of being served from cache -- worth being able to see in
+            # Grafana/curl /metrics, not just grep the logs after the fact.
+            _GW_METRICS["store_failures_total"] += 1
+            logger.warning(f"Token Recycler store failed (ignored, cache write lost "
+                          f"for this answer -- store_failures_total={_GW_METRICS['store_failures_total']}): {e}")
             return
+        _GW_METRICS["stores_total"] += 1
         # Shadow dual-write: sigma-index is being built up in parallel as a
         # future Qdrant replacement (see Tier 0.2 plan). Best-effort, fail-open
-        # -- never let sigma-index affect the primary cache path.
+        # -- never let sigma-index affect the primary cache path. Previously
+        # this failure was logged at debug level only (i.e. invisible by
+        # default) and uncounted; raised to warning + counted so a persistent
+        # dual-write outage is actually noticeable, while still never raising
+        # or affecting the primary Qdrant store above.
         if _SIGMA_INDEX_DUALWRITE:
             try:
                 async with _gw_httpx.AsyncClient(timeout=5.0) as client:
-                    await client.post(
+                    resp = await client.post(
                         f"{_SIGMA_INDEX_URL}/add",
                         json={
                             "namespace": "token_recycler",
@@ -753,8 +816,10 @@ class _TokenRecyclerCache:
                             "text": rsu.prompt,
                         },
                     )
+                    resp.raise_for_status()
             except Exception as e:
-                logger.debug(f"sigma-index shadow dual-write failed (ignored): {e}")
+                logger.warning(f"sigma-index shadow dual-write failed (ignored, primary "
+                              f"Qdrant cache unaffected): {e}")
 
 
 _recycler_cache = None
@@ -796,6 +861,224 @@ def _gw_wrap_cached_answer(path: str, model: str, answer: str) -> dict:
     return base
 
 
+# ---------------------------------------------------------------------------
+# OpenAI-shaped Token Recycler adapter for /v1/chat/completions
+# ---------------------------------------------------------------------------
+# The /api/{path} gateway above caches against Ollama's native {response:...} /
+# {message:{content:...}} shape via _gw_extract_answer / _gw_wrap_cached_answer.
+# /v1/chat/completions speaks OpenAI's {choices:[{message:{...}}], usage:{...}}
+# shape instead, so it needs its own extract/wrap pair rather than reusing
+# those directly -- the underlying cache (RSU prompt/answer/model triples) is
+# the same, only the request/response envelope differs.
+
+def _gw_extract_openai_prompt(messages: list) -> str:
+    """Build the recycler lookup/store key text from ChatCompletionRequest.messages.
+
+    Mirrors _gw_extract_prompt's "chat" branch (role: content per line) but
+    takes the Pydantic _Message objects /v1/chat/completions already validated
+    into, rather than a raw dict body.
+    """
+    return "\n".join(f"{m.role}: {m.content}" for m in messages)
+
+
+def _gw_wrap_openai_cached_answer(request_id: str, model: str, answer: str) -> dict:
+    """Cache-hit response in OpenAI chat.completion shape (see _build_completion_response)."""
+    return {
+        "id": f"chatcmpl-{request_id}",
+        "object": "chat.completion",
+        "created": int(_gw_time.time()),
+        "model": model,
+        "choices": [
+            {
+                "index": 0,
+                "message": {"role": "assistant", "content": answer},
+                "finish_reason": "stop",
+            }
+        ],
+        # Cache hits skip real inference, so there's no real token accounting
+        # to report -- 0 rather than a fabricated estimate. Consumers that key
+        # off X-Cache/X-Served-By already know this was a cache hit.
+        "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+    }
+
+
+async def _gw_stream_openai_cached_answer(request_id: str, model: str, answer: str,
+                                          chunk_size: int = 4) -> AsyncIterator[str]:
+    """SSE synthesis for a cache HIT under stream=true -- same chunked-delta
+    framing _stream_completion uses for the stub backend's real streaming, so
+    OpenAI-compatible clients see an identical chunk shape whether the answer
+    came from cache or a live generation."""
+    for i in range(0, len(answer), chunk_size):
+        chunk_text = answer[i:i + chunk_size]
+        delta = {
+            "id": f"chatcmpl-{request_id}",
+            "object": "chat.completion.chunk",
+            "created": int(_gw_time.time()),
+            "model": model,
+            "choices": [{"index": 0, "delta": {"content": chunk_text}, "finish_reason": None}],
+        }
+        yield f"data: {_gw_json.dumps(delta)}\n\n"
+
+    final = {
+        "id": f"chatcmpl-{request_id}",
+        "object": "chat.completion.chunk",
+        "created": int(_gw_time.time()),
+        "model": model,
+        "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}],
+    }
+    yield f"data: {_gw_json.dumps(final)}\n\n"
+    yield "data: [DONE]\n\n"
+
+
+async def _gw_stream_and_tee_to_cache(request_id: str, model: str, prompt_text: str,
+                                      messages: list, max_tokens: int, temperature: float,
+                                      top_p: float, recycler) -> AsyncIterator[str]:
+    """Real streaming passthrough for a cache MISS under stream=true.
+
+    Forwards Ollama's own OpenAI-compat SSE lines to the client as they arrive
+    (no buffering -- each line is yielded the moment it's read off the
+    upstream response), while accumulating the assistant's `delta.content`
+    fragments in the background. Once the upstream stream completes
+    successfully (the [DONE] sentinel is observed), the accumulated full
+    answer is stored into the Token Recycler -- this happens AFTER the client
+    has already received every chunk, so it never adds latency to the
+    client's real-time streaming experience. If accumulation or the store
+    call fails, the client-visible stream is unaffected (the exception is
+    caught and logged, matching _TokenRecyclerCache.store's own fail-open
+    contract).
+
+    Deliberately does NOT store on an aborted/partial stream (client
+    disconnect, upstream error mid-stream, generator closed early): storing a
+    truncated accumulation as if it were the complete answer would poison the
+    cache with a cut-off response that a future exact-prompt hit would then
+    serve as if it were whole. completed_ok tracks this explicitly rather than
+    inferring completeness from "accumulated is non-empty".
+    """
+    accumulated: List[str] = []
+    completed_ok = False
+    try:
+        async for line in _ollama_chat_stream(messages, model, max_tokens, temperature, top_p):
+            yield f"{line}\n\n"
+            if not line.startswith("data: "):
+                continue
+            payload = line[len("data: "):]
+            if payload.strip() == "[DONE]":
+                completed_ok = True
+                continue
+            try:
+                chunk = _gw_json.loads(payload)
+                delta = ((chunk.get("choices") or [{}])[0].get("delta") or {})
+                content = delta.get("content")
+                if content:
+                    accumulated.append(content)
+            except Exception as e:
+                logger.debug(f"chat/completions stream-tee: could not parse chunk for "
+                             f"accumulation (client stream unaffected): {e}")
+    finally:
+        if recycler is not None and completed_ok and accumulated:
+            full_answer = "".join(accumulated)
+            try:
+                await recycler.store(prompt_text, model, full_answer)
+            except Exception as e:
+                # store() already fails open/logs internally; this is a second
+                # layer of defense specific to the streaming tee path so a
+                # failure here can never surface to the (already-completed)
+                # client stream.
+                logger.warning(f"chat/completions stream-tee: cache store failed "
+                              f"(ignored, client stream already completed): {e}")
+
+
+async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionRequest"):
+    """BACKEND=="ollama" path for POST /v1/chat/completions.
+
+    Routes through the same Token Recycler cache the /api/{path} gateway uses,
+    instead of unconditionally forwarding to Ollama. Covers all four
+    stream x cache-state combinations:
+      - stream=false, hit:  synchronous OpenAI-shaped JSON from cache
+      - stream=false, miss: real Ollama call, store on success, return JSON
+      - stream=true,  hit:  synthesized SSE from the cached answer
+      - stream=true,  miss: real SSE passthrough, tee accumulated text into
+                            the cache once the stream completes
+
+    Model cache key: uses OLLAMA_MODEL (the model actually served) rather than
+    request.model. Verified real callers across the ecosystem send differing
+    model labels for what all resolve to the same served model on this box
+    (myceloforge default "ryzanstein-bitnet-7b", NEURECTOMY spectrum-workspace
+    default "ryot-bitnet-7b", sigma-index's Go inference_client default
+    "ryzanstein-bitnet-3b", vs. this server's own MODEL_NAME default
+    "ryzanstein-bitnet-7b") -- none of that is honored today; this handler
+    already ignored request.model entirely and always forwarded OLLAMA_MODEL
+    (see _ollama_chat call below). Keying the cache on request.model as-sent
+    would silently fragment the cache across labels that all hit the exact
+    same upstream model, without ever actually selecting a different model.
+    Keying on OLLAMA_MODEL instead makes the cache key match what is actually
+    served, and stays consistent with the /api/{path} gateway's own contract
+    of keying on the model string that request is actually forwarded with.
+    """
+    recycler = _get_recycler()
+    prompt_text = _gw_extract_openai_prompt(request.messages)
+    model = OLLAMA_MODEL
+
+    if not request.stream:
+        if recycler is not None and prompt_text:
+            # _TokenRecyclerCache.lookup() already has its own internal
+            # try/except (degrades to a miss on failure), but this call site
+            # wraps it too: /v1/chat/completions must keep working even if a
+            # *different* recycler implementation (or a future refactor) ever
+            # lets an exception through lookup() itself.
+            try:
+                cached = await recycler.lookup(prompt_text, model)
+            except Exception as e:
+                logger.warning(f"chat/completions: recycler.lookup() raised, treating as "
+                              f"miss (client response unaffected): {e}")
+                cached = None
+            if cached is not None:
+                _GW_METRICS["passthrough_total"] += 1
+                return JSONResponse(
+                    _gw_wrap_openai_cached_answer(req_id, model, cached),
+                    headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit"},
+                )
+        result = await _ollama_chat(
+            request.messages, model, request.max_tokens,
+            request.temperature, request.top_p, request.stream,
+        )
+        if recycler is not None and prompt_text:
+            answer_text = ((result.get("choices") or [{}])[0].get("message") or {}).get("content", "")
+            if answer_text:
+                # Same reasoning as the lookup() wrapper above: store() is
+                # expected to fail open internally, but the already-successful
+                # Ollama answer must reach the client even if a cache-store
+                # exception somehow escapes it anyway.
+                try:
+                    await recycler.store(prompt_text, model, answer_text)
+                except Exception as e:
+                    logger.warning(f"chat/completions: recycler.store() raised (ignored, "
+                                  f"client response unaffected): {e}")
+        _GW_METRICS["passthrough_total"] += 1
+        return JSONResponse(result, headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "miss"})
+
+    # stream=true
+    if recycler is not None and prompt_text:
+        cached = await recycler.lookup(prompt_text, model)
+        if cached is not None:
+            _GW_METRICS["passthrough_total"] += 1
+            return StreamingResponse(
+                _gw_stream_openai_cached_answer(req_id, model, cached),
+                media_type="text/event-stream",
+                headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway", "X-Cache": "hit"},
+            )
+
+    _GW_METRICS["passthrough_total"] += 1
+    return StreamingResponse(
+        _gw_stream_and_tee_to_cache(
+            req_id, model, prompt_text, request.messages,
+            request.max_tokens, request.temperature, request.top_p, recycler,
+        ),
+        media_type="text/event-stream",
+        headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway", "X-Cache": "miss"},
+    )
+
+
 @app.api_route("/api/{path:path}", methods=["GET", "POST", "DELETE"])
 async def _ollama_api_gateway(path: str, request: _GwRequest):
     body_bytes = await request.body()
@@ -813,6 +1096,7 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
             if recycler is not None and prompt_text:
                 cached = await recycler.lookup(prompt_text, model)
                 if cached is not None:
+                    _GW_METRICS["passthrough_total"] += 1
                     return _GwJSON(
                         _gw_wrap_cached_answer(path, model, cached),
                         headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit"},
@@ -824,6 +1108,7 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
                 answer_text = _gw_extract_answer(path, resp_json)
                 if answer_text:
                     await recycler.store(prompt_text, model, answer_text)
+                _GW_METRICS["passthrough_total"] += 1
                 return _GwJSON(
                     resp_json,
                     headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "miss"},
@@ -859,7 +1144,18 @@ async def _recycler_stats():
     if recycler is None:
         return {"enabled": False, "reason": _RECYCLER_IMPORT_ERROR or "disabled via env"}
     total = recycler.hits + recycler.misses
-    qdrant_count = await recycler.bank.count()
+    # Previously unguarded: a Qdrant outage made this whole diagnostic endpoint
+    # 500 (via the global exception handler) instead of reporting -1/degraded
+    # -- the one moment this endpoint is most useful (Qdrant is down) was
+    # exactly when it stopped responding. Discovered while manually verifying
+    # the new store_failures_total counter against an intentionally-broken
+    # QDRANT_URL on a throwaway instance; pre-existing, not introduced by the
+    # /v1/chat/completions cache wiring in this change.
+    try:
+        qdrant_count = await recycler.bank.count()
+    except Exception as e:
+        logger.warning(f"/v1/recycler/stats: Qdrant count() failed (reporting -1): {e}")
+        qdrant_count = -1
     return {
         "enabled": True,
         "hits": recycler.hits,
@@ -873,6 +1169,9 @@ async def _recycler_stats():
         "sigmalang_threshold": _SIGMALANG_THRESHOLD,
         "sigmalang_rejected": recycler.sigmalang_rejected,
         "sigmalang_last_score": recycler.sigmalang_last_score,
+        "stores_total": _GW_METRICS["stores_total"],
+        "store_failures_total": _GW_METRICS["store_failures_total"],
+        "passthrough_total": _GW_METRICS["passthrough_total"],
     }
 
 
@@ -895,7 +1194,15 @@ async def _prometheus_metrics():
         f"ryzanstein_recycler_enabled {1 if recycler is not None else 0}",
     ]
     if recycler is not None:
-        rsu_count = await recycler.bank.count()
+        # Same fix as /v1/recycler/stats above: don't let a Qdrant outage take
+        # down the /metrics scrape entirely -- that's precisely the moment a
+        # Prometheus/Grafana consumer most needs ryzanstein_up=1 to still be
+        # visible alongside a degraded recycler reading.
+        try:
+            rsu_count = await recycler.bank.count()
+        except Exception as e:
+            logger.warning(f"/metrics: Qdrant count() failed (reporting -1): {e}")
+            rsu_count = -1
         lines += [
             "# HELP ryzanstein_recycler_hits_total Token Recycler cache hits.",
             "# TYPE ryzanstein_recycler_hits_total counter",
@@ -907,4 +1214,18 @@ async def _prometheus_metrics():
             "# TYPE ryzanstein_recycler_rsu_count gauge",
             f"ryzanstein_recycler_rsu_count {rsu_count}",
         ]
+    lines += [
+        "# HELP ryzanstein_recycler_stores_total Successful Token Recycler cache writes.",
+        "# TYPE ryzanstein_recycler_stores_total counter",
+        f"ryzanstein_recycler_stores_total {_GW_METRICS['stores_total']}",
+        "# HELP ryzanstein_recycler_store_failures_total Token Recycler cache writes "
+        "that raised an exception (compress/embed/Qdrant) and were dropped.",
+        "# TYPE ryzanstein_recycler_store_failures_total counter",
+        f"ryzanstein_recycler_store_failures_total {_GW_METRICS['store_failures_total']}",
+        "# HELP ryzanstein_gateway_passthrough_total Requests handled by the "
+        "Token-Recycler-aware gateway path (/v1/chat/completions and /api/{generate,chat} "
+        "with the ollama backend), regardless of cache hit/miss or streaming mode.",
+        "# TYPE ryzanstein_gateway_passthrough_total counter",
+        f"ryzanstein_gateway_passthrough_total {_GW_METRICS['passthrough_total']}",
+    ]
     return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
