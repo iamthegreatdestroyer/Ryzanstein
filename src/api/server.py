@@ -628,6 +628,14 @@ from starlette.background import BackgroundTask as _GwBg
 _GW_OLLAMA_URL = _gw_os.getenv(
     "GATEWAY_OLLAMA_URL", _gw_os.getenv("OLLAMA_URL", "http://localhost:11434")
 )
+# Upstream request timeout for the cache-miss path (generate/chat). CPU-only
+# inference for longer prompts on this box routinely takes 300-320s, which
+# exactly matched the old 300.0s default and caused reproducible 500s for
+# real content-generation workloads (confirmed via review-roundup-automator
+# and saas-alternatives-directory). Bounded rather than unbounded so a truly
+# hung upstream still eventually fails instead of holding the connection open
+# forever.
+_GW_UPSTREAM_TIMEOUT = float(_gw_os.getenv("GATEWAY_UPSTREAM_TIMEOUT", "900.0"))
 
 # --- wire in Ryot's own Token Recycling System (RYZEN-LLM/src/recycler) ---
 _RYZEN_LLM_SRC = _gw_os.path.abspath(
@@ -809,7 +817,7 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
                         _gw_wrap_cached_answer(path, model, cached),
                         headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit"},
                     )
-                async with _gw_httpx.AsyncClient(timeout=300.0) as client:
+                async with _gw_httpx.AsyncClient(timeout=_GW_UPSTREAM_TIMEOUT) as client:
                     upstream = await client.post(f"{_GW_OLLAMA_URL}/api/{path}", content=body_bytes)
                     upstream.raise_for_status()
                     resp_json = upstream.json()
