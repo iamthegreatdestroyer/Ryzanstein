@@ -1,14 +1,7 @@
 [workspace]
 members = [
-    "dependencies/zkaudit",
     "dependencies/sigma-telemetry",
-    "dependencies/semlog",
-    "dependencies/sigma-api",
     "dependencies/sigma-compress",
-    "dependencies/cpu-infer",
-    "dependencies/causedb",
-    "dependencies/dep-bloom",
-    "dependencies/ann-hybrid",
 ]
 
 resolver = "2"
