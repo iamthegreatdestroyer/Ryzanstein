@@ -29,12 +29,13 @@ from typing import Any, AsyncIterator, Dict, List, Optional
 
 import torch
 import torch.nn as nn
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from .glyphs import router as glyphs_router
+from .security import rate_limit, require_auth
 
 logger = logging.getLogger(__name__)
 
@@ -372,7 +373,11 @@ async def _stream_completion(
 
 
 @app.post("/v1/chat/completions")
-async def chat_completions(request: ChatCompletionRequest):
+async def chat_completions(
+    request: ChatCompletionRequest,
+    _auth=Depends(require_auth),
+    _rl=Depends(rate_limit),
+):
     req_id = uuid.uuid4().hex[:12]
 
     if BACKEND == "ollama":
@@ -406,7 +411,11 @@ async def chat_completions(request: ChatCompletionRequest):
 # ---------------------------------------------------------------------------
 
 @app.post("/v1/embeddings")
-async def create_embeddings(request: EmbeddingRequest):
+async def create_embeddings(
+    request: EmbeddingRequest,
+    _auth=Depends(require_auth),
+    _rl=Depends(rate_limit),
+):
     """
     Generate embedding vectors from input text(s).
 
@@ -565,7 +574,11 @@ class _McpToolCallRequest(BaseModel):
 
 
 @app.post("/mcp/tools/call")
-async def mcp_call_tool(request: _McpToolCallRequest):
+async def mcp_call_tool(
+    request: _McpToolCallRequest,
+    _auth=Depends(require_auth),
+    _rl=Depends(rate_limit),
+):
     """
     Execute an MCP tool call.  Dispatches to the matching FastAPI handler.
     """
