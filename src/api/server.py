@@ -56,6 +56,28 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwythos-9b")
 # not that Ryzanstein was unreachable, but that every real call it forwarded
 # errored upstream. nomic-embed-text is already pulled on this box.
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
+
+# --- Per-request chat-model selection (roadmap C1) -------------------------
+# /v1/chat/completions historically pinned OLLAMA_MODEL and ignored request.model.
+# Allow an ALLOWLISTED per-request model so callers can opt into a stronger
+# "quality" tier (gemma3:4b-it-qat) over the fast default. The recycler cache
+# keys on the RESOLVED model (lookup/store), so a quality-tier answer is never
+# served to a fast-tier request for the same prompt.
+ALLOWED_CHAT_MODELS = set(
+    m.strip() for m in os.getenv(
+        "GATEWAY_ALLOWED_MODELS",
+        "phi4-mini,gemma3:4b,gemma3:4b-it-qat,qwythos-9b,granite4:1b,qwen3:30b",
+    ).split(",") if m.strip()
+)
+
+def _resolve_chat_model(requested: str) -> str:
+    r = (requested or "").strip()
+    return r if r in ALLOWED_CHAT_MODELS else OLLAMA_MODEL
+
+# Small model dedicated to the MCP tool/agent layer (roadmap C2): Granite 4.0
+# leads structured function-calling in its size class.
+MCP_TOOL_MODEL = os.getenv("MCP_TOOL_MODEL", "granite4:1b")
+
 _MODEL_CREATED_TS = 1_700_000_000   # stable epoch for /v1/models
 
 # ---------------------------------------------------------------------------
@@ -585,9 +607,24 @@ async def mcp_call_tool(
     if request.name == "generate":
         prompt     = request.input.get("prompt", "")
         max_tokens = int(request.input.get("max_tokens", 256))
-        ids        = _tokenize(prompt)
-        gen        = _generate_tokens(ids, max_tokens)
-        return {"text": _decode_tokens(gen), "tokens_generated": len(gen)}
+        # Real generation via the tool-calling model (Granite 4.0, roadmap C2)
+        # instead of the former local token stub. Allowlisted; falls back to the
+        # default model on a bad/absent model.
+        model = request.input.get("model") or MCP_TOOL_MODEL
+        if model not in ALLOWED_CHAT_MODELS:
+            model = OLLAMA_MODEL
+        try:
+            # _ollama_chat reads msg.role/msg.content (objects, not dicts)
+            from types import SimpleNamespace
+            _msg = SimpleNamespace(role="user", content=prompt)
+            result = await _ollama_chat([_msg], model, max_tokens, 0.2, 1.0, False)
+            text = ((result.get("choices") or [{}])[0].get("message") or {}).get("content", "")
+            usage = result.get("usage") or {}
+            return {"text": text, "model": model,
+                    "tokens_generated": usage.get("completion_tokens", 0)}
+        except Exception as e:
+            logger.warning(f"mcp generate via {model} failed: {e}")
+            return {"text": "", "model": model, "error": str(e), "tokens_generated": 0}
 
     elif request.name == "embed":
         text = request.input.get("text", "")
@@ -1030,7 +1067,7 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
     """
     recycler = _get_recycler()
     prompt_text = _gw_extract_openai_prompt(request.messages)
-    model = OLLAMA_MODEL
+    model = _resolve_chat_model(getattr(request, "model", ""))
 
     if not request.stream:
         if recycler is not None and prompt_text:
