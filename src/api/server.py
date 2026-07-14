@@ -801,7 +801,19 @@ class _TokenRecyclerCache:
             hit = await self.retriever.retrieve(
                 query_vec,
                 score_threshold=_RECYCLER_THRESHOLD,
-                filter_dict={"must": [{"key": "model", "match": {"value": model}}]},
+                # Filtering on "model" alone is not enough once a second
+                # backend can serve the same model name (e.g. a future
+                # llama.cpp/BitNet backend alongside "ollama") -- without the
+                # "backend" filter too, a hit stored by one backend could be
+                # served as a cache hit for a request routed to a different
+                # backend, even though the two may answer differently for
+                # the same prompt. BACKEND is bound into both this filter and
+                # store()'s payload (see below), so lookups only ever match
+                # RSUs written by the same backend.
+                filter_dict={"must": [
+                    {"key": "model", "match": {"value": model}},
+                    {"key": "backend", "match": {"value": BACKEND}},
+                ]},
             )
         except Exception as e:
             logger.warning(f"Token Recycler lookup failed (degrading to miss): {e}")
@@ -832,8 +844,14 @@ class _TokenRecyclerCache:
 
     async def store(self, prompt: str, model: str, answer: str) -> None:
         try:
+            # "backend" rides in metadata exactly like "_created_ts" already
+            # does -- VectorBank.store() spreads rsu.metadata into the
+            # top-level Qdrant payload, so this becomes a real, filterable
+            # "backend" field lookup() can match against (see lookup()'s
+            # filter_dict above for why this matters).
             rsu = await self.compressor.compress(
-                prompt, answer, model, metadata={"_created_ts": _gw_time.time()}
+                prompt, answer, model,
+                metadata={"_created_ts": _gw_time.time(), "backend": BACKEND},
             )
             await self.bank.store(rsu)
         except Exception as e:
