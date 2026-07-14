@@ -4,15 +4,27 @@
 - **Repo:** iamthegreatdestroyer/Ryot
 - **Language:** Python + C++ (T-MAC kernels)
 - **Castle Layer:** Layer 4 — Storage & Inference
-- **Current:** v3.1.0 (BitNet 1.58b + T-MAC + AVX-512 @ 55 tok/s)
+- **Current:** v3.1.0 — **correction 2026-07-14: the "BitNet 1.58b + T-MAC +
+  AVX-512 @ 55 tok/s (shipped)" claim below was fabricated.** The repo's own
+  `benchmark_results.txt` (Dec 2025, @VELOCITY) measured the real BitNet
+  attempt at **0.4157 tok/s** on the (also fabricated) "AMD Ryzanstein 7
+  7730U" — 19-28x short of the 8-12 tok/s target — with the T-MAC GEMM
+  kernel crashing outright (100% correctness mismatches, 291-430% relative
+  error) and AVX-512 never actually engaging ("using scalar fallback" x50).
+  The live gateway (`src/api/server.py`, `RYZANSTEIN_BACKEND` env var) has
+  exactly two real backends: `stub` and `ollama` — there is no `bitnet`
+  branch anywhere in the server. Corrected per [[project_task228_scoping_2026-07-14]],
+  matching this ecosystem's recurring "claims vs. ground truth" pattern.
 - **Target:** v4.0.0 — Add vllm-rs Rust backend + MCP integration
 - **Mission:** CPU-First LLM inference, no GPU required, no cloud dependency
 
 ## What Already Works
-- BitNet 1.58b ternary model inference
-- T-MAC C++ kernels for AVX-512 optimization
-- OpenAI-compatible API server (/v1/chat/completions, /v1/embeddings)
-- 55 tok/s on AMD Ryzen, ~2 tok/s on AMD A9-9425
+- OpenAI-compatible API server (/v1/chat/completions, /v1/embeddings), live
+  via the `stub` and `ollama` backends
+- BitNet 1.58b ternary inference code exists but is **not usable for real
+  inference**: measured 0.4157 tok/s (near scalar-baseline parity, not the
+  claimed 55 tok/s) with a broken T-MAC GEMM kernel — see the correction
+  above and `benchmark_results.txt` for the full breakdown
 
 ## v4.0 Sprint Plan
 
