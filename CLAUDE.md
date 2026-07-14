@@ -43,10 +43,12 @@
   supports only stub|ollama (line 49); no vllm code in src/.
 
 ### Sprint 3: MCP Server Integration
-- [x] Expose Ryzanstein as an MCP tool server
-- [x] Tools: generate, embed, model_info, benchmark
-- [x] Compatible with Claude Code MCP protocol
-- [x] Register in agents-mcp-server registry
+- [ ] Expose Ryzanstein as an MCP tool server
+- [ ] Tools: generate, embed, model_info, benchmark
+- [ ] Compatible with Claude Code MCP protocol
+- [ ] Register in agents-mcp-server registry
+- **Correction 2026-07-14:** MCP scaffold removed as dead in commit 35fdd10;
+  Ryzanstein is not registered in agents-mcp-server.
 
 ### Sprint 4: Ecosystem Wiring
 - [x] sigma-compress uses Ryzanstein for semantic dedup embeddings
