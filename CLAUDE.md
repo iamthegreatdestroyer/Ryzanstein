@@ -35,10 +35,12 @@
 - [x] Document what works and what is broken
 
 ### Sprint 2: Add vllm-rs Backend Option
-- [x] Add configuration for vllm-rs as alternative backend
-- [x] vllm-rs provides: OpenAI-compatible API, MCP tool calling, 175 tok/s on GPU
-- [x] Keep BitNet/T-MAC as the CPU-optimized path
-- [x] Add backend selector in config: bitnet | vllm-rs | ollama-proxy
+- [ ] Add configuration for vllm-rs as alternative backend
+- [ ] vllm-rs provides: OpenAI-compatible API, MCP tool calling, 175 tok/s on GPU
+- [ ] Keep BitNet/T-MAC as the CPU-optimized path
+- [ ] Add backend selector in config: bitnet | vllm-rs | ollama-proxy
+- **Correction 2026-07-14:** vllm-rs backend was never added; server.py
+  supports only stub|ollama (line 49); no vllm code in src/.
 
 ### Sprint 3: MCP Server Integration
 - [x] Expose Ryzanstein as an MCP tool server
