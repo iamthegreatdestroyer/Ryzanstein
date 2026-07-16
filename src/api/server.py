@@ -21,6 +21,7 @@ RYZANSTEIN_HOST     Listen host (default 0.0.0.0).
 EMBED_DIM           Embedding dimension (default 1024).
 """
 
+import json
 import logging
 import os
 import time
@@ -57,6 +58,37 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwythos-9b")
 # errored upstream. nomic-embed-text is already pulled on this box.
 OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 
+# --- Per-model upstream routing (NUC offload) -------------------------------
+# GATEWAY_MODEL_UPSTREAMS maps model name -> base URL of the Ollama host that
+# serves it, e.g. '{"ling-mini-2.0":"http://10.88.0.6:11434"}' routes that
+# model to sigma-infer over wg0 while everything else stays on OLLAMA_URL.
+# Defensive parse: a malformed value must never crash the gateway at import
+# time -- it disables routing loudly instead. An empty map reproduces the
+# legacy single-upstream behavior exactly, so unsetting the env var is the
+# kill switch.
+try:
+    MODEL_UPSTREAMS: Dict[str, str] = {
+        str(k).strip(): str(v).strip().rstrip("/")
+        for k, v in json.loads(os.getenv("GATEWAY_MODEL_UPSTREAMS", "{}")).items()
+    }
+except (ValueError, TypeError, AttributeError):
+    logger.exception(
+        "GATEWAY_MODEL_UPSTREAMS is not a valid JSON object; "
+        "per-model upstream routing DISABLED"
+    )
+    MODEL_UPSTREAMS = {}
+if MODEL_UPSTREAMS:
+    logger.info("Per-model upstream routing active: %s", MODEL_UPSTREAMS)
+
+def _resolve_upstream(model: str, default: Optional[str] = None) -> str:
+    """Base URL of the Ollama upstream serving `model`.
+
+    Falls back to `default` (or module-wide OLLAMA_URL) when the model is
+    not explicitly mapped -- an empty/absent GATEWAY_MODEL_UPSTREAMS thus
+    reproduces the old single-upstream behavior exactly.
+    """
+    return MODEL_UPSTREAMS.get((model or "").strip()) or (default or OLLAMA_URL)
+
 # --- Per-request chat-model selection (roadmap C1) -------------------------
 # /v1/chat/completions historically pinned OLLAMA_MODEL and ignored request.model.
 # Allow an ALLOWLISTED per-request model so callers can opt into a stronger
@@ -66,7 +98,7 @@ OLLAMA_EMBED_MODEL = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text")
 ALLOWED_CHAT_MODELS = set(
     m.strip() for m in os.getenv(
         "GATEWAY_ALLOWED_MODELS",
-        "phi4-mini,gemma3:4b,gemma3:4b-it-qat,qwythos-9b,granite4:1b,qwen3:30b",
+        "phi4-mini,gemma3:4b,gemma3:4b-it-qat,qwythos-9b,granite4:1b,ling-mini-2.0",
     ).split(",") if m.strip()
 )
 
@@ -163,7 +195,9 @@ async def _ollama_chat(messages: list, model: str, max_tokens: int,
         "stream": False,
     }
     async with httpx.AsyncClient(timeout=300.0) as client:
-        resp = await client.post(f"{OLLAMA_URL}/v1/chat/completions", json=payload)
+        resp = await client.post(
+            f"{_resolve_upstream(model)}/v1/chat/completions", json=payload
+        )
         resp.raise_for_status()
         return resp.json()
 
@@ -194,7 +228,9 @@ async def _ollama_chat_stream(messages: list, model: str, max_tokens: int,
     # resolved at call time, not def time, so this is safe: by the time any
     # request reaches here the module has finished importing.
     async with httpx.AsyncClient(timeout=_GW_UPSTREAM_TIMEOUT) as client:
-        async with client.stream("POST", f"{OLLAMA_URL}/v1/chat/completions", json=payload) as resp:
+        async with client.stream(
+            "POST", f"{_resolve_upstream(model)}/v1/chat/completions", json=payload
+        ) as resp:
             resp.raise_for_status()
             async for line in resp.aiter_lines():
                 if not line:
@@ -724,6 +760,14 @@ _GW_OLLAMA_URL = _gw_os.getenv(
 # forever.
 _GW_UPSTREAM_TIMEOUT = float(_gw_os.getenv("GATEWAY_UPSTREAM_TIMEOUT", "900.0"))
 
+# /api/{path} passthrough: only inference/read paths may transit the gateway.
+# Ollama's admin verbs (pull/push/delete/create/copy) are unauthenticated on
+# the upstream, and with per-model routing an upstream may be a remote NUC --
+# letting any gateway consumer mutate models there is not acceptable.
+_GW_API_ALLOWED_PATHS = frozenset(
+    {"chat", "generate", "embeddings", "embed", "show", "tags", "ps", "version"}
+)
+
 # --- wire in Ryot's own Token Recycling System (RYZEN-LLM/src/recycler) ---
 _RYZEN_LLM_SRC = _gw_os.path.abspath(
     _gw_os.path.join(_gw_os.path.dirname(__file__), "..", "..", "RYZEN-LLM", "src")
@@ -1151,6 +1195,12 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
 async def _ollama_api_gateway(path: str, request: _GwRequest):
     body_bytes = await request.body()
 
+    if path.split("/", 1)[0] not in _GW_API_ALLOWED_PATHS:
+        return _GwJSON(
+            {"error": f"/api/{path} is not permitted through the gateway"},
+            status_code=403,
+        )
+
     # Cache-aware handling for non-streaming generate/chat (the Token Recycler)
     if path in ("generate", "chat") and request.method == "POST":
         try:
@@ -1170,7 +1220,10 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
                         headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit"},
                     )
                 async with _gw_httpx.AsyncClient(timeout=_GW_UPSTREAM_TIMEOUT) as client:
-                    upstream = await client.post(f"{_GW_OLLAMA_URL}/api/{path}", content=body_bytes)
+                    upstream = await client.post(
+                        f"{_resolve_upstream(model, _GW_OLLAMA_URL)}/api/{path}",
+                        content=body_bytes,
+                    )
                     upstream.raise_for_status()
                     resp_json = upstream.json()
                 answer_text = _gw_extract_answer(path, resp_json)
@@ -1183,7 +1236,15 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
                 )
 
     # Generic transparent passthrough for everything else (tags, embed, ps, pull, streaming, ...)
-    target = f"{_GW_OLLAMA_URL}/api/{path}"
+    _generic_model = ""
+    if body_bytes:
+        try:
+            _gbody = _gw_json.loads(body_bytes)
+            if isinstance(_gbody, dict):
+                _generic_model = str(_gbody.get("model", "") or "")
+        except ValueError:
+            pass
+    target = f"{_resolve_upstream(_generic_model, _GW_OLLAMA_URL)}/api/{path}"
     fwd = {k: v for k, v in request.headers.items()
            if k.lower() not in ("host", "content-length", "connection")}
     client = _gw_httpx.AsyncClient(timeout=None)
