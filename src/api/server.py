@@ -26,6 +26,15 @@ import logging
 import os
 import time
 import uuid
+
+# sigma-telemetry (Rust/pyo3): real latency histograms (p50/p95/p99) for the
+# serving path. Fail-open -- if the extension is not importable, _TEL stays None
+# and every use below is a guarded no-op, so the gateway is never affected.
+try:
+    import sigma_telemetry as _sigtel
+    _TEL = _sigtel.PyMetrics()
+except Exception:
+    _TEL = None
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 import torch
@@ -194,12 +203,20 @@ async def _ollama_chat(messages: list, model: str, max_tokens: int,
         "top_p": top_p,
         "stream": False,
     }
+    _t0 = time.perf_counter()
     async with httpx.AsyncClient(timeout=300.0) as client:
         resp = await client.post(
             f"{_resolve_upstream(model)}/v1/chat/completions", json=payload
         )
         resp.raise_for_status()
-        return resp.json()
+        _result = resp.json()
+    if _TEL is not None:
+        try:
+            _TEL.record_histogram("ryzanstein.chat.latency_ms", (time.perf_counter() - _t0) * 1000.0)
+            _TEL.increment("ryzanstein.chat.requests_total")
+        except Exception:
+            pass
+    return _result
 
 
 async def _ollama_chat_stream(messages: list, model: str, max_tokens: int,
@@ -1357,4 +1374,12 @@ async def _prometheus_metrics():
         "# TYPE ryzanstein_gateway_passthrough_total counter",
         f"ryzanstein_gateway_passthrough_total {_GW_METRICS['passthrough_total']}",
     ]
+    # sigma-telemetry real metrics (latency histograms w/ p50/p95/p99). Fail-open.
+    if _TEL is not None:
+        try:
+            _tel_text = _TEL.render().strip()
+            if _tel_text:
+                lines.append(_tel_text)
+        except Exception:
+            pass
     return PlainTextResponse("\n".join(lines) + "\n", media_type="text/plain; version=0.0.4")
