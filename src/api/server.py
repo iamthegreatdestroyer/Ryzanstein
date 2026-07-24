@@ -765,7 +765,9 @@ from fastapi import Request as _GwRequest
 from fastapi.responses import StreamingResponse as _GwStreaming, JSONResponse as _GwJSON
 from starlette.background import BackgroundTask as _GwBg
 import hashlib as _gw_hashlib
+import re as _gw_re
 from collections import OrderedDict as _GwOrderedDict
+from dataclasses import dataclass as _gw_dataclass, field as _gw_field
 
 _GW_OLLAMA_URL = _gw_os.getenv(
     "GATEWAY_OLLAMA_URL", _gw_os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -802,8 +804,16 @@ except Exception as _e:  # pragma: no cover - fail-open if the package can't loa
 
 _RECYCLER_ENABLED = _gw_os.getenv("RECYCLER_ENABLED", "true").lower() not in ("0", "false", "no")
 _RECYCLER_EMBED_MODEL = _gw_os.getenv("RECYCLER_EMBED_MODEL", "nomic-embed-text")
-_RECYCLER_THRESHOLD = float(_gw_os.getenv("RECYCLER_THRESHOLD", "0.97"))
+_RECYCLER_THRESHOLD = float(_gw_os.getenv("RECYCLER_THRESHOLD", "0.99"))
 _RECYCLER_TTL = int(_gw_os.getenv("RECYCLER_TTL_SECONDS", "86400"))
+# Step-4 retrieval-semantics knobs (candidate gate over the semantic L2 path).
+_RECYCLER_TOPK = int(_gw_os.getenv("RECYCLER_TOPK", "5"))            # candidates fetched per lookup
+_RECYCLER_MARGIN = float(_gw_os.getenv("RECYCLER_MARGIN", "0.01"))  # min score gap #1 vs first DIFFERENT-answer
+_RECYCLER_EXACT_TWIN = float(_gw_os.getenv("RECYCLER_EXACT_TWIN", "0.999"))  # accept regardless of margin at/above this
+_RECYCLER_MAX_DELETES = int(_gw_os.getenv("RECYCLER_MAX_DELETES", "8"))      # cap delete-on-expire per lookup
+# Param-awareness (step 3, folded in): bucket sizes for the stored/filtered params.
+_RECYCLER_TEMP_BUCKET = float(_gw_os.getenv("RECYCLER_TEMP_BUCKET", "0.1"))
+_RECYCLER_TOPP_BUCKET = float(_gw_os.getenv("RECYCLER_TOPP_BUCKET", "0.05"))
 # sigmalang: an ADDITIONAL similarity signal, checked only AFTER the primary
 # embedding threshold above already accepted a hit. Deliberately permissive
 # default -- see sigma_core.sigmalang's docstring for the calibration that set
@@ -836,6 +846,12 @@ _GW_METRICS = {
     "passthrough_total": 0,     # /v1/chat/completions requests handled by the ollama backend
                                 # (cache hit or miss, streaming or not) -- i.e. traffic that went
                                 # through the Token Recycler-aware path at all.
+    # step-4 L2 retrieval-gate observability (A1: make the gate calibratable).
+    "l2_expired_filtered": 0,   # candidates skipped as expired (age > TTL)
+    "l2_expired_deleted": 0,    # expired RSUs deleted from Qdrant (delete-on-expire, bounded)
+    "l2_rejected_lexical": 0,   # candidates rejected by the digit/date guard (R3)
+    "l2_rejected_maxtok": 0,    # candidates rejected as max_tokens-incompatible (R1)
+    "l2_rejected_ambiguous": 0, # lookups rejected as an ambiguous cloud (R2)
 }
 
 
@@ -937,6 +953,130 @@ class _ExactMatchL1Cache:
 _L1_CACHE = _ExactMatchL1Cache(_L1_MAX_ENTRIES, _L1_TTL)
 
 
+# ---------------------------------------------------------------------------
+# L2 (semantic) retrieval-selection policy -- step 4 (Kimi-reviewed)
+# ---------------------------------------------------------------------------
+def _gw_bucket(value: float, size: float) -> str:
+    """Canonical STRING bucket key for a sampling param, so near-identical values
+    share a cache partition (temperature 0.70 and 0.72 -> '0.7'). Returned as a
+    string, NOT a float, on purpose: Qdrant's payload match-value supports
+    keyword/integer/bool but not float equality, so a float bucket would silently
+    never match and collapse the L2 hit rate. store() and lookup() both key
+    through this function, so their bucket strings are always identical."""
+    if size <= 0:
+        return f"{value:g}"
+    return f"{round(round(value / size) * size, 6):g}"
+
+
+_GW_DIGIT_RE = _gw_re.compile(r"\d+")
+
+
+def _gw_digit_multiset(text: str):
+    """Sorted multiset of digit runs (years, dates, quantities, versions)."""
+    return tuple(sorted(_GW_DIGIT_RE.findall(text or "")))
+
+
+def _gw_digits_compatible(a: str, b: str) -> bool:
+    """R3 deterministic guard: embeddings are structurally blind to digit swaps
+    ('won 2020' vs 'won 2024' can score >0.99), so a candidate whose prompt has a
+    different digit/date multiset than the query is rejected regardless of score."""
+    return _gw_digit_multiset(a) == _gw_digit_multiset(b)
+
+
+@_gw_dataclass
+class _GwSelectionOutcome:
+    chosen: Any
+    expired_ids: List[str]
+    reason: str                                   # hit | no_candidates | no_survivors | ambiguous
+    counts: Dict[str, int] = _gw_field(default_factory=dict)
+
+    @property
+    def allow_l2_store(self) -> bool:
+        # On an ambiguous-reject the caller still populates L1 (this request's own
+        # exact answer) but must NOT add a point to a cloud it couldn't disambiguate.
+        return self.reason != "ambiguous"
+
+
+def _gw_select_recyclable(candidates, query_prompt, now, ttl, exact_twin, margin,
+                          request_max_tokens=None, max_deletes=8):
+    """Choose the RSU to serve from a score-descending candidate list, or reject.
+
+    Replaces the old top_k=1 + TTL-veto path:
+      * EXPIRED candidates (age > ttl) are filtered out, not used to veto -- a
+        fresh runner-up is still servable; their ids are returned (bounded) for
+        delete-on-expire. Legacy RSUs default _created_ts=0 -> always expired.
+      * R3 lexical guard: candidate prompt digit/date multiset must match query.
+      * R1 max_tokens: a stored COMPLETE answer under budget S serves a request
+        only if request budget >= S (else a fresh gen might truncate shorter).
+      * R2 margin: accept best iff score >= exact_twin OR no survivor has a
+        DIFFERENT answer OR best.score - first_different_answer.score >= margin.
+        Measuring against the first *different-answer* candidate (not survivors[1])
+        is essential -- same-answer duplicate twins must not read as ambiguous.
+    """
+    counts = {"expired_filtered": 0, "lexical_rejected": 0, "maxtok_rejected": 0}
+    if not candidates:
+        return _GwSelectionOutcome(None, [], "no_candidates", counts)
+
+    def _budget(v):
+        # Comparable token budget, or None for "absent -> no constraint". These
+        # are distinct cases and must not be conflated:
+        #   None    -> None   absent max_tokens: DON'T filter (legacy / param-agnostic
+        #                     /api store with no budget recorded -- serve as before).
+        #   <= 0    -> +inf   Ollama num_predict -1 "unlimited" / -2 "fill context":
+        #                     an EXPLICIT unlimited budget (serve any complete answer;
+        #                     an unlimited-stored answer is served to nothing smaller).
+        #   non-int -> +inf   garbage value: never raise a TypeError on the `<` below.
+        #   > 0     -> the int.
+        # A raw `<` on the -1 sentinel would treat it as a tiny ordinal and INVERT
+        # the gate (collapse hit-rate for unlimited requests; over-serve an
+        # unlimited-stored answer to a small budget).
+        if v is None:
+            return None
+        return float(v) if (isinstance(v, int) and not isinstance(v, bool) and v > 0) else float("inf")
+
+    req_budget = _budget(request_max_tokens)
+    expired_ids: List[str] = []
+    survivors: List[Any] = []
+    for c in candidates:
+        meta = getattr(c, "metadata", None) or {}
+        ts = meta.get("_created_ts", 0) or 0
+        if ttl > 0 and (now - ts) > ttl:
+            counts["expired_filtered"] += 1
+            if len(expired_ids) < max_deletes:
+                expired_ids.append(c.rsu_id)
+            continue
+        if not _gw_digits_compatible(query_prompt, getattr(c, "prompt", "")):
+            counts["lexical_rejected"] += 1
+            continue
+        # R1 truncation-safety: a stored COMPLETE answer generated under budget S
+        # is served only to a request whose budget >= S. Applied only when BOTH
+        # budgets are known -- an absent budget on either side means "no constraint".
+        stored_budget = _budget(meta.get("max_tokens"))
+        if req_budget is not None and stored_budget is not None and req_budget < stored_budget:
+            counts["maxtok_rejected"] += 1
+            continue
+        survivors.append(c)
+    if not survivors:
+        return _GwSelectionOutcome(None, expired_ids, "no_survivors", counts)
+    best = survivors[0]
+    if best.score >= exact_twin:
+        return _GwSelectionOutcome(best, expired_ids, "hit", counts)
+    diff = next((c for c in survivors[1:] if getattr(c, "answer", None) != best.answer), None)
+    if diff is None or (best.score - diff.score) >= margin:
+        return _GwSelectionOutcome(best, expired_ids, "hit", counts)
+    return _GwSelectionOutcome(None, expired_ids, "ambiguous", counts)
+
+
+@_gw_dataclass
+class _GwRecyclerLookup:
+    """lookup() result: answer (None on miss); score = cosine of the served
+    candidate (for X-Cache-Score); allow_l2_store is False only on an
+    ambiguous-reject (L1 is still populated, L2 is not)."""
+    answer: Any = None
+    score: Any = None
+    allow_l2_store: bool = True
+
+
 class _TokenRecyclerCache:
     """Glues SemanticCompressor + VectorBank + SelectiveRetriever into the
     answer-level cache the Ryzanstein gateway checks on generate/chat calls."""
@@ -944,76 +1084,125 @@ class _TokenRecyclerCache:
     def __init__(self):
         qhost, qport = _gw_parse_host_port(_QDRANT_URL, default_port=6333)
         self.bank = VectorBank(host=qhost, port=qport, collection_name="rsu_bank", vector_size=768)
-        self.retriever = SelectiveRetriever(self.bank, top_k=1)
+        self.retriever = SelectiveRetriever(self.bank, top_k=_RECYCLER_TOPK)
         self.compressor = SemanticCompressor(embed_fn=self._embed)
         self.sigmalang = SigmalangClient()
         self.hits = 0
         self.misses = 0
         self.sigmalang_rejected = 0
         self.sigmalang_last_score = None
+        self.last_hit_score = None      # cosine of the most recent served L2 candidate (X-Cache-Score)
 
     async def _embed(self, text: str):
         result = await _ollama_embed([text], _RECYCLER_EMBED_MODEL)
         return result["data"][0]["embedding"]
 
-    async def lookup(self, prompt: str, model: str):
+    async def lookup(self, prompt: str, model: str,
+                     temperature: Optional[float] = None, top_p: Optional[float] = None,
+                     max_tokens: Optional[int] = None) -> "_GwRecyclerLookup":
+        """Semantic L2 lookup -> _GwRecyclerLookup (answer None on miss).
+
+        Fetches top-K candidates (param-bucket-filtered in Qdrant) instead of the
+        single nearest, then applies the step-4 gate via _gw_select_recyclable:
+        expired-filter (+ bounded delete-on-expire), R3 digit guard, R1 max_tokens
+        compat, R2 different-answer margin, EXACT_TWIN bypass. This replaces the
+        old top_k=1 path where an expired-or-fuzzy nearest either vetoed the
+        lookup or was served outright.
+        """
         try:
             query_vec = await self.compressor.embed_query(prompt)
-            hit = await self.retriever.retrieve(
-                query_vec,
-                score_threshold=_RECYCLER_THRESHOLD,
-                # Filtering on "model" alone is not enough once a second
-                # backend can serve the same model name (e.g. a future
-                # llama.cpp/BitNet backend alongside "ollama") -- without the
-                # "backend" filter too, a hit stored by one backend could be
-                # served as a cache hit for a request routed to a different
-                # backend, even though the two may answer differently for
-                # the same prompt. BACKEND is bound into both this filter and
-                # store()'s payload (see below), so lookups only ever match
-                # RSUs written by the same backend.
-                filter_dict={"must": [
-                    {"key": "model", "match": {"value": model}},
-                    {"key": "backend", "match": {"value": BACKEND}},
-                ]},
+            # model + backend bind the served model/runtime; the param buckets
+            # (step 3) keep a temp=0 deterministic answer from being served to a
+            # temp=1 request. Absent params add no bucket clause -- legacy/native
+            # callers still match on model+backend alone (and legacy RSUs without
+            # a temp_bucket field simply won't match a param-filtered lookup).
+            must = [
+                {"key": "model", "match": {"value": model}},
+                {"key": "backend", "match": {"value": BACKEND}},
+            ]
+            if temperature is not None:
+                must.append({"key": "temp_bucket",
+                             "match": {"value": _gw_bucket(temperature, _RECYCLER_TEMP_BUCKET)}})
+            if top_p is not None:
+                must.append({"key": "top_p_bucket",
+                             "match": {"value": _gw_bucket(top_p, _RECYCLER_TOPP_BUCKET)}})
+            candidates = await self.retriever.retrieve_candidates(
+                query_vec, score_threshold=_RECYCLER_THRESHOLD,
+                filter_dict={"must": must}, limit=_RECYCLER_TOPK,
             )
         except Exception as e:
             logger.warning(f"Token Recycler lookup failed (degrading to miss): {e}")
-            return None
-        if hit is None:
-            self.misses += 1
-            return None
-        created_ts = hit.metadata.get("_created_ts", 0) or 0
-        if (_gw_time.time() - created_ts) > _RECYCLER_TTL:
-            self.misses += 1
-            return None
-        # sigmalang: an ADDITIONAL signal checked only after the primary
-        # embedding threshold above already accepted this candidate. Fails
-        # open -- a sigmalang outage/error never turns an accepted hit into a
-        # miss; it only skips the extra check and logs why.
-        if _SIGMALANG_ENABLED:
-            try:
-                sig_score = await self.sigmalang.asimilarity(prompt, hit.prompt)
-                self.sigmalang_last_score = sig_score
-                if sig_score < _SIGMALANG_THRESHOLD:
-                    self.sigmalang_rejected += 1
-                    self.misses += 1
-                    return None
-            except Exception as e:
-                logger.debug(f"sigmalang gate check failed (failing open, hit stands): {e}")
-        self.hits += 1
-        return hit.answer
+            return _GwRecyclerLookup(None)
 
-    async def store(self, prompt: str, model: str, answer: str) -> None:
+        # Gate + selection run AFTER retrieval; guard them too so any
+        # post-retrieval error (a malformed candidate, an unexpected type)
+        # degrades to a miss instead of escaping lookup() -- lookup()'s "degrades
+        # to a miss" contract must cover the whole operation, and the /api call
+        # site historically relied on lookup() never raising.
         try:
-            # "backend" rides in metadata exactly like "_created_ts" already
-            # does -- VectorBank.store() spreads rsu.metadata into the
-            # top-level Qdrant payload, so this becomes a real, filterable
-            # "backend" field lookup() can match against (see lookup()'s
-            # filter_dict above for why this matters).
-            rsu = await self.compressor.compress(
-                prompt, answer, model,
-                metadata={"_created_ts": _gw_time.time(), "backend": BACKEND},
+            outcome = _gw_select_recyclable(
+                candidates, prompt, _gw_time.time(), _RECYCLER_TTL,
+                _RECYCLER_EXACT_TWIN, _RECYCLER_MARGIN,
+                request_max_tokens=max_tokens, max_deletes=_RECYCLER_MAX_DELETES,
             )
+            _GW_METRICS["l2_expired_filtered"] += outcome.counts.get("expired_filtered", 0)
+            _GW_METRICS["l2_rejected_lexical"] += outcome.counts.get("lexical_rejected", 0)
+            _GW_METRICS["l2_rejected_maxtok"] += outcome.counts.get("maxtok_rejected", 0)
+            # delete-on-expire: bounded (max_deletes), best-effort, never fails lookup.
+            for rid in outcome.expired_ids:
+                try:
+                    await self.bank.delete(rid)
+                    _GW_METRICS["l2_expired_deleted"] += 1
+                except Exception as e:
+                    logger.debug(f"Token Recycler delete-on-expire failed (ignored): {e}")
+
+            if outcome.chosen is None:
+                self.misses += 1
+                if outcome.reason == "ambiguous":
+                    _GW_METRICS["l2_rejected_ambiguous"] += 1
+                return _GwRecyclerLookup(None, allow_l2_store=outcome.allow_l2_store)
+
+            chosen = outcome.chosen
+            # sigmalang: an ADDITIONAL signal checked only after the gate above has
+            # already accepted this candidate. Fails open -- an outage/error never
+            # turns an accepted hit into a miss.
+            if _SIGMALANG_ENABLED:
+                try:
+                    sig_score = await self.sigmalang.asimilarity(prompt, chosen.prompt)
+                    self.sigmalang_last_score = sig_score
+                    if sig_score < _SIGMALANG_THRESHOLD:
+                        self.sigmalang_rejected += 1
+                        self.misses += 1
+                        return _GwRecyclerLookup(None)
+                except Exception as e:
+                    logger.debug(f"sigmalang gate check failed (failing open, hit stands): {e}")
+            self.hits += 1
+            self.last_hit_score = chosen.score
+            return _GwRecyclerLookup(chosen.answer, score=chosen.score)
+        except Exception as e:
+            logger.warning(f"Token Recycler gate/selection failed (degrading to miss): {e}")
+            return _GwRecyclerLookup(None)
+
+    async def store(self, prompt: str, model: str, answer: str,
+                    temperature: Optional[float] = None, top_p: Optional[float] = None,
+                    max_tokens: Optional[int] = None) -> None:
+        try:
+            # "backend" rides in metadata like "_created_ts"; VectorBank.store()
+            # spreads rsu.metadata into the top-level Qdrant payload, so these
+            # become real filterable fields lookup() matches against. The param
+            # buckets (step 3) partition the cache so a temp=0 answer isn't served
+            # to a temp=1 request; max_tokens is stored so lookup() can enforce
+            # truncation-safety (serve a complete answer only to an
+            # equal-or-larger budget). Absent params are simply not stored, so
+            # older entries stay valid for param-agnostic (native) lookups.
+            meta = {"_created_ts": _gw_time.time(), "backend": BACKEND}
+            if temperature is not None:
+                meta["temp_bucket"] = _gw_bucket(temperature, _RECYCLER_TEMP_BUCKET)
+            if top_p is not None:
+                meta["top_p_bucket"] = _gw_bucket(top_p, _RECYCLER_TOPP_BUCKET)
+            if max_tokens is not None:
+                meta["max_tokens"] = max_tokens
+            rsu = await self.compressor.compress(prompt, answer, model, metadata=meta)
             await self.bank.store(rsu)
         except Exception as e:
             # Previously this was the only trace of a failed cache write: a
@@ -1203,7 +1392,8 @@ async def _gw_stream_openai_cached_answer(request_id: str, model: str, answer: s
 async def _gw_stream_and_tee_to_cache(request_id: str, model: str, prompt_text: str,
                                       messages: list, max_tokens: int, temperature: float,
                                       top_p: float, recycler,
-                                      l1_key: Optional[str] = None) -> AsyncIterator[str]:
+                                      l1_key: Optional[str] = None,
+                                      allow_l2_store: bool = True) -> AsyncIterator[str]:
     """Real streaming passthrough for a cache MISS under stream=true.
 
     Forwards Ollama's own OpenAI-compat SSE lines to the client as they arrive
@@ -1263,9 +1453,14 @@ async def _gw_stream_and_tee_to_cache(request_id: str, model: str, prompt_text: 
                 except Exception as e:
                     logger.warning(f"chat/completions stream-tee: L1 store failed "
                                   f"(ignored, client stream already completed): {e}")
-            if recycler is not None:
+            # allow_l2_store is False only when the miss came from an
+            # ambiguous-reject lookup: L1 still gets this request's own exact
+            # answer (above), but we must not add a point to the L2 cloud we
+            # just failed to disambiguate.
+            if recycler is not None and allow_l2_store:
                 try:
-                    await recycler.store(prompt_text, model, full_answer)
+                    await recycler.store(prompt_text, model, full_answer,
+                                         temperature=temperature, top_p=top_p, max_tokens=max_tokens)
                 except Exception as e:
                     # store() already fails open/logs internally; this is a second
                     # layer of defense specific to the streaming tee path so a
@@ -1287,20 +1482,20 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
       - stream=true,  miss: real SSE passthrough, tee accumulated text into
                             the cache once the stream completes
 
-    Model cache key: uses OLLAMA_MODEL (the model actually served) rather than
-    request.model. Verified real callers across the ecosystem send differing
-    model labels for what all resolve to the same served model on this box
-    (myceloforge default "ryzanstein-bitnet-7b", NEURECTOMY spectrum-workspace
-    default "ryot-bitnet-7b", sigma-index's Go inference_client default
-    "ryzanstein-bitnet-3b", vs. this server's own MODEL_NAME default
-    "ryzanstein-bitnet-7b") -- none of that is honored today; this handler
-    already ignored request.model entirely and always forwarded OLLAMA_MODEL
-    (see _ollama_chat call below). Keying the cache on request.model as-sent
-    would silently fragment the cache across labels that all hit the exact
-    same upstream model, without ever actually selecting a different model.
-    Keying on OLLAMA_MODEL instead makes the cache key match what is actually
-    served, and stays consistent with the /api/{path} gateway's own contract
-    of keying on the model string that request is actually forwarded with.
+    Model cache key: model = _resolve_chat_model(request.model) -- the request's
+    model when it is in ALLOWED_CHAT_MODELS, otherwise the served default
+    (OLLAMA_MODEL). Ecosystem callers send many labels that all resolve to the one
+    served model, so keying on the RESOLVED value (not raw request.model) keeps the
+    cache from fragmenting across labels that hit the same upstream model, while
+    still honoring an explicitly allowlisted model selection. Both the L1 exact key
+    and the L2 filter bind this resolved model. (This docstring previously claimed
+    the handler "ignored request.model entirely and always forwarded OLLAMA_MODEL";
+    that was stale -- _ollama_chat is called with the resolved `model` below.)
+
+    Param-awareness: sampling params (temperature/top_p/max_tokens) are part of the
+    L1 exact key and are bucket-filtered in the L2 lookup + stored in the L2 RSU,
+    so a temp=0 deterministic answer is never served to a temp=1 request, and a
+    complete answer is only L2-served to an equal-or-larger max_tokens budget.
     """
     recycler = _get_recycler()
     prompt_text = _gw_extract_openai_prompt(request.messages)
@@ -1331,29 +1526,33 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
                     headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit",
                              "X-Cache-Layer": "l1-exact"},
                 )
+        allow_l2_store = True
         if recycler is not None and prompt_text:
-            # _TokenRecyclerCache.lookup() already has its own internal
-            # try/except (degrades to a miss on failure), but this call site
-            # wraps it too: /v1/chat/completions must keep working even if a
-            # *different* recycler implementation (or a future refactor) ever
-            # lets an exception through lookup() itself.
+            # lookup() has its own internal try/except (degrades to a miss), but
+            # this call site wraps it too so /v1/chat/completions keeps working
+            # even if a future refactor lets an exception through lookup().
             try:
-                cached = await recycler.lookup(prompt_text, model)
+                res = await recycler.lookup(
+                    prompt_text, model, temperature=request.temperature,
+                    top_p=request.top_p, max_tokens=request.max_tokens,
+                )
             except Exception as e:
                 logger.warning(f"chat/completions: recycler.lookup() raised, treating as "
                               f"miss (client response unaffected): {e}")
-                cached = None
-            if cached is not None:
+                res = _GwRecyclerLookup(None)
+            if res.answer is not None:
                 _GW_METRICS["passthrough_total"] += 1
                 # Deliberately do NOT backfill L1 from an L2 (fuzzy) hit: that
-                # would "bless" a semantic match into an exact-keyed fact for
-                # this prompt. L1 is populated only by a real miss-path
-                # completion below, under the request's own exact key.
+                # would "bless" a semantic match into an exact-keyed fact.
                 return JSONResponse(
-                    _gw_wrap_openai_cached_answer(req_id, model, cached),
+                    _gw_wrap_openai_cached_answer(req_id, model, res.answer),
                     headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit",
-                             "X-Cache-Layer": "l2-semantic"},
+                             "X-Cache-Layer": "l2-semantic",
+                             "X-Cache-Score": (f"{res.score:.4f}" if res.score is not None else "na")},
                 )
+            # On an ambiguous-reject miss, still populate L1 below (this request's
+            # own exact answer) but skip the L2 store -- don't deepen the cloud.
+            allow_l2_store = res.allow_l2_store
         result = await _ollama_chat(
             request.messages, model, request.max_tokens,
             request.temperature, request.top_p, request.stream,
@@ -1367,13 +1566,14 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
         if answer_text and _gw_answer_is_complete(choice0.get("finish_reason")):
             if l1_key is not None:
                 _L1_CACHE.put(l1_key, answer_text)
-            if recycler is not None and prompt_text:
-                # Same reasoning as the lookup() wrapper above: store() is
-                # expected to fail open internally, but the already-successful
-                # Ollama answer must reach the client even if a cache-store
-                # exception somehow escapes it anyway.
+            if recycler is not None and prompt_text and allow_l2_store:
+                # store() is expected to fail open internally, but the
+                # already-successful Ollama answer must reach the client even if
+                # a cache-store exception somehow escapes it anyway.
                 try:
-                    await recycler.store(prompt_text, model, answer_text)
+                    await recycler.store(prompt_text, model, answer_text,
+                                         temperature=request.temperature,
+                                         top_p=request.top_p, max_tokens=request.max_tokens)
                 except Exception as e:
                     logger.warning(f"chat/completions: recycler.store() raised (ignored, "
                                   f"client response unaffected): {e}")
@@ -1393,23 +1593,36 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
                 headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway",
                          "X-Cache": "hit", "X-Cache-Layer": "l1-exact"},
             )
+    allow_l2_store = True
     if recycler is not None and prompt_text:
-        cached = await recycler.lookup(prompt_text, model)
-        if cached is not None:
+        # F1: wrap lookup() in try/except like the non-stream path -- a stream
+        # request must degrade to live inference, not 500, if lookup ever raises.
+        try:
+            res = await recycler.lookup(
+                prompt_text, model, temperature=request.temperature,
+                top_p=request.top_p, max_tokens=request.max_tokens,
+            )
+        except Exception as e:
+            logger.warning(f"chat/completions(stream): recycler.lookup() raised, treating as "
+                          f"miss (client stream unaffected): {e}")
+            res = _GwRecyclerLookup(None)
+        if res.answer is not None:
             _GW_METRICS["passthrough_total"] += 1
             return StreamingResponse(
-                _gw_stream_openai_cached_answer(req_id, model, cached),
+                _gw_stream_openai_cached_answer(req_id, model, res.answer),
                 media_type="text/event-stream",
                 headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway",
-                         "X-Cache": "hit", "X-Cache-Layer": "l2-semantic"},
+                         "X-Cache": "hit", "X-Cache-Layer": "l2-semantic",
+                         "X-Cache-Score": (f"{res.score:.4f}" if res.score is not None else "na")},
             )
+        allow_l2_store = res.allow_l2_store
 
     _GW_METRICS["passthrough_total"] += 1
     return StreamingResponse(
         _gw_stream_and_tee_to_cache(
             req_id, model, prompt_text, request.messages,
             request.max_tokens, request.temperature, request.top_p, recycler,
-            l1_key,
+            l1_key, allow_l2_store,
         ),
         media_type="text/event-stream",
         headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway", "X-Cache": "miss"},
@@ -1436,14 +1649,32 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
             recycler = _get_recycler()
             prompt_text = _gw_extract_prompt(path, body)
             model = body.get("model", "")
+            # Native Ollama options carry the sampling params (num_predict is the
+            # max_tokens equivalent); thread them so this path is param-aware too.
+            _opts = body.get("options") if isinstance(body.get("options"), dict) else {}
+            _temp = _opts.get("temperature")
+            _top_p = _opts.get("top_p")
+            _mt = _opts.get("num_predict")
             if recycler is not None and prompt_text:
-                cached = await recycler.lookup(prompt_text, model)
-                if cached is not None:
+                # Parity with the two /v1 call sites: never let a lookup() error
+                # 500 an /api request (lookup already degrades to a miss internally;
+                # this is defense-in-depth for any future refactor).
+                try:
+                    res = await recycler.lookup(prompt_text, model,
+                                                temperature=_temp, top_p=_top_p, max_tokens=_mt)
+                except Exception as e:
+                    logger.warning(f"/api/{path}: recycler.lookup() raised, treating as miss "
+                                  f"(client response unaffected): {e}")
+                    res = _GwRecyclerLookup(None)
+                if res.answer is not None:
                     _GW_METRICS["passthrough_total"] += 1
                     return _GwJSON(
-                        _gw_wrap_cached_answer(path, model, cached),
-                        headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit"},
+                        _gw_wrap_cached_answer(path, model, res.answer),
+                        headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit",
+                                 "X-Cache-Layer": "l2-semantic",
+                                 "X-Cache-Score": (f"{res.score:.4f}" if res.score is not None else "na")},
                     )
+                _allow_l2 = res.allow_l2_store
                 async with _gw_httpx.AsyncClient(timeout=_GW_UPSTREAM_TIMEOUT) as client:
                     upstream = await client.post(
                         f"{_resolve_upstream(model, _GW_OLLAMA_URL)}/api/{path}",
@@ -1455,9 +1686,12 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
                 # Completeness gate: Ollama's native /api/{generate,chat} reports
                 # "done_reason" ("stop" | "length" | ...). Don't store a
                 # length-truncated answer into the shared L2 -- it could later be
-                # served (semantically) to a /v1/chat/completions request too.
-                if answer_text and _gw_answer_is_complete(resp_json.get("done_reason")):
-                    await recycler.store(prompt_text, model, answer_text)
+                # served (semantically) to a /v1/chat/completions request too. Also
+                # skip the store on an ambiguous-reject miss (don't deepen the cloud).
+                if (answer_text and _allow_l2
+                        and _gw_answer_is_complete(resp_json.get("done_reason"))):
+                    await recycler.store(prompt_text, model, answer_text,
+                                         temperature=_temp, top_p=_top_p, max_tokens=_mt)
                 _GW_METRICS["passthrough_total"] += 1
                 return _GwJSON(
                     resp_json,
@@ -1527,6 +1761,7 @@ async def _recycler_stats():
         "threshold": _RECYCLER_THRESHOLD,
         "ttl_seconds": _RECYCLER_TTL,
         "embed_model": _RECYCLER_EMBED_MODEL,
+        "last_hit_score": recycler.last_hit_score,
         "sigmalang_gate_enabled": _SIGMALANG_ENABLED,
         "sigmalang_threshold": _SIGMALANG_THRESHOLD,
         "sigmalang_rejected": recycler.sigmalang_rejected,
@@ -1534,6 +1769,15 @@ async def _recycler_stats():
         "stores_total": _GW_METRICS["stores_total"],
         "store_failures_total": _GW_METRICS["store_failures_total"],
         "passthrough_total": _GW_METRICS["passthrough_total"],
+        # step-4 gate telemetry (A1) -- reject-reason breakdown for calibration.
+        "topk": _RECYCLER_TOPK,
+        "margin": _RECYCLER_MARGIN,
+        "exact_twin": _RECYCLER_EXACT_TWIN,
+        "l2_expired_filtered": _GW_METRICS["l2_expired_filtered"],
+        "l2_expired_deleted": _GW_METRICS["l2_expired_deleted"],
+        "l2_rejected_lexical": _GW_METRICS["l2_rejected_lexical"],
+        "l2_rejected_maxtok": _GW_METRICS["l2_rejected_maxtok"],
+        "l2_rejected_ambiguous": _GW_METRICS["l2_rejected_ambiguous"],
         "l1": l1_stats,
     }
 
@@ -1609,6 +1853,24 @@ async def _prometheus_metrics():
             "# TYPE ryzanstein_recycler_l1_evictions_total counter",
             f"ryzanstein_recycler_l1_evictions_total {_l1s['evictions']}",
         ]
+    # step-4 L2 gate telemetry (A1): reject-reason + expiry breakdown for calibration.
+    lines += [
+        "# HELP ryzanstein_recycler_l2_expired_filtered_total L2 candidates skipped as expired.",
+        "# TYPE ryzanstein_recycler_l2_expired_filtered_total counter",
+        f"ryzanstein_recycler_l2_expired_filtered_total {_GW_METRICS['l2_expired_filtered']}",
+        "# HELP ryzanstein_recycler_l2_expired_deleted_total Expired RSUs deleted from Qdrant.",
+        "# TYPE ryzanstein_recycler_l2_expired_deleted_total counter",
+        f"ryzanstein_recycler_l2_expired_deleted_total {_GW_METRICS['l2_expired_deleted']}",
+        "# HELP ryzanstein_recycler_l2_rejected_lexical_total L2 candidates rejected by the digit/date guard.",
+        "# TYPE ryzanstein_recycler_l2_rejected_lexical_total counter",
+        f"ryzanstein_recycler_l2_rejected_lexical_total {_GW_METRICS['l2_rejected_lexical']}",
+        "# HELP ryzanstein_recycler_l2_rejected_maxtok_total L2 candidates rejected as max_tokens-incompatible.",
+        "# TYPE ryzanstein_recycler_l2_rejected_maxtok_total counter",
+        f"ryzanstein_recycler_l2_rejected_maxtok_total {_GW_METRICS['l2_rejected_maxtok']}",
+        "# HELP ryzanstein_recycler_l2_rejected_ambiguous_total L2 lookups rejected as an ambiguous cloud.",
+        "# TYPE ryzanstein_recycler_l2_rejected_ambiguous_total counter",
+        f"ryzanstein_recycler_l2_rejected_ambiguous_total {_GW_METRICS['l2_rejected_ambiguous']}",
+    ]
     # sigma-telemetry real metrics (latency histograms w/ p50/p95/p99). Fail-open.
     if _TEL is not None:
         try:

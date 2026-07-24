@@ -36,28 +36,54 @@ class SelectiveRetriever:
         self.vector_bank = vector_bank
         self.top_k = top_k
 
+    @staticmethod
+    def _to_result(hit: Any) -> RetrievalResult:
+        payload = hit.payload or {}
+        known = ("prompt", "answer", "model", "created_at")
+        return RetrievalResult(
+            rsu_id=hit.id,
+            prompt=payload.get("prompt", ""),
+            answer=payload.get("answer", ""),
+            model=payload.get("model", ""),
+            score=hit.score,
+            metadata={k: v for k, v in payload.items() if k not in known},
+        )
+
+    async def retrieve_candidates(
+        self,
+        query_embedding: List[float],
+        score_threshold: float = 0.95,
+        filter_dict: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = None,
+    ) -> List[RetrievalResult]:
+        """Return up to `limit` (default self.top_k) nearest RSUs above
+        score_threshold, mapped to RetrievalResult, preserving Qdrant's
+        descending-cosine order.
+
+        Unlike retrieve(), does NOT discard the tail: callers that need to
+        filter expired candidates or apply a margin/ambiguity gate over the
+        neighbourhood (server.py's lookup) consume the full list. Fetching >1
+        candidate is what lets an expired nearest be skipped in favour of a
+        fresh runner-up instead of vetoing the whole lookup.
+        """
+        k = self.top_k if limit is None else limit
+        hits = await self.vector_bank.retrieve(
+            query_embedding,
+            limit=k,
+            score_threshold=score_threshold,
+            filter_dict=filter_dict,
+        )
+        return [self._to_result(h) for h in (hits or [])]
+
     async def retrieve(
         self,
         query_embedding: List[float],
         score_threshold: float = 0.95,
         filter_dict: Optional[Dict[str, Any]] = None,
     ) -> Optional[RetrievalResult]:
-        hits = await self.vector_bank.retrieve(
-            query_embedding,
-            limit=self.top_k,
-            score_threshold=score_threshold,
-            filter_dict=filter_dict,
+        """Single best match -- back-compat wrapper over retrieve_candidates()."""
+        cands = await self.retrieve_candidates(
+            query_embedding, score_threshold=score_threshold,
+            filter_dict=filter_dict, limit=self.top_k,
         )
-        if not hits:
-            return None
-        top = hits[0]
-        payload = top.payload or {}
-        known = ("prompt", "answer", "model", "created_at")
-        return RetrievalResult(
-            rsu_id=top.id,
-            prompt=payload.get("prompt", ""),
-            answer=payload.get("answer", ""),
-            model=payload.get("model", ""),
-            score=top.score,
-            metadata={k: v for k, v in payload.items() if k not in known},
-        )
+        return cands[0] if cands else None
