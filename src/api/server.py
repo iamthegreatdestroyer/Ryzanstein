@@ -815,17 +815,26 @@ _RECYCLER_MAX_DELETES = int(_gw_os.getenv("RECYCLER_MAX_DELETES", "8"))      # c
 _RECYCLER_TEMP_BUCKET = float(_gw_os.getenv("RECYCLER_TEMP_BUCKET", "0.1"))
 _RECYCLER_TOPP_BUCKET = float(_gw_os.getenv("RECYCLER_TOPP_BUCKET", "0.05"))
 # sigmalang: an ADDITIONAL similarity signal, checked only AFTER the primary
-# embedding threshold above already accepted a hit. Deliberately permissive
-# default -- see sigma_core.sigmalang's docstring for the calibration that set
-# 0.4 (its cosine doesn't reliably discriminate topic at this dimension; the
-# goal here is structural readiness + a logged score, not a strict filter).
-# Fails open: if the sigmalang service is unreachable, the gate is skipped and
-# the primary signal's decision stands unchanged.
-_SIGMALANG_ENABLED = _gw_os.getenv("SIGMALANG_GATE_ENABLED", "true").lower() not in ("0", "false", "no")
+# gate already accepted a hit. It can only REJECT a hit (turn it into a miss),
+# never cause a wrong serve. Its cosine "doesn't reliably discriminate topic at
+# this dimension" (per sigma_core.sigmalang) and 0.4 is permissive -- it rarely
+# rejects anything. OFF BY DEFAULT (2026-07-23): after step-4 the primary gate
+# (0.99 threshold + digit guard + different-answer margin + param buckets) is
+# strong enough that this backstop adds no discrimination, only a per-hit network
+# call to the sigmalang service on the hot path. Set SIGMALANG_GATE_ENABLED=true
+# to re-enable it as a logged extra signal.
+_SIGMALANG_ENABLED = _gw_os.getenv("SIGMALANG_GATE_ENABLED", "false").lower() not in ("0", "false", "no")
 _SIGMALANG_THRESHOLD = float(_gw_os.getenv("SIGMALANG_THRESHOLD", "0.4"))
 _QDRANT_URL = _gw_os.getenv("QDRANT_URL", "http://localhost:6333")
 _SIGMA_INDEX_URL = _gw_os.getenv("SIGMA_INDEX_URL", "http://localhost:8200")
-_SIGMA_INDEX_DUALWRITE = _gw_os.getenv("SIGMA_INDEX_DUALWRITE", "true").lower() not in (
+# sigma-index shadow dual-write: OFF BY DEFAULT (2026-07-23). This mirrored every
+# stored RSU into sigma-index's "token_recycler" namespace as a future-Qdrant-
+# replacement experiment, but nothing ever read it back (lookup() reads Qdrant
+# only; an ecosystem-wide search found zero runtime consumers of that namespace)
+# and sigma-index has no delete path so the shadow grew unbounded. Disabled to
+# drop a per-store HTTP call + failure surface from the hot path. Set
+# SIGMA_INDEX_DUALWRITE=true to restore it if it is ever promoted to the read path.
+_SIGMA_INDEX_DUALWRITE = _gw_os.getenv("SIGMA_INDEX_DUALWRITE", "false").lower() not in (
     "0", "false", "no"
 )
 
