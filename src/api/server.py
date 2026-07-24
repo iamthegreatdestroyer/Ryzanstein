@@ -764,6 +764,8 @@ from urllib.parse import urlparse as _gw_urlparse
 from fastapi import Request as _GwRequest
 from fastapi.responses import StreamingResponse as _GwStreaming, JSONResponse as _GwJSON
 from starlette.background import BackgroundTask as _GwBg
+import hashlib as _gw_hashlib
+from collections import OrderedDict as _GwOrderedDict
 
 _GW_OLLAMA_URL = _gw_os.getenv(
     "GATEWAY_OLLAMA_URL", _gw_os.getenv("OLLAMA_URL", "http://localhost:11434")
@@ -835,6 +837,104 @@ _GW_METRICS = {
                                 # (cache hit or miss, streaming or not) -- i.e. traffic that went
                                 # through the Token Recycler-aware path at all.
 }
+
+
+# ---------------------------------------------------------------------------
+# L1 exact-match cache + completeness gate (Token Recycler, tier 1)
+# ---------------------------------------------------------------------------
+# The semantic L2 (Qdrant) recycler below matches prompts FUZZILY and keys only
+# on (model, backend) -- so it can serve an answer generated under different
+# sampling params, and its nearest neighbour can be a near-miss twin. This L1
+# sits IN FRONT of it: an in-process, param-aware, EXACT-match cache. A request
+# identical in (resolved model, backend, full message list, all sampling params)
+# to a prior one is served from the byte-identical tuple, with zero embedding
+# round-trip. Two wins: correctness (never a cross-param / fuzzy answer for an
+# exact repeat -- the dominant automation pattern) and latency (skips the
+# 0.4-1s embed HTTP that dominates L2 hit time). Pure Python + bounded LRU/TTL,
+# so exact repeats keep being served even when Qdrant/embeddings are down.
+_L1_ENABLED = _gw_os.getenv("RECYCLER_L1_ENABLED", "true").lower() not in ("0", "false", "no")
+_L1_MAX_ENTRIES = int(_gw_os.getenv("RECYCLER_L1_MAX_ENTRIES", "2048"))
+_L1_TTL = int(_gw_os.getenv("RECYCLER_L1_TTL_SECONDS", str(_RECYCLER_TTL)))
+
+
+def _gw_answer_is_complete(finish_reason) -> bool:
+    """Whether a generated answer is complete enough to cache.
+
+    Only a natural stop -- or a backend that omits finish_reason entirely
+    (null-equivalent) -- counts. Any early-termination reason must NOT be
+    cached: most importantly "length" (max_tokens hit), where storing the
+    accumulated text as if it were the whole answer would let a later
+    exact-prompt hit replay the cut-off response (truncation-replay). Other
+    non-"stop" reasons ("content_filter", "tool_calls", ...) are likewise not
+    a plain complete text answer and are excluded. Applied at EVERY store site
+    (L1 put, L2 store on the non-stream path, the streaming tee, and the
+    /api/{generate,chat} path) so no truncated answer enters either layer.
+    """
+    return finish_reason in ("stop", None)
+
+
+class _ExactMatchL1Cache:
+    """In-process, param-aware, exact-match answer cache (Token Recycler L1).
+
+    Keyed on sha256(resolved model + backend + full messages + all sampling
+    params); see _gw_l1_key(). Bounded LRU with per-entry TTL and
+    delete-on-read-expiry (an expired entry is removed, never used to veto a
+    lookup). No external service -- this is the latency win and the
+    Qdrant-independent availability win.
+
+    Lock-free by design: every method is synchronous and contains no `await`,
+    so under the single-threaded asyncio event loop a get()/put() read-modify-
+    write can never interleave with another request handler's.
+    """
+
+    def __init__(self, max_entries: int, ttl: int):
+        self._d = _GwOrderedDict()   # key -> (answer, stored_ts)
+        self._max = max(1, max_entries)
+        self._ttl = ttl
+        self.hits = 0
+        self.misses = 0
+        self.evictions = 0
+        self.expired = 0
+
+    def get(self, key: str):
+        item = self._d.get(key)
+        if item is None:
+            self.misses += 1
+            return None
+        answer, ts = item
+        if self._ttl > 0 and (_gw_time.time() - ts) > self._ttl:
+            del self._d[key]            # delete-on-expire (no veto -- it's just gone)
+            self.expired += 1
+            self.misses += 1
+            return None
+        self._d.move_to_end(key)        # LRU: mark most-recently-used
+        self.hits += 1
+        return answer
+
+    def put(self, key: str, answer: str) -> None:
+        if key in self._d:
+            self._d.move_to_end(key)
+        self._d[key] = (answer, _gw_time.time())
+        while len(self._d) > self._max:
+            self._d.popitem(last=False)  # evict least-recently-used
+            self.evictions += 1
+
+    def stats(self) -> dict:
+        total = self.hits + self.misses
+        return {
+            "enabled": True,
+            "entries": len(self._d),
+            "max_entries": self._max,
+            "ttl_seconds": self._ttl,
+            "hits": self.hits,
+            "misses": self.misses,
+            "hit_rate": round(self.hits / total, 3) if total else 0.0,
+            "evictions": self.evictions,
+            "expired": self.expired,
+        }
+
+
+_L1_CACHE = _ExactMatchL1Cache(_L1_MAX_ENTRIES, _L1_TTL)
 
 
 class _TokenRecyclerCache:
@@ -1010,6 +1110,47 @@ def _gw_extract_openai_prompt(messages: list) -> str:
     return "\n".join(f"{m.role}: {m.content}" for m in messages)
 
 
+def _gw_l1_key(model: str, request: "ChatCompletionRequest") -> str:
+    """Canonical, param-aware exact-match key for the L1 cache.
+
+    sha256 over canonical JSON of the identity-affecting request surface:
+      model     -- the RESOLVED served model (the exact value L2 keys on), so
+                   the two layers agree on what "model" means.
+      backend   -- bound in like L2's filter: an L1 entry written under one
+                   backend can never serve a request routed to another.
+      messages  -- role+content, ORDER PRESERVED (message order is semantic;
+                   sort_keys below sorts dict keys, never list elements),
+                   content byte-exact -- whitespace/fuzzy matching is L2's job;
+                   an "exact" cache that normalised content would reintroduce a
+                   false-hit class.
+      params    -- every field on the request EXCEPT model/messages (folded
+                   above) and stream (transport, not output: one entry serves
+                   both stream and non-stream callers, matching the synth/tee
+                   design). Reflected from the request rather than hand-listed,
+                   so any sampling field later added to ChatCompletionRequest
+                   (seed, stop, response_format, ...) is folded in automatically:
+                   a forgotten field only fragments the cache (a perf loss); it
+                   can never silently serve a wrong-param answer.
+    """
+    dump = request.model_dump() if hasattr(request, "model_dump") else request.dict()
+    params = {k: v for k, v in dump.items() if k not in ("model", "messages", "stream")}
+    key_obj = {
+        "model": model,
+        "backend": BACKEND,
+        "messages": [{"role": m.role, "content": m.content} for m in request.messages],
+        "params": params,
+    }
+    canon = _gw_json.dumps(key_obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    # surrogatepass: message content can legitimately arrive carrying a lone
+    # UTF-16 surrogate (e.g. automation JSON-encoding text sliced mid-emoji);
+    # Pydantic accepts it, but a plain utf-8 encode would raise UnicodeEncodeError.
+    # Pass it through to bytes deterministically -- this only ever feeds sha256,
+    # so non-UTF-8 bytes are fine and the mapping stays injective (no key
+    # collisions). The call site additionally wraps this whole computation in a
+    # fail-open guard for any other error (see _gw_openai_chat_completions).
+    return _gw_hashlib.sha256(canon.encode("utf-8", errors="surrogatepass")).hexdigest()
+
+
 def _gw_wrap_openai_cached_answer(request_id: str, model: str, answer: str) -> dict:
     """Cache-hit response in OpenAI chat.completion shape (see _build_completion_response)."""
     return {
@@ -1061,30 +1202,34 @@ async def _gw_stream_openai_cached_answer(request_id: str, model: str, answer: s
 
 async def _gw_stream_and_tee_to_cache(request_id: str, model: str, prompt_text: str,
                                       messages: list, max_tokens: int, temperature: float,
-                                      top_p: float, recycler) -> AsyncIterator[str]:
+                                      top_p: float, recycler,
+                                      l1_key: Optional[str] = None) -> AsyncIterator[str]:
     """Real streaming passthrough for a cache MISS under stream=true.
 
     Forwards Ollama's own OpenAI-compat SSE lines to the client as they arrive
     (no buffering -- each line is yielded the moment it's read off the
     upstream response), while accumulating the assistant's `delta.content`
     fragments in the background. Once the upstream stream completes
-    successfully (the [DONE] sentinel is observed), the accumulated full
-    answer is stored into the Token Recycler -- this happens AFTER the client
-    has already received every chunk, so it never adds latency to the
-    client's real-time streaming experience. If accumulation or the store
-    call fails, the client-visible stream is unaffected (the exception is
-    caught and logged, matching _TokenRecyclerCache.store's own fail-open
-    contract).
+    successfully AND the terminal chunk reports a complete finish_reason, the
+    accumulated full answer is stored into L1 (exact) and the Token Recycler
+    L2 (semantic) -- this happens AFTER the client has already received every
+    chunk, so it never adds latency to the client's real-time streaming
+    experience. If accumulation or a store call fails, the client-visible
+    stream is unaffected (the exception is caught and logged, matching
+    _TokenRecyclerCache.store's own fail-open contract).
 
-    Deliberately does NOT store on an aborted/partial stream (client
-    disconnect, upstream error mid-stream, generator closed early): storing a
-    truncated accumulation as if it were the complete answer would poison the
-    cache with a cut-off response that a future exact-prompt hit would then
-    serve as if it were whole. completed_ok tracks this explicitly rather than
-    inferring completeness from "accumulated is non-empty".
+    Truncation guard (two conditions, both required): completed_ok gates on the
+    [DONE] sentinel (rules out aborted/partial streams -- client disconnect,
+    upstream error mid-stream, generator closed early). But [DONE] alone is NOT
+    proof of completeness: Ollama emits [DONE] after a max_tokens-truncated
+    stream too, with a `finish_reason:"length"` terminal chunk preceding it.
+    So we also capture the last non-null finish_reason and require
+    _gw_answer_is_complete() -- otherwise a length-truncated stream would be
+    stored as a full answer and replayed by a future exact/semantic hit.
     """
     accumulated: List[str] = []
     completed_ok = False
+    last_finish_reason = None
     try:
         async for line in _ollama_chat_stream(messages, model, max_tokens, temperature, top_p):
             yield f"{line}\n\n"
@@ -1096,25 +1241,38 @@ async def _gw_stream_and_tee_to_cache(request_id: str, model: str, prompt_text: 
                 continue
             try:
                 chunk = _gw_json.loads(payload)
-                delta = ((chunk.get("choices") or [{}])[0].get("delta") or {})
+                choice0 = (chunk.get("choices") or [{}])[0]
+                delta = (choice0.get("delta") or {})
                 content = delta.get("content")
                 if content:
                     accumulated.append(content)
+                fr = choice0.get("finish_reason")
+                if fr is not None:
+                    last_finish_reason = fr
             except Exception as e:
                 logger.debug(f"chat/completions stream-tee: could not parse chunk for "
                              f"accumulation (client stream unaffected): {e}")
     finally:
-        if recycler is not None and completed_ok and accumulated:
+        # Store only a stream that both completed ([DONE]) and ended on a
+        # complete finish_reason -- never a length-truncated one (see docstring).
+        if completed_ok and accumulated and _gw_answer_is_complete(last_finish_reason):
             full_answer = "".join(accumulated)
-            try:
-                await recycler.store(prompt_text, model, full_answer)
-            except Exception as e:
-                # store() already fails open/logs internally; this is a second
-                # layer of defense specific to the streaming tee path so a
-                # failure here can never surface to the (already-completed)
-                # client stream.
-                logger.warning(f"chat/completions stream-tee: cache store failed "
-                              f"(ignored, client stream already completed): {e}")
+            if l1_key is not None:
+                try:
+                    _L1_CACHE.put(l1_key, full_answer)
+                except Exception as e:
+                    logger.warning(f"chat/completions stream-tee: L1 store failed "
+                                  f"(ignored, client stream already completed): {e}")
+            if recycler is not None:
+                try:
+                    await recycler.store(prompt_text, model, full_answer)
+                except Exception as e:
+                    # store() already fails open/logs internally; this is a second
+                    # layer of defense specific to the streaming tee path so a
+                    # failure here can never surface to the (already-completed)
+                    # client stream.
+                    logger.warning(f"chat/completions stream-tee: cache store failed "
+                                  f"(ignored, client stream already completed): {e}")
 
 
 async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionRequest"):
@@ -1147,8 +1305,32 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
     recycler = _get_recycler()
     prompt_text = _gw_extract_openai_prompt(request.messages)
     model = _resolve_chat_model(getattr(request, "model", ""))
+    # L1 exact-match key: full param-aware tuple, independent of the semantic
+    # recycler (so L1 still serves exact repeats even if Qdrant/embeddings are
+    # down). None disables the L1 path entirely.
+    # Fail-open: key computation runs on EVERY request before any hit check, so
+    # it must never turn a request that would otherwise succeed into a 500. On
+    # any error, disable L1 for this request and fall through to L2 / live
+    # inference -- matching the fail-open contract every other cache op honors.
+    l1_key = None
+    if _L1_ENABLED:
+        try:
+            l1_key = _gw_l1_key(model, request)
+        except Exception as e:
+            logger.warning(f"chat/completions: L1 key computation failed, disabling L1 "
+                          f"for this request (served via L2/live inference): {e}")
 
     if not request.stream:
+        # L1 first -- exact (model, messages, params) match, zero embed round-trip.
+        if l1_key is not None:
+            l1_hit = _L1_CACHE.get(l1_key)
+            if l1_hit is not None:
+                _GW_METRICS["passthrough_total"] += 1
+                return JSONResponse(
+                    _gw_wrap_openai_cached_answer(req_id, model, l1_hit),
+                    headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit",
+                             "X-Cache-Layer": "l1-exact"},
+                )
         if recycler is not None and prompt_text:
             # _TokenRecyclerCache.lookup() already has its own internal
             # try/except (degrades to a miss on failure), but this call site
@@ -1163,17 +1345,29 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
                 cached = None
             if cached is not None:
                 _GW_METRICS["passthrough_total"] += 1
+                # Deliberately do NOT backfill L1 from an L2 (fuzzy) hit: that
+                # would "bless" a semantic match into an exact-keyed fact for
+                # this prompt. L1 is populated only by a real miss-path
+                # completion below, under the request's own exact key.
                 return JSONResponse(
                     _gw_wrap_openai_cached_answer(req_id, model, cached),
-                    headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit"},
+                    headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "hit",
+                             "X-Cache-Layer": "l2-semantic"},
                 )
         result = await _ollama_chat(
             request.messages, model, request.max_tokens,
             request.temperature, request.top_p, request.stream,
         )
-        if recycler is not None and prompt_text:
-            answer_text = ((result.get("choices") or [{}])[0].get("message") or {}).get("content", "")
-            if answer_text:
+        # Completeness gate: never cache a truncated answer into either layer.
+        # A finish_reason of "length" (max_tokens hit) etc. is served to THIS
+        # client but not stored, so a later exact/semantic hit can't replay the
+        # cut-off text as if it were whole.
+        choice0 = (result.get("choices") or [{}])[0]
+        answer_text = (choice0.get("message") or {}).get("content", "")
+        if answer_text and _gw_answer_is_complete(choice0.get("finish_reason")):
+            if l1_key is not None:
+                _L1_CACHE.put(l1_key, answer_text)
+            if recycler is not None and prompt_text:
                 # Same reasoning as the lookup() wrapper above: store() is
                 # expected to fail open internally, but the already-successful
                 # Ollama answer must reach the client even if a cache-store
@@ -1187,6 +1381,18 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
         return JSONResponse(result, headers={"X-Served-By": "ryzanstein-gateway", "X-Cache": "miss"})
 
     # stream=true
+    # L1 exact-match hit -> synthesize SSE from the stored answer (same chunk
+    # framing as the L2-hit path), zero embed round-trip.
+    if l1_key is not None:
+        l1_hit = _L1_CACHE.get(l1_key)
+        if l1_hit is not None:
+            _GW_METRICS["passthrough_total"] += 1
+            return StreamingResponse(
+                _gw_stream_openai_cached_answer(req_id, model, l1_hit),
+                media_type="text/event-stream",
+                headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway",
+                         "X-Cache": "hit", "X-Cache-Layer": "l1-exact"},
+            )
     if recycler is not None and prompt_text:
         cached = await recycler.lookup(prompt_text, model)
         if cached is not None:
@@ -1194,7 +1400,8 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
             return StreamingResponse(
                 _gw_stream_openai_cached_answer(req_id, model, cached),
                 media_type="text/event-stream",
-                headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway", "X-Cache": "hit"},
+                headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway",
+                         "X-Cache": "hit", "X-Cache-Layer": "l2-semantic"},
             )
 
     _GW_METRICS["passthrough_total"] += 1
@@ -1202,6 +1409,7 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
         _gw_stream_and_tee_to_cache(
             req_id, model, prompt_text, request.messages,
             request.max_tokens, request.temperature, request.top_p, recycler,
+            l1_key,
         ),
         media_type="text/event-stream",
         headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway", "X-Cache": "miss"},
@@ -1244,7 +1452,11 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
                     upstream.raise_for_status()
                     resp_json = upstream.json()
                 answer_text = _gw_extract_answer(path, resp_json)
-                if answer_text:
+                # Completeness gate: Ollama's native /api/{generate,chat} reports
+                # "done_reason" ("stop" | "length" | ...). Don't store a
+                # length-truncated answer into the shared L2 -- it could later be
+                # served (semantically) to a /v1/chat/completions request too.
+                if answer_text and _gw_answer_is_complete(resp_json.get("done_reason")):
                     await recycler.store(prompt_text, model, answer_text)
                 _GW_METRICS["passthrough_total"] += 1
                 return _GwJSON(
@@ -1287,8 +1499,12 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
 @app.get("/v1/recycler/stats")
 async def _recycler_stats():
     recycler = _get_recycler()
+    # L1 is independent of the semantic recycler -- report it even when the L2
+    # (Qdrant) side is disabled or failed to import.
+    l1_stats = _L1_CACHE.stats() if _L1_ENABLED else {"enabled": False}
     if recycler is None:
-        return {"enabled": False, "reason": _RECYCLER_IMPORT_ERROR or "disabled via env"}
+        return {"enabled": False, "reason": _RECYCLER_IMPORT_ERROR or "disabled via env",
+                "l1": l1_stats}
     total = recycler.hits + recycler.misses
     # Previously unguarded: a Qdrant outage made this whole diagnostic endpoint
     # 500 (via the global exception handler) instead of reporting -1/degraded
@@ -1318,6 +1534,7 @@ async def _recycler_stats():
         "stores_total": _GW_METRICS["stores_total"],
         "store_failures_total": _GW_METRICS["store_failures_total"],
         "passthrough_total": _GW_METRICS["passthrough_total"],
+        "l1": l1_stats,
     }
 
 
@@ -1374,6 +1591,24 @@ async def _prometheus_metrics():
         "# TYPE ryzanstein_gateway_passthrough_total counter",
         f"ryzanstein_gateway_passthrough_total {_GW_METRICS['passthrough_total']}",
     ]
+    # L1 exact-match cache (independent of the Qdrant L2 above -- reported even
+    # when the semantic recycler is disabled).
+    if _L1_ENABLED:
+        _l1s = _L1_CACHE.stats()
+        lines += [
+            "# HELP ryzanstein_recycler_l1_hits_total L1 exact-match cache hits.",
+            "# TYPE ryzanstein_recycler_l1_hits_total counter",
+            f"ryzanstein_recycler_l1_hits_total {_l1s['hits']}",
+            "# HELP ryzanstein_recycler_l1_misses_total L1 exact-match cache misses.",
+            "# TYPE ryzanstein_recycler_l1_misses_total counter",
+            f"ryzanstein_recycler_l1_misses_total {_l1s['misses']}",
+            "# HELP ryzanstein_recycler_l1_entries Current entries held in the L1 cache.",
+            "# TYPE ryzanstein_recycler_l1_entries gauge",
+            f"ryzanstein_recycler_l1_entries {_l1s['entries']}",
+            "# HELP ryzanstein_recycler_l1_evictions_total L1 LRU evictions.",
+            "# TYPE ryzanstein_recycler_l1_evictions_total counter",
+            f"ryzanstein_recycler_l1_evictions_total {_l1s['evictions']}",
+        ]
     # sigma-telemetry real metrics (latency histograms w/ p50/p95/p99). Fail-open.
     if _TEL is not None:
         try:
