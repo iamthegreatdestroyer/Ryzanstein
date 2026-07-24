@@ -861,6 +861,7 @@ _GW_METRICS = {
     "l2_rejected_lexical": 0,   # candidates rejected by the digit/date guard (R3)
     "l2_rejected_maxtok": 0,    # candidates rejected as max_tokens-incompatible (R1)
     "l2_rejected_ambiguous": 0, # lookups rejected as an ambiguous cloud (R2)
+    "dedup_skipped_total": 0,   # store() calls skipped: a near-exact same-answer twin already existed (P1)
 }
 
 
@@ -1212,6 +1213,37 @@ class _TokenRecyclerCache:
             if max_tokens is not None:
                 meta["max_tokens"] = max_tokens
             rsu = await self.compressor.compress(prompt, answer, model, metadata=meta)
+
+            # Dedup-on-store (P1): VectorBank.store() is a bare insert with no cap
+            # and no dedup, so repeated near-identical misses (e.g. two
+            # near-simultaneous requests for the same new prompt, or a param
+            # combo that keeps missing L1) accumulate same-answer duplicate
+            # twins forever. Cheap guard: if a near-exact twin (score >=
+            # EXACT_TWIN, same model/backend/param-buckets as the L2 filter
+            # already uses) with the BYTE-IDENTICAL answer already exists,
+            # skip this insert. Best-effort and fail-open -- any error here
+            # (embed already succeeded above) falls through to the normal
+            # store, so dedup can only reduce redundant points, never block
+            # a real cache write or turn a store into a failure.
+            try:
+                must = [
+                    {"key": "model", "match": {"value": model}},
+                    {"key": "backend", "match": {"value": BACKEND}},
+                ]
+                if "temp_bucket" in meta:
+                    must.append({"key": "temp_bucket", "match": {"value": meta["temp_bucket"]}})
+                if "top_p_bucket" in meta:
+                    must.append({"key": "top_p_bucket", "match": {"value": meta["top_p_bucket"]}})
+                twins = await self.retriever.retrieve_candidates(
+                    rsu.embedding, score_threshold=_RECYCLER_EXACT_TWIN,
+                    filter_dict={"must": must}, limit=1,
+                )
+                if twins and twins[0].answer == answer:
+                    _GW_METRICS["dedup_skipped_total"] += 1
+                    return
+            except Exception as e:
+                logger.debug(f"Token Recycler dedup check failed (ignored, storing normally): {e}")
+
             await self.bank.store(rsu)
         except Exception as e:
             # Previously this was the only trace of a failed cache write: a
@@ -1787,6 +1819,7 @@ async def _recycler_stats():
         "l2_rejected_lexical": _GW_METRICS["l2_rejected_lexical"],
         "l2_rejected_maxtok": _GW_METRICS["l2_rejected_maxtok"],
         "l2_rejected_ambiguous": _GW_METRICS["l2_rejected_ambiguous"],
+        "dedup_skipped_total": _GW_METRICS["dedup_skipped_total"],
         "l1": l1_stats,
     }
 
@@ -1879,6 +1912,9 @@ async def _prometheus_metrics():
         "# HELP ryzanstein_recycler_l2_rejected_ambiguous_total L2 lookups rejected as an ambiguous cloud.",
         "# TYPE ryzanstein_recycler_l2_rejected_ambiguous_total counter",
         f"ryzanstein_recycler_l2_rejected_ambiguous_total {_GW_METRICS['l2_rejected_ambiguous']}",
+        "# HELP ryzanstein_recycler_dedup_skipped_total store() calls skipped as a same-answer near-exact twin.",
+        "# TYPE ryzanstein_recycler_dedup_skipped_total counter",
+        f"ryzanstein_recycler_dedup_skipped_total {_GW_METRICS['dedup_skipped_total']}",
     ]
     # sigma-telemetry real metrics (latency histograms w/ p50/p95/p99). Fail-open.
     if _TEL is not None:
