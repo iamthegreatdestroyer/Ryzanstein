@@ -862,6 +862,8 @@ _GW_METRICS = {
     "l2_rejected_maxtok": 0,    # candidates rejected as max_tokens-incompatible (R1)
     "l2_rejected_ambiguous": 0, # lookups rejected as an ambiguous cloud (R2)
     "dedup_skipped_total": 0,   # store() calls skipped: a near-exact same-answer twin already existed (P1)
+    "invalidations_total": 0,       # POST /v1/recycler/invalidate calls (flush | by-model | by-prompt)
+    "invalidated_points_total": 0,  # L2 (Qdrant) RSU points deleted by invalidate calls
 }
 
 
@@ -944,6 +946,15 @@ class _ExactMatchL1Cache:
         while len(self._d) > self._max:
             self._d.popitem(last=False)  # evict least-recently-used
             self.evictions += 1
+
+    def clear(self) -> int:
+        """Drop every entry (used by POST /v1/recycler/invalidate). Returns the
+        number of entries removed. Lifetime counters (hits/misses/evictions/
+        expired) are intentionally left intact -- they're cumulative totals, not
+        a function of the live contents."""
+        n = len(self._d)
+        self._d.clear()
+        return n
 
     def stats(self) -> dict:
         total = self.hits + self.misses
@@ -1279,6 +1290,26 @@ class _TokenRecyclerCache:
             except Exception as e:
                 logger.warning(f"sigma-index shadow dual-write failed (ignored, primary "
                               f"Qdrant cache unaffected): {e}")
+
+    async def invalidate_l2(self, filt: dict) -> int:
+        """Count-then-delete every rsu_bank point matching a Qdrant payload
+        filter, via the same REST endpoints scripts/recycler_maintenance.py uses
+        (one shared deletion semantics). `?wait=true` on the delete makes a
+        subsequent bank.count() reflect the removal immediately. Returns the
+        number of points deleted; raises on any Qdrant error so the endpoint can
+        surface a 503 instead of silently claiming success."""
+        base = _QDRANT_URL.rstrip("/")
+        coll = "rsu_bank"
+        async with _gw_httpx.AsyncClient(timeout=30.0) as client:
+            cresp = await client.post(f"{base}/collections/{coll}/points/count",
+                                      json={"filter": filt, "exact": True})
+            cresp.raise_for_status()
+            n = cresp.json()["result"]["count"]
+            if n > 0:
+                dresp = await client.post(f"{base}/collections/{coll}/points/delete",
+                                          params={"wait": "true"}, json={"filter": filt})
+                dresp.raise_for_status()
+        return n
 
 
 _recycler_cache = None
@@ -1820,8 +1851,85 @@ async def _recycler_stats():
         "l2_rejected_maxtok": _GW_METRICS["l2_rejected_maxtok"],
         "l2_rejected_ambiguous": _GW_METRICS["l2_rejected_ambiguous"],
         "dedup_skipped_total": _GW_METRICS["dedup_skipped_total"],
+        "invalidations_total": _GW_METRICS["invalidations_total"],
+        "invalidated_points_total": _GW_METRICS["invalidated_points_total"],
         "l1": l1_stats,
     }
+
+
+class _RecyclerInvalidateRequest(BaseModel):
+    """Body for POST /v1/recycler/invalidate. Provide EXACTLY ONE of:
+      flush=true            -> drop every RSU + clear L1 (nuclear)
+      model="<name>"        -> drop RSUs for that resolved model + clear L1
+      prompt="<exact text>" -> drop RSUs whose stored prompt matches exactly + clear L1
+    """
+    flush: bool = False
+    model: Optional[str] = None
+    prompt: Optional[str] = None
+
+
+@app.post("/v1/recycler/invalidate")
+async def _recycler_invalidate(request: _RecyclerInvalidateRequest):
+    """Live cache-invalidation lever for the Token Recycler.
+
+    Before this, the only way to purge a poisoned/stale answer was to flip
+    RECYCLER_ENABLED=false and restart the service (or run the offline
+    scripts/recycler_maintenance.py) -- meanwhile RSUs hold raw prompt+answer
+    plaintext for the full TTL with no live delete path. This adds by-model /
+    by-prompt / full-flush invalidation.
+
+    L1 (the in-process exact-match cache) is keyed on opaque param-aware hashes,
+    so it cannot be filtered by model/prompt -- it is cleared in FULL on any
+    invalidation (bounded LRU, cheap to refill; a correct full clear beats a
+    partial one). L2 (Qdrant) is filter-deleted precisely.
+
+    Unauthenticated, like its sibling recycler-admin endpoints
+    (/v1/recycler/stats, /metrics): the gateway binds 127.0.0.1 only and the
+    effect is bounded -- it clears a cache that transparently rebuilds on the
+    next miss and never touches source data.
+    """
+    modes = [("flush", request.flush), ("model", bool(request.model)), ("prompt", bool(request.prompt))]
+    chosen = [m for m, on in modes if on]
+    if len(chosen) != 1:
+        raise HTTPException(status_code=400,
+            detail="specify exactly one of: flush=true, model=<name>, prompt=<exact text>")
+    mode = chosen[0]
+
+    # L1 first -- always safe and independent of Qdrant, so even if L2 is
+    # disabled/down the operator still gets the in-process cache cleared.
+    l1_cleared = _L1_CACHE.clear() if _L1_ENABLED else 0
+
+    recycler = _get_recycler()
+    if recycler is None:
+        _GW_METRICS["invalidations_total"] += 1
+        return {"ok": True, "mode": mode, "l1_cleared": l1_cleared, "l2_deleted": 0,
+                "l2": "unavailable", "reason": _RECYCLER_IMPORT_ERROR or "disabled via env"}
+
+    if mode == "flush":
+        # every recycler RSU carries _created_ts; range gte 0 matches them all
+        # (the same "all" selector scripts/recycler_maintenance.py uses).
+        filt = {"must": [{"key": "_created_ts", "range": {"gte": 0}}]}
+    elif mode == "model":
+        filt = {"must": [{"key": "model", "match": {"value": request.model}}]}
+    else:  # prompt
+        filt = {"must": [{"key": "prompt", "match": {"value": request.prompt}}]}
+
+    try:
+        deleted = await recycler.invalidate_l2(filt)
+    except Exception as e:
+        logger.warning(f"/v1/recycler/invalidate ({mode}) Qdrant delete failed: {e}")
+        # L1 was already cleared; surface that honestly alongside the L2 failure.
+        raise HTTPException(status_code=503,
+            detail=f"L1 cleared ({l1_cleared} entries) but L2 (Qdrant) delete failed: {e}")
+
+    _GW_METRICS["invalidations_total"] += 1
+    _GW_METRICS["invalidated_points_total"] += deleted
+    try:
+        remaining = await recycler.bank.count()
+    except Exception:
+        remaining = -1
+    return {"ok": True, "mode": mode, "l1_cleared": l1_cleared,
+            "l2_deleted": deleted, "rsu_count_after": remaining}
 
 
 @app.get("/metrics")

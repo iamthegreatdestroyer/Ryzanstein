@@ -164,6 +164,32 @@ def test_l1_stats_shape():
     assert {"entries", "hits", "misses", "evictions", "expired"} <= set(s)
 
 
+# === _ExactMatchL1Cache.clear (invalidate support) ======================
+def test_l1_clear_empties_and_returns_count():
+    c = L1Cache(max_entries=5, ttl=1000)
+    c.put("a", "1"); c.put("b", "2"); c.put("c", "3")
+    assert len(c._d) == 3
+    assert c.clear() == 3                               # returns #removed
+    assert len(c._d) == 0                               # emptied
+    assert c.get("a") is None and c.get("b") is None    # gone
+
+
+def test_l1_clear_on_empty_is_zero():
+    assert L1Cache(max_entries=5, ttl=1000).clear() == 0
+
+
+def test_l1_clear_preserves_lifetime_counters_and_refills():
+    c = L1Cache(max_entries=5, ttl=1000)
+    c.put("a", "1")
+    assert c.get("a") == "1"                            # hits=1
+    hits_before, misses_before, evict_before = c.hits, c.misses, c.evictions
+    c.clear()
+    # lifetime counters are cumulative -- clear() must NOT reset them
+    assert (c.hits, c.misses, c.evictions) == (hits_before, misses_before, evict_before)
+    c.put("z", "9")                                     # usable again immediately
+    assert c.get("z") == "9"
+
+
 # === _gw_l1_key ==========================================================
 _MSGS = [FakeMsg("system", "be terse"), FakeMsg("user", "hi")]
 _BASE = l1_key("served-model", FakeReq(_MSGS))
