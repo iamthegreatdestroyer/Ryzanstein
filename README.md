@@ -8,6 +8,9 @@
 
 Ryzanstein LLM is a high-performance LLM inference system designed specifically for AMD Ryzanstein CPUs, eliminating the need for expensive GPU hardware. By leveraging cutting-edge model architectures (BitNet b1.58, Mamba SSM, RWKV) and CPU-specific optimizations (AVX-512, VNNI, speculative decoding), Ryzanstein LLM achieves efficient inference with quality comparable to traditional FP16 models.
 
+
+> **⚙️ Current backend (verified 2026-07-24):** the live gateway serves models via **Ollama** (default `phi4-mini`, with per-model routing across the fleet) behind the OpenAI-compatible API + Token Recycler below. The native **BitNet b1.58 / Mamba SSM / RWKV C++ inference engines described in this README are experimental / in-development** — see the unchecked "Core inference engines implementation" in the Roadmap — and are **not** the path that serves requests today. The tokens/second and quality figures below describe the *target* architecture, not the current Ollama-backed path.
+
 ### Key Features
 
 - **🚀 Efficient Inference**: 15-30 tokens/second on Ryzanstein 9, competitive with GPU-based solutions
