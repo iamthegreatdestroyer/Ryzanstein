@@ -1869,7 +1869,11 @@ class _RecyclerInvalidateRequest(BaseModel):
 
 
 @app.post("/v1/recycler/invalidate")
-async def _recycler_invalidate(request: _RecyclerInvalidateRequest):
+async def _recycler_invalidate(
+    request: _RecyclerInvalidateRequest,
+    _auth=Depends(require_auth),
+    _rl=Depends(rate_limit),
+):
     """Live cache-invalidation lever for the Token Recycler.
 
     Before this, the only way to purge a poisoned/stale answer was to flip
@@ -1883,10 +1887,16 @@ async def _recycler_invalidate(request: _RecyclerInvalidateRequest):
     invalidation (bounded LRU, cheap to refill; a correct full clear beats a
     partial one). L2 (Qdrant) is filter-deleted precisely.
 
-    Unauthenticated, like its sibling recycler-admin endpoints
-    (/v1/recycler/stats, /metrics): the gateway binds 127.0.0.1 only and the
-    effect is bounded -- it clears a cache that transparently rebuilds on the
-    next miss and never touches source data.
+    Auth: gated by require_auth + rate_limit like the chat/embedding routes. These
+    are a NO-OP while REQUIRE_AUTH=false, so they cost nothing today and close
+    automatically the day auth is enabled -- rather than leaving a mutating admin
+    route that has to be remembered later.
+
+    NOTE the earlier justification here ("unauthenticated is fine, the gateway is
+    loopback-only") is exactly the kind of claim that silently stops being true if
+    the bind ever widens. It is now enforced from outside as well, by the
+    castle-daemon gateway-bind-invariant check (2026-07-25). Do not re-argue
+    safety from the bind alone.
     """
     modes = [("flush", request.flush), ("model", bool(request.model)), ("prompt", bool(request.prompt))]
     chosen = [m for m, on in modes if on]
