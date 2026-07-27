@@ -450,13 +450,18 @@ async def _stream_completion(
 @app.post("/v1/chat/completions")
 async def chat_completions(
     request: ChatCompletionRequest,
+    http_request: Request,
     _auth=Depends(require_auth),
     _rl=Depends(rate_limit),
 ):
     req_id = uuid.uuid4().hex[:12]
 
+    # `http_request` exists ONLY to read Cache-Control. This route previously took just
+    # the Pydantic body model, so a caller's `no-store` was silently discarded.
+    no_store = _gw_wants_no_store(http_request.headers)
+
     if BACKEND == "ollama":
-        return await _gw_openai_chat_completions(req_id, request)
+        return await _gw_openai_chat_completions(req_id, request, no_store=no_store)
 
     # Stub/local backend: build flat prompt from messages
     prompt_parts = []
@@ -850,6 +855,8 @@ def _gw_parse_host_port(url: str, default_port: int):
 # write was otherwise invisible. These three counters are surfaced via both
 # /metrics (Prometheus text exposition) and /v1/recycler/stats (JSON).
 _GW_METRICS = {
+    "nocache_skipped_total": 0,  # stores skipped: caller sent Cache-Control no-store,
+                                 # or the prompt matched RECYCLER_NOCACHE_REGEX
     "stores_total": 0,          # successful recycler.store() calls (RSU + embed OK)
     "store_failures_total": 0,  # recycler.store() calls where compress/embed/Qdrant write failed
     "passthrough_total": 0,     # /v1/chat/completions requests handled by the ollama backend
@@ -1098,6 +1105,50 @@ class _GwRecyclerLookup:
     allow_l2_store: bool = True
 
 
+# --- never-cache policy (added 2026-07-27) -------------------------------------
+# TWO independent reasons never to store an answer:
+#
+#   1. The CALLER said not to. Gabriel sends `Cache-Control: no-store` whenever it
+#      injects vault context (owner decision 1, gabriel/brain/gateway.py). Until now the
+#      gateway COULD NOT SEE that header -- /v1/chat/completions took only a Pydantic
+#      body model, so headers never reached the handler and the contract was silently
+#      one-sided. Verified LATENT, not active: no vault-context RSU was ever found in the
+#      bank, because REPLY_MAX_TOKENS=96 makes most grounded replies finish_reason=length
+#      and the completeness gate already refuses those. It becomes real the moment reply
+#      length grows or that gate changes.
+#
+#   2. The PROMPT is time-sensitive. "what is the latest X" cached for 24h is wrong by
+#      construction. RECYCLER_NOCACHE_REGEX is deliberately conservative: it matches
+#      words that make an answer perishable, not merely questions that look transient.
+#
+# Enforced at the single choke point (_TokenRecyclerCache.store) so no call site can
+# bypass the policy by forgetting it. NOTE: this module imports `re as _gw_re` and has no
+# bare `re` -- using `re.` here is a module-level NameError that stops the gateway booting.
+_RECYCLER_NOCACHE_PATTERN = _gw_os.environ.get(
+    "RECYCLER_NOCACHE_REGEX",
+    r"\b(latest|current|currently|right now|today|tonight|yesterday|tomorrow|"
+    r"price|stock|weather|news|uptime|free space|disk usage)\b",
+)
+try:
+    _RECYCLER_NOCACHE_RE = _gw_re.compile(_RECYCLER_NOCACHE_PATTERN, _gw_re.IGNORECASE)
+except _gw_re.error as _e:  # a bad env regex must not take the gateway down
+    logger.warning(f"RECYCLER_NOCACHE_REGEX invalid ({_e}); never-cache regex disabled")
+    _RECYCLER_NOCACHE_RE = None
+
+
+def _gw_wants_no_store(headers) -> bool:
+    """True if the caller asked us not to cache (RFC 9111 Cache-Control).
+
+    Accepts `no-store` and `no-cache`; for a semantic answer cache the conservative
+    reading of both is "do not store".
+    """
+    try:
+        cc = (headers.get("cache-control") or "").lower()
+    except Exception:
+        return False
+    return "no-store" in cc or "no-cache" in cc
+
+
 class _TokenRecyclerCache:
     """Glues SemanticCompressor + VectorBank + SelectiveRetriever into the
     answer-level cache the Ryzanstein gateway checks on generate/chat calls."""
@@ -1206,7 +1257,16 @@ class _TokenRecyclerCache:
 
     async def store(self, prompt: str, model: str, answer: str,
                     temperature: Optional[float] = None, top_p: Optional[float] = None,
-                    max_tokens: Optional[int] = None) -> None:
+                    max_tokens: Optional[int] = None,
+                    no_store: bool = False) -> None:
+        # THE CHOKE POINT. Defaults to False so every existing caller is unchanged; the
+        # two routes that can see request headers pass the real value.
+        if no_store:
+            _GW_METRICS["nocache_skipped_total"] += 1
+            return
+        if _RECYCLER_NOCACHE_RE is not None and _RECYCLER_NOCACHE_RE.search(prompt or ""):
+            _GW_METRICS["nocache_skipped_total"] += 1
+            return
         try:
             # "backend" rides in metadata like "_created_ts"; VectorBank.store()
             # spreads rsu.metadata into the top-level Qdrant payload, so these
@@ -1465,7 +1525,8 @@ async def _gw_stream_and_tee_to_cache(request_id: str, model: str, prompt_text: 
                                       messages: list, max_tokens: int, temperature: float,
                                       top_p: float, recycler,
                                       l1_key: Optional[str] = None,
-                                      allow_l2_store: bool = True) -> AsyncIterator[str]:
+                                      allow_l2_store: bool = True,
+                                      no_store: bool = False) -> AsyncIterator[str]:
     """Real streaming passthrough for a cache MISS under stream=true.
 
     Forwards Ollama's own OpenAI-compat SSE lines to the client as they arrive
@@ -1532,7 +1593,8 @@ async def _gw_stream_and_tee_to_cache(request_id: str, model: str, prompt_text: 
             if recycler is not None and allow_l2_store:
                 try:
                     await recycler.store(prompt_text, model, full_answer,
-                                         temperature=temperature, top_p=top_p, max_tokens=max_tokens)
+                                         temperature=temperature, top_p=top_p,
+                                         max_tokens=max_tokens, no_store=no_store)
                 except Exception as e:
                     # store() already fails open/logs internally; this is a second
                     # layer of defense specific to the streaming tee path so a
@@ -1542,7 +1604,8 @@ async def _gw_stream_and_tee_to_cache(request_id: str, model: str, prompt_text: 
                                   f"(ignored, client stream already completed): {e}")
 
 
-async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionRequest"):
+async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionRequest",
+                                      no_store: bool = False):
     """BACKEND=="ollama" path for POST /v1/chat/completions.
 
     Routes through the same Token Recycler cache the /api/{path} gateway uses,
@@ -1645,7 +1708,9 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
                 try:
                     await recycler.store(prompt_text, model, answer_text,
                                          temperature=request.temperature,
-                                         top_p=request.top_p, max_tokens=request.max_tokens)
+                                         top_p=request.top_p,
+                                         max_tokens=request.max_tokens,
+                                         no_store=no_store)
                 except Exception as e:
                     logger.warning(f"chat/completions: recycler.store() raised (ignored, "
                                   f"client response unaffected): {e}")
@@ -1694,7 +1759,7 @@ async def _gw_openai_chat_completions(req_id: str, request: "ChatCompletionReque
         _gw_stream_and_tee_to_cache(
             req_id, model, prompt_text, request.messages,
             request.max_tokens, request.temperature, request.top_p, recycler,
-            l1_key, allow_l2_store,
+            l1_key, allow_l2_store, no_store,
         ),
         media_type="text/event-stream",
         headers={"X-Accel-Buffering": "no", "X-Served-By": "ryzanstein-gateway", "X-Cache": "miss"},
@@ -1763,7 +1828,8 @@ async def _ollama_api_gateway(path: str, request: _GwRequest):
                 if (answer_text and _allow_l2
                         and _gw_answer_is_complete(resp_json.get("done_reason"))):
                     await recycler.store(prompt_text, model, answer_text,
-                                         temperature=_temp, top_p=_top_p, max_tokens=_mt)
+                                         temperature=_temp, top_p=_top_p, max_tokens=_mt,
+                                         no_store=_gw_wants_no_store(request.headers))
                 _GW_METRICS["passthrough_total"] += 1
                 return _GwJSON(
                     resp_json,
