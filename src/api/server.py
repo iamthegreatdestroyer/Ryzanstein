@@ -835,10 +835,21 @@ _SIGMA_INDEX_URL = _gw_os.getenv("SIGMA_INDEX_URL", "http://localhost:8200")
 # sigma-index shadow dual-write: OFF BY DEFAULT (2026-07-23). This mirrored every
 # stored RSU into sigma-index's "token_recycler" namespace as a future-Qdrant-
 # replacement experiment, but nothing ever read it back (lookup() reads Qdrant
-# only; an ecosystem-wide search found zero runtime consumers of that namespace)
-# and sigma-index has no delete path so the shadow grew unbounded. Disabled to
-# drop a per-store HTTP call + failure surface from the hot path. Set
+# only; an ecosystem-wide search found zero runtime consumers of that namespace).
+# Disabled to drop a per-store HTTP call + failure surface from the hot path. Set
 # SIGMA_INDEX_DUALWRITE=true to restore it if it is ever promoted to the read path.
+#
+# CORRECTION 2026-07-27: this comment previously claimed "sigma-index has no delete
+# path so the shadow grew unbounded". BOTH HALVES ARE FALSE, verified:
+#   * /delete DOES exist -- pkg/server/server.go:130, with Delete(id) in pkg/hybrid
+#     and pkg/bm25 and a passing TestAddDelete.
+#   * the namespace is EMPTY -- POST :8200/search {"namespace":"token_recycler"}
+#     returns {"count":0,"results":null}; /var/lib/sigma-index holds only
+#     imh-notes.json and a 24-byte test file. Nothing ever grew, bounded or not.
+# The false claim propagated: comment -> external review -> backlog item, where it
+# sat marked "blocked on a sigma-index delete endpoint" against a blocker that never
+# existed. A comment is a claim with a shorter shelf life than the code around it,
+# and it inherits none of the code's tests. Re-verify before repeating it.
 _SIGMA_INDEX_DUALWRITE = _gw_os.getenv("SIGMA_INDEX_DUALWRITE", "false").lower() not in (
     "0", "false", "no"
 )
