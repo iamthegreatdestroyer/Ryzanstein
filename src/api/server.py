@@ -2090,6 +2090,10 @@ async def _prometheus_metrics():
         "with the ollama backend), regardless of cache hit/miss or streaming mode.",
         "# TYPE ryzanstein_gateway_passthrough_total counter",
         f"ryzanstein_gateway_passthrough_total {_GW_METRICS['passthrough_total']}",
+        "# HELP ryzanstein_gateway_nocache_skipped_total Cache writes skipped because the "
+        "caller sent Cache-Control: no-store.",
+        "# TYPE ryzanstein_gateway_nocache_skipped_total counter",
+        f"ryzanstein_gateway_nocache_skipped_total {_GW_METRICS['nocache_skipped_total']}",
     ]
     # L1 exact-match cache (independent of the Qdrant L2 above -- reported even
     # when the semantic recycler is disabled).
