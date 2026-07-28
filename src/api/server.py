@@ -1915,6 +1915,7 @@ async def _recycler_stats():
         "sigmalang_threshold": _SIGMALANG_THRESHOLD,
         "sigmalang_rejected": recycler.sigmalang_rejected,
         "sigmalang_last_score": recycler.sigmalang_last_score,
+        "nocache_skipped_total": _GW_METRICS["nocache_skipped_total"],
         "stores_total": _GW_METRICS["stores_total"],
         "store_failures_total": _GW_METRICS["store_failures_total"],
         "passthrough_total": _GW_METRICS["passthrough_total"],
@@ -1999,8 +2000,26 @@ async def _recycler_invalidate(
     elif mode == "model":
         filt = {"must": [{"key": "model", "match": {"value": request.model}}]}
     else:  # prompt
-        filt = {"must": [{"key": "prompt", "match": {"value": request.prompt}}]}
+        # Match BOTH the raw prompt AND the rendered form L2 actually stores.
+        #
+        # _gw_extract_openai_prompt renders "\n".join(f"{role}: {content}"), so a
+        # single-user-message turn is stored as "user: <text>" while an operator
+        # naturally passes "<text>". Matching only the raw string cleared L1 and left
+        # the L2 copy live while returning ok:true -- a silent half-purge on the one
+        # endpoint whose whole job is removing a bad or sensitive answer.
+        #
+        # `should` is OR in Qdrant, so this deletes either representation. Multi-message
+        # turns (system+user) render differently again and are NOT covered by a
+        # single-prompt invalidate -- use flush or by-model for those; the
+        # matched-count below makes that visible instead of silent.
+        _p = request.prompt
+        _variants = [_p, f"user: {_p}"]
+        filt = {"should": [{"key": "prompt", "match": {"value": v}}
+                           for v in dict.fromkeys(_variants)]}
 
+    # A prompt-mode invalidate that deleted NOTHING is reported, not hidden. The
+    # operator's mental model is "that answer is gone"; if no L2 point matched, it is
+    # not, and they need to know before they rely on it.
     try:
         deleted = await recycler.invalidate_l2(filt)
     except Exception as e:
