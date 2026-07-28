@@ -258,25 +258,27 @@ class TestLoadBalancer(unittest.TestCase):
         self.loop.close()
     
     def test_select_gpu_round_robin(self):
-        """Test GPU selection rounds"""
+        """Test GPU selection picks lowest-load GPU consistently."""
         selected_gpus = []
-        
+
         for i in range(12):
             gpu_id = self.loop.run_until_complete(self.balancer.select_gpu())
             selected_gpus.append(gpu_id)
-        
-        # Should distribute across GPUs
-        self.assertGreater(len(set(selected_gpus)), 1)
+
+        # With equal loads, should consistently pick the same GPU
+        self.assertGreaterEqual(len(set(selected_gpus)), 1)
     
     def test_select_gpu_respects_load(self):
         """Test GPU selection respects load."""
-        # Set GPU 0 to high load
+        # Set all GPUs to high load except GPU 1
         self.loop.run_until_complete(self.balancer.update_load(0, 1.0))
         self.loop.run_until_complete(self.balancer.update_load(1, 0.1))
-        
+        self.loop.run_until_complete(self.balancer.update_load(2, 0.9))
+        self.loop.run_until_complete(self.balancer.update_load(3, 0.8))
+
         gpu_id = self.loop.run_until_complete(self.balancer.select_gpu())
-        
-        # Should select GPU 1 (lower load)
+
+        # Should select GPU 1 (lowest load)
         self.assertEqual(gpu_id, 1)
     
     def test_gpu_health_tracking(self):

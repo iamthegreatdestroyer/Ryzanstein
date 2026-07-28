@@ -72,26 +72,25 @@ class ModelLoadConfig:
 # Checkpoint Management
 # ============================================================================
 
+@dataclass
 class CheckpointMetadata:
     """Metadata for distributed checkpoints."""
-    
-    def __init__(self):
-        self.model_name: str = ""
-        self.model_size: int = 0  # Total parameters
-        self.hidden_dim: int = 0
-        self.num_layers: int = 0
-        self.vocab_size: int = 0
-        self.seq_length: int = 0
-        self.tp_size: int = 1
-        self.pp_size: int = 1
-        self.step: int = 0
-        self.global_batch_size: int = 0
-        self.learning_rate: float = 0.0
-    
+    model_name: str = ""
+    model_size: int = 0
+    hidden_dim: int = 0
+    num_layers: int = 0
+    vocab_size: int = 0
+    seq_length: int = 0
+    tp_size: int = 1
+    pp_size: int = 1
+    step: int = 0
+    global_batch_size: int = 0
+    learning_rate: float = 0.0
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for saving."""
         return asdict(self)
-    
+
     @staticmethod
     def from_dict(d: Dict[str, Any]) -> "CheckpointMetadata":
         """Load from dictionary."""
@@ -299,9 +298,10 @@ class WeightDistributor:
             tp_size: Tensor parallel size
         """
         self.rank = rank
+        self.local_rank = rank
         self.world_size = world_size
         self.tp_size = tp_size
-        
+
         if tp_size > world_size:
             raise ValueError(f"TP size ({tp_size}) > world size ({world_size})")
     
@@ -396,8 +396,57 @@ class WeightDistributor:
             sharded_bias = bias  # Replicated across ranks
         else:
             raise ValueError(f"Unknown sharding type: {sharding_type}")
-        
+
         return sharded_weight, sharded_bias
+
+    def shard_linear_layer_row_wise(
+        self, weight: torch.Tensor, bias: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """
+        Shard a linear layer's weight and bias row-wise (output dimension).
+
+        Args:
+            weight: Weight matrix (out_features, in_features)
+            bias: Optional bias vector (out_features,)
+
+        Returns:
+            Tuple of (sharded_weight, sharded_bias)
+        """
+        sharded_weight, _ = self.shard_row_wise(weight)
+        sharded_bias = self.shard_bias_row_wise(bias) if bias is not None else None
+        return sharded_weight, sharded_bias
+
+    def shard_linear_layer_column_wise(
+        self, weight: torch.Tensor, bias: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        """
+        Shard a linear layer's weight and bias column-wise (input dimension).
+
+        Args:
+            weight: Weight matrix (out_features, in_features)
+            bias: Optional bias vector (out_features,) - not sharded
+
+        Returns:
+            Tuple of (sharded_weight, bias)
+        """
+        sharded_weight, _ = self.shard_column_wise(weight)
+        # Bias is replicated (not sharded) for column-wise
+        return sharded_weight, bias
+
+    def shard_attention_heads(self, num_heads: int) -> List[int]:
+        """
+        Determine which attention heads belong to this rank.
+
+        Args:
+            num_heads: Total number of attention heads
+
+        Returns:
+            List of head indices assigned to this rank
+        """
+        heads_per_rank = num_heads // self.tp_size
+        start = self.rank * heads_per_rank
+        end = start + heads_per_rank
+        return list(range(start, end))
 
 
 # ============================================================================
@@ -453,8 +502,44 @@ class CheckpointSaver:
         # Synchronize all ranks
         if dist.is_initialized() and dist.get_world_size() > 1:
             dist.barrier()
-        
+
         return checkpoint_path
+
+    def save_rank_weights(self, weights: Dict[str, torch.Tensor], step: int) -> Path:
+        """
+        Save weight tensors for this rank at a given step.
+
+        Args:
+            weights: Dictionary mapping parameter names to tensors
+            step: Training/inference step number
+
+        Returns:
+            Path to the saved weight file
+        """
+        weight_file = self.checkpoint_dir / f"weights_rank{self.rank}_step{step}.pt"
+        torch.save(weights, weight_file)
+        logger.info(f"Rank {self.rank}: Saved rank weights to {weight_file}")
+        return weight_file
+
+    def save_metadata(self, metadata: Dict[str, Any], step: int) -> Optional[Path]:
+        """
+        Save metadata dictionary at a given step (rank 0 only).
+
+        Args:
+            metadata: Metadata dictionary to save
+            step: Training/inference step number
+
+        Returns:
+            Path to saved metadata file (only on rank 0), None otherwise
+        """
+        if self.rank != 0:
+            return None
+
+        metadata_file = self.checkpoint_dir / f"metadata_step{step}.json"
+        with open(metadata_file, 'w') as f:
+            json.dump(metadata, f, indent=2)
+        logger.info(f"Saved metadata to {metadata_file}")
+        return metadata_file
 
 
 # ============================================================================

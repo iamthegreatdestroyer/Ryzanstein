@@ -279,14 +279,26 @@ class PriorityUrgentTrigger(SchedulingTrigger):
 
 class MemoryPressureTrigger(SchedulingTrigger):
     """Triggers when memory usage is high to prevent OOM."""
-    
+
     def __init__(self, memory_threshold_mb: float):
         self.memory_threshold_mb = memory_threshold_mb
-    
+
     def check(self, queue_state: 'QueueState') -> Tuple[bool, TriggerType]:
         if queue_state.estimated_memory_mb >= self.memory_threshold_mb:
             return True, TriggerType.MEMORY_PRESSURE
         return False, TriggerType.MEMORY_PRESSURE
+
+
+class LoadSheddingTrigger(SchedulingTrigger):
+    """Triggers load shedding when the queue exceeds a depth threshold."""
+
+    def __init__(self, max_queue_depth: int = 1000):
+        self.max_queue_depth = max_queue_depth
+
+    def check(self, queue_state: 'QueueState') -> Tuple[bool, TriggerType]:
+        if queue_state.pending_count >= self.max_queue_depth:
+            return True, TriggerType.SIZE_THRESHOLD
+        return False, TriggerType.SIZE_THRESHOLD
 
 
 @dataclass

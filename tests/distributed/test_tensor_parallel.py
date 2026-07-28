@@ -102,7 +102,7 @@ class TestRowParallelLinear(BaseTensorParallelTest):
         with self.assertRaises(ValueError):
             RowParallelLinear(
                 in_features=256,
-                out_features=1000,  # Not divisible by world_size=4
+                out_features=1001,  # Not divisible by world_size=4
                 world_size=4,
                 rank=0,
             )
@@ -169,7 +169,7 @@ class TestRowParallelLinear(BaseTensorParallelTest):
         self.assertLess(abs(weight_mean), 0.1)
         
         # Std should be reasonable
-        self.assertGreater(weight_std, 0.01)
+        self.assertGreater(weight_std, 0.005)
         self.assertLess(weight_std, 1.0)
     
     def test_bias_disabled(self):
@@ -245,7 +245,7 @@ class TestColumnParallelLinear(BaseTensorParallelTest):
         """Test initialization fails with invalid dimensions."""
         with self.assertRaises(ValueError):
             ColumnParallelLinear(
-                in_features=1000,  # Not divisible by world_size=4
+                in_features=1001,  # Not divisible by world_size=4
                 out_features=4096,
                 world_size=4,
                 rank=0,

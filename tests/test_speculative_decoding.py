@@ -19,7 +19,8 @@ from typing import List
 
 # Import the speculative decoding components
 import sys
-sys.path.append('Ryzanstein LLM/src')
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent.parent / "PHASE2_DEVELOPMENT" / "src"))
 
 from inference.speculative_decoder import (
     SpeculativeConfig,

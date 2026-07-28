@@ -174,7 +174,7 @@ class TestTensorParallelLayers:
         assert validate_tensor_parallel_setup(4, 1024, 32) == True
 
         # Invalid: hidden_size not divisible by world_size
-        assert validate_tensor_parallel_setup(4, 1000, 32) == False
+        assert validate_tensor_parallel_setup(4, 1001, 32) == False
 
         # Invalid: num_heads not divisible by world_size
         assert validate_tensor_parallel_setup(4, 1024, 30) == False

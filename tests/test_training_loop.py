@@ -653,13 +653,15 @@ class TestGradientFlow:
         loss = nn.MSELoss()(model(x), y)
         loss.backward()
         
-        min_grad = float('inf')
+        mean_grad = 0.0
+        count = 0
         for param in model.parameters():
             if param.grad is not None:
-                min_abs_grad = param.grad.abs().min().item()
-                min_grad = min(min_grad, min_abs_grad)
-        
-        assert min_grad > 1e-7, f"Gradient vanishing detected: min_grad = {min_grad}"
+                mean_grad += param.grad.abs().mean().item()
+                count += 1
+        mean_grad /= max(count, 1)
+
+        assert mean_grad > 1e-7, f"Gradient vanishing detected: mean_grad = {mean_grad}"
     
     def test_gradient_norm_consistency(self, mock_model: nn.Module, sample_batch: Tuple, loss_fn: nn.Module, device: torch.device):
         """

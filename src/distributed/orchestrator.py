@@ -121,6 +121,7 @@ class ProcessGroupManager:
         self.world_size = None
         self.device = None
         self.initialized = False
+        self._initialized = False
     
     def initialize(self, rank: int, world_size: int,
                   master_addr: str = "localhost",
@@ -158,6 +159,7 @@ class ProcessGroupManager:
                 timeout=self.timeout
             )
             self.initialized = True
+            self._initialized = True
             self.device = torch.device(f"cuda:{rank}" if torch.cuda.is_available() else "cpu")
             logger.info(f"Rank {rank}/{world_size} initialized on {self.device}")
         except Exception as e:
@@ -205,11 +207,16 @@ class ProcessGroupManager:
             dist.all_reduce(tensor, op=reduce_op)
         return tensor
     
+    def is_initialized(self) -> bool:
+        """Check if the process group has been initialized."""
+        return self._initialized
+
     def finalize(self):
         """Cleanup and shutdown process group."""
         if self.initialized and dist.is_initialized():
             dist.destroy_process_group()
             self.initialized = False
+            self._initialized = False
             logger.info(f"Rank {self.rank} finalized")
 
 
@@ -551,16 +558,53 @@ class MultiGPUOrchestrator:
       - Load balancing and result aggregation
     """
     
-    def __init__(self, config: OrchestratorConfig):
+    def __init__(self, config: OrchestratorConfig = None, *,
+                 rank: int = None, world_size: int = None,
+                 backend: str = None, device: str = None,
+                 enable_monitoring: bool = False):
         """
         Initialize multi-GPU orchestrator.
-        
+
+        Supports two calling conventions:
+          1. MultiGPUOrchestrator(OrchestratorConfig(...))
+          2. MultiGPUOrchestrator(rank=0, world_size=1, backend="gloo",
+                                  device="cpu", enable_monitoring=True)
+
         Args:
-            config: Orchestrator configuration
+            config: Orchestrator configuration (legacy mode)
+            rank: Process rank (keyword-args mode)
+            world_size: Total processes
+            backend: Communication backend
+            device: Device string or torch.device
+            enable_monitoring: Whether to enable performance monitoring
         """
+        # Support keyword-args mode
+        if config is None or not isinstance(config, OrchestratorConfig):
+            # Build config from keyword args
+            _backend = backend or "nccl"
+            config = OrchestratorConfig(backend=_backend)
+
         self.config = config
+
+        # Store direct attributes for keyword-args mode
+        self.rank = rank if rank is not None else 0
+        self.world_size = world_size if world_size is not None else 1
+        self.backend = backend if backend is not None else config.backend
+        self.enable_monitoring = enable_monitoring
+
+        # Handle device
+        if device is not None:
+            if isinstance(device, str):
+                self.device = torch.device(device)
+            else:
+                self.device = device
+        else:
+            self.device = torch.device(
+                f"cuda:{self.rank}" if torch.cuda.is_available() else "cpu"
+            )
+
         self.process_group_mgr = ProcessGroupManager(
-            backend=config.backend,
+            backend=self.backend,
             timeout_sec=config.timeout_sec
         )
         self.resource_allocator = None
@@ -568,12 +612,18 @@ class MultiGPUOrchestrator:
         self.recovery_manager = FailureRecoveryManager(
             max_retries=config.max_restart_attempts
         )
-        
+
+        # Create performance monitor
+        self.monitor = GPUPerformanceMonitor()
+
         self.model = None
         self.initialized = False
         self.step_count = 0
         self.inference_times = collections.deque(maxlen=100)
-        
+        self._start_time = time.time()
+        self._failure_count = 0
+        self._recovery_attempts = 0
+
         # Setup logging
         logging.basicConfig(level=config.log_level)
     
@@ -724,6 +774,19 @@ class MultiGPUOrchestrator:
             "memory_stats": self.resource_allocator.get_memory_stats() if self.resource_allocator else {},
         }
     
+    def get_performance_stats(self) -> Dict[str, Any]:
+        """Get performance statistics including uptime and failure metrics."""
+        uptime = time.time() - self._start_time
+        monitor_stats = self.monitor.get_stats() if self.monitor else {}
+
+        return {
+            "uptime_seconds": uptime,
+            "failure_count": self._failure_count,
+            "recovery_attempts": self._recovery_attempts,
+            "step_count": self.step_count,
+            "monitor": monitor_stats,
+        }
+
     def cleanup(self):
         """Cleanup and shutdown orchestrator."""
         if self.initialized:
@@ -740,6 +803,146 @@ class MultiGPUOrchestrator:
 
 
 # ============================================================================
+# GPU Performance Monitor
+# ============================================================================
+
+class GPUPerformanceMonitor:
+    """
+    Monitors GPU performance with timer-based operation tracking.
+
+    Records operation durations, memory snapshots, and provides
+    aggregated statistics.
+    """
+
+    def __init__(self):
+        """Initialize performance monitor."""
+        self.metrics: Dict[str, List[float]] = {}
+        self._active_timers: Dict[str, float] = {}
+        self._memory_snapshots: List[Dict[str, Any]] = []
+
+    def start_timer(self, name: str) -> None:
+        """
+        Start a named timer.
+
+        Args:
+            name: Operation name
+        """
+        self._active_timers[name] = time.time()
+
+    def end_timer(self, name: str) -> float:
+        """
+        End a named timer and record the duration.
+
+        Args:
+            name: Operation name (must have been started)
+
+        Returns:
+            Duration in seconds
+        """
+        if name not in self._active_timers:
+            raise ValueError(f"Timer '{name}' was not started")
+
+        duration = time.time() - self._active_timers.pop(name)
+
+        if name not in self.metrics:
+            self.metrics[name] = []
+        self.metrics[name].append(duration)
+
+        return duration
+
+    def record_memory(self) -> Dict[str, Any]:
+        """
+        Record current memory utilization snapshot.
+
+        Returns:
+            Dictionary with memory statistics
+        """
+        if torch.cuda.is_available():
+            snapshot = {
+                "timestamp": time.time(),
+                "allocated_mb": torch.cuda.memory_allocated() / 1e6,
+                "reserved_mb": torch.cuda.memory_reserved() / 1e6,
+            }
+        else:
+            snapshot = {
+                "timestamp": time.time(),
+                "allocated_mb": 0.0,
+                "reserved_mb": 0.0,
+            }
+        self._memory_snapshots.append(snapshot)
+        return snapshot
+
+    def get_stats(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Get aggregated statistics for all recorded operations.
+
+        Returns:
+            Dictionary mapping operation names to stats dicts with
+            'count', 'mean', 'min', 'max', and 'total' keys.
+        """
+        stats = {}
+        for name, durations in self.metrics.items():
+            stats[name] = {
+                "count": len(durations),
+                "mean": sum(durations) / len(durations) if durations else 0,
+                "min": min(durations) if durations else 0,
+                "max": max(durations) if durations else 0,
+                "total": sum(durations),
+            }
+        return stats
+
+
+# ============================================================================
+# Distributed Parameter Initializer
+# ============================================================================
+
+class DistributedParameterInitializer:
+    """
+    Initializes and synchronizes model parameters across distributed ranks.
+
+    Broadcasts parameters and buffers from a source rank to all other ranks.
+    """
+
+    def __init__(self, orchestrator: 'MultiGPUOrchestrator'):
+        """
+        Args:
+            orchestrator: The MultiGPUOrchestrator managing distributed setup
+        """
+        self.orchestrator = orchestrator
+        self.rank = orchestrator.rank
+        self.world_size = orchestrator.world_size
+
+    def broadcast_parameters(self, model: torch.nn.Module, src_rank: int = 0) -> None:
+        """
+        Broadcast model parameters from src_rank to all other ranks.
+
+        Args:
+            model: PyTorch model whose parameters will be broadcast
+            src_rank: Source rank for broadcasting
+
+        Raises:
+            RuntimeError: If distributed is not initialized and world_size > 1
+        """
+        if dist.is_initialized() and self.world_size > 1:
+            for param in model.parameters():
+                dist.broadcast(param.data, src=src_rank)
+        # In single-rank mode, nothing to broadcast
+
+    def broadcast_buffers(self, model: torch.nn.Module, src_rank: int = 0) -> None:
+        """
+        Broadcast model buffers from src_rank to all other ranks.
+
+        Args:
+            model: PyTorch model whose buffers will be broadcast
+            src_rank: Source rank for broadcasting
+        """
+        if dist.is_initialized() and self.world_size > 1:
+            for buf in model.buffers():
+                dist.broadcast(buf.data, src=src_rank)
+        # In single-rank mode, nothing to broadcast
+
+
+# ============================================================================
 # Exports
 # ============================================================================
 
@@ -750,6 +953,8 @@ __all__ = [
     "HealthMonitor",
     "FailureRecoveryManager",
     "MultiGPUOrchestrator",
+    "GPUPerformanceMonitor",
+    "DistributedParameterInitializer",
     "ProcessStatus",
     "FailureMode",
 ]

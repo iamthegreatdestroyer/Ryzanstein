@@ -22,6 +22,7 @@ Performance Targets:
   - Zero crashes in extended runs
 """
 
+import os
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 import tempfile
@@ -156,12 +157,12 @@ class BaseIntegrationTest(unittest.TestCase):
         self.temp_dir = tempfile.mkdtemp()
         torch.manual_seed(42)
         
-        # Model configuration
-        self.vocab_size = 32000
-        self.hidden_dim = 4096
-        self.num_layers = 4
+        # Model configuration (small dims for CI)
+        self.vocab_size = 1024
+        self.hidden_dim = 256
+        self.num_layers = 2
         self.batch_size = 2
-        self.seq_length = 128
+        self.seq_length = 32
     
     def tearDown(self):
         """Clean up."""
